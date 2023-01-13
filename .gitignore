@@ -33,7 +33,8 @@ octave-workspace
 .DS_Store
 
 movies/
-simulation_structure/*
-images/*
-.vscode/*
-libigl/*
+simulation_structure/
+images/
+.vscode/
+libigl/
+assets/
