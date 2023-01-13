@@ -1,7 +1,6 @@
 # ! TODO:
-# 1. fix random spread of particles
-# 2. create rectangular planar equiareal parametrization mesh (--> C++ file)
-# 3. link 2D mesh simulation with the 3D mesh in GLMakie over chaining the Observable with 'lift'
+# 1. create rectangular planar equiareal parametrization mesh (--> C++ file)
+# 2. link 2D mesh simulation with the 3D mesh in GLMakie over chaining the Observable with 'lift'
 #    -> see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
 
 
@@ -26,7 +25,7 @@ GLMakie.set_window_config!(
 UpFolder = pwd();
 namestructure = "ellipsoid_x4"
 mesh_loaded = FileIO.load("assets/ellipsoid_x4.stl")
-# mesh_loaded = FileIO.load("meshes/camel_uv.stl")
+# mesh_loaded_uv = FileIO.load("meshes/camel_uv.stl")
 
 # % Define folder structure and pre-process meshes:
 # % -----------------------------------------------
@@ -51,36 +50,198 @@ end
 # Define Model Parameters
 ########################################################################################
 
-num_part = 200; # number particles
-v0 = 0.1; # velocity of particles
-v0_next = 0.1; # if velocity is to be changed after a certain number of timesteps
+"""
+    active_particles_simulation(
+    ;
+    num_part = 200, # number particles
+    v0 = 0.1, # velocity of particles
+    v0_next = 0.1, # if velocity is to be changed after a certain number of timesteps
 
-num_step = 300; # Number of timesteps
+    num_step = 300, # Number of timesteps
 
-σ = 5/12; # particle radius
+    σ = 5/12, # particle radius
 
-# Define parameters for the force calculations:
-# ---------------------------------------------
-r_adh = 1; # Cut off radius for adhesive forces
-k = 10.; # Elastic constant for repulsive forces
-k_next = 10.; # value of elastic constant after a certain number of timesteps
-k_adh = 0.75; # Adhesive forces
+    # Define parameters for the force calculations:
+    # ---------------------------------------------
+    r_adh = 1, # Cut off radius for adhesive forces
+    k = 10, # Elastic constant for repulsive forces
+    k_next = 10, # value of elastic constant after a certain number of timesteps
+    k_adh = 0.75, # Adhesive forces
 
-μ = 1.; # arbitrary mass of particle
-τ = 1; #time of relaxation of collision between 2 particles
+    μ = 1, # arbitrary mass of particle
+    τ = 1, #time of relaxation of collision between 2 particles
 
-dt = 0.01*τ; # Step size
-plotstep = 0.1/dt; # Number of calculation between plot
+    # Parameters for making movies:
+    #------------------------------
+    ρ = 6, # arbitrary value for scaling the vector on plotting. To automatize, maybe from file name value
+)
 
-b = v0_next/(2*σ*μ*k_next); # for calculating coupling constant
-J = b/τ; # Coupling constant of orientation vectors
-noise=0.002/τ;  #value of the noise amplitude
-hi=noise/(2*sqrt(dt)); # Amplitude of the noise on orientation
+Define Model Parameters
+"""
+function active_particles_simulation(
+    ;
+    num_part = 200, # number particles
+    v0 = 0.1, # velocity of particles
+    v0_next = 0.1, # if velocity is to be changed after a certain number of timesteps
 
-# Parameters for making movies:
-#------------------------------
-ρ = 6; # arbitrary value for scaling the vector on plotting. To automatize, maybe from file name value
-scale=0.1*ρ; # Scale the vector for making movies
+    num_step = 300, # Number of timesteps
+
+    σ = 5/12, # particle radius
+
+    # Define parameters for the force calculations:
+    # ---------------------------------------------
+    r_adh = 1, # Cut off radius for adhesive forces
+    k = 10, # Elastic constant for repulsive forces
+    k_next = 10, # value of elastic constant after a certain number of timesteps
+    k_adh = 0.75, # Adhesive forces
+
+    μ = 1, # arbitrary mass of particle
+    τ = 1, #time of relaxation of collision between 2 particles
+
+    # Parameters for making movies:
+    #------------------------------
+    ρ = 6, # arbitrary value for scaling the vector on plotting. To automatize, maybe from file name value
+)
+    dt = 0.01*τ # Step size
+
+    plotstep = 0.1/dt # Number of calculation between plot
+    b = v0_next/(2*σ*μ*k_next) # for calculating coupling constant
+    J = b/τ # Coupling constant of orientation vectors
+    scale=0.1*ρ # Scale the vector for making movies
+
+
+    ########################################################################################
+    # Step 1.: Initialize the Observables for the visualization
+    ########################################################################################
+
+    observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))  # position of particles
+    observe_n = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized orientation of particles
+    observe_nr_dot = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized velocity vector
+    observe_nr_dot_cross = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized binormal vector of the plane normal to the orientation vector
+    observe_order = Makie.Observable(Vector{Float64}(undef, Int(num_step/plotstep)))
+
+
+    ########################################################################################
+    # Step 2.: Get the geometric data from the mesh
+    ########################################################################################
+
+    N = mesh_loaded.normals
+    vertices = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
+    faces = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
+    # a = length(vertices)/3
+    # faces = Int.(reshape(1:a, 3, :)')  # this is faster: return the faces of the mesh
+
+
+    ########################################################################################
+    # Step 3.: Analyse the geometry of the mesh surface
+    #
+    # When we plot surfaces, we are interested only in some part of the
+    # geometry, so we select the faces which have at least one vertex in the
+    # area of interest
+    ########################################################################################
+
+    Faces_coord = cat(dim_data(vertices, faces, 1), dim_data(vertices, faces, 2), dim_data(vertices, faces, 3), dims=3)
+    face_neighbors = find_face_neighbors(faces, Faces_coord)  # TODO: fix this function for the uv plot case
+
+
+    # ########################################################################################
+    # # Step 4.: Initialize particles on the mesh with random initial orientation
+    # ########################################################################################
+
+    Norm_vect = ones(num_part,3); # Initialisation of normal vector of each faces
+    num_face = fill(NaN, num_part, length(face_neighbors[1,:])^2)   # Initialisation of face on which is the particle
+
+    r = observe_r[] |> vec_of_vec_to_array  # transform the Observable vector to our used Matrix notation
+    n = observe_n[] |> vec_of_vec_to_array
+
+    # for-loop where particle are randomly positioned and orientated in a 3D
+    # box, then projected on the closest face. The normal vector of that face
+    # is then also saved
+
+    # Julia supports parallel loops using the Threads.@threads macro. 
+    # This macro is affixed in front of a for loop to indicate to Julia that the loop is a multi-threaded region
+    # the order of assigning the values to the particles isn't important, so we can use parallel loops
+    vertices_length = length(vertices[:,1])
+    vertices_list = range(1, vertices_length, step=1)
+    @threads for i=1:num_part
+        # Randomly position of particles on the mesh
+        random_vertice = rand(vertices_list)  # choose a random vertice from the vertice list
+        vertices_list = filter(!=(random_vertice), vertices_list)  # remove the random vertice from the vertice list so that it won't be chosen again
+        r[i,:] = vertices[random_vertice, :]  # get random row from vertices and assign it to the particle
+
+        #random particle orientation
+        n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
+
+        # TODO: the following two lines are the bootle-neck
+        p0s, N_temp, index_binary, index_face_in, index_face_out = next_face_for_the_particle(Faces_coord, N, r, i)
+        r[i,:], Norm_vect[i,:], num_face[i,1] = update_initial_particle!(p0s, N_temp, index_binary, index_face_in, index_face_out, i, r, Norm_vect, num_face)
+    end
+
+    observe_r[] = array_to_vec_of_vec(r)
+    observe_n[] = array_to_vec_of_vec(n)
+
+
+    ########################################################################################
+    # Step 5.: Simulate and visualize
+    ########################################################################################
+
+    scene = GLMakie.Scene(resolution = (400,400), show_axis = false);
+
+    figure = GLMakie.Figure(resolution=(2600, 1200))
+    ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    ax2 = Makie.Axis(figure[1, 2])
+    # ax3 = Makie.Axis3(figure[2, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    colsize!(figure.layout, 1, Relative(2 / 3))
+
+    # mesh!(ax3, mesh_loaded_uv)
+    # wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
+
+    mesh!(ax1, mesh_loaded)
+    wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
+    meshscatter!(ax1, observe_r, color = :black, markersize = 0.05)  # overgive the Observable the plotting function to TRACK it
+    arrows!(ax1, observe_r, observe_n, arrowsize = 0.05, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
+    arrows!(ax1, observe_r, observe_nr_dot, arrowsize = 0.05, linecolor = (:red, 0.7), linewidth = 0.02, lengthscale = scale)
+    arrows!(ax1, observe_r, observe_nr_dot_cross, arrowsize = 0.05, linecolor = (:blue, 0.7), linewidth = 0.02, lengthscale = scale)
+
+    # Colorbar(fig[1, 4], hm, label="values", height=Relative(0.5))
+    ylims!(ax2, 0, 1)
+    lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
+
+    # %Project the orientation of the corresponding faces using normal vectors
+    n = P_perp(Norm_vect,n)
+    n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
+
+    # cam = cameracontrols(scene)
+    # update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
+    # update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
+    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
+        simulate_next_step(
+            tt,
+            observe_r,
+            face_neighbors,
+            Faces_coord,
+            N,
+            num_face,
+            num_part,
+            observe_n,
+            observe_nr_dot,
+            observe_nr_dot_cross,
+            observe_order,
+            Norm_vect;
+            v0,
+            v0_next,
+            k,
+            k_next,
+            σ,
+            μ,
+            τ,
+            r_adh,
+            k_adh,
+        )
+    end
+
+end
+
 
 
 ########################################################################################
@@ -206,19 +367,6 @@ end
 
 
 """
-    spread_particles_random_on_mesh(Vertex)
-
-Randomly position of particles on the mesh
-"""
-function spread_particles_random_on_mesh(Vertex)
-    return[(maximum(Vertex[:,1])-minimum(Vertex[:,1]))*rand(1)[1]+minimum(Vertex[:,1]),
-        (maximum(Vertex[:,2])-minimum(Vertex[:,2]))*rand(1)[1]+minimum(Vertex[:,2]),
-        (maximum(Vertex[:,3])-minimum(Vertex[:,3]))*rand(1)[1]+minimum(Vertex[:,3])
-        ]
-end
-
-
-"""
     get_particle(_face_coord_temp::Array, i::Int)
 
 Getestete Funktion, 05 JAN 2023
@@ -247,7 +395,7 @@ function get_particle_position(_face_coord_temp::Array, N_temp, r, i::Int)
 end
 
 """
-    next_face_for_the_particle(Faces_coord, N, r, i)
+    next_face_for_the_particle(_Faces_coord, _N, _r, _i)
 
 """
 function next_face_for_the_particle(_Faces_coord, _N, _r, _i)
@@ -308,7 +456,7 @@ end
 
 
 """
-    get_index_binary(Dist2faces::Array)
+    get_index_binary(_Dist2faces::Array)
 
 Faces with closest point to r(i,:) and associated normal vectors
 Finds the neighbour faces of the particle i
@@ -319,10 +467,30 @@ end
 
 
 """
-    update_initial_particle!(p0s, N_temp, index_binary, index_face_in, index_face_out, i)
+    update_initial_particle!(
+    p0s,
+    N_temp,
+    index_binary,
+    index_face_in,
+    index_face_out,
+    i,
+    r,
+    Norm_vect,
+    num_face,
+)
 
 """
-function update_initial_particle!(p0s, N_temp, index_binary, index_face_in, index_face_out, i)
+function update_initial_particle!(
+    p0s,
+    N_temp,
+    index_binary,
+    index_face_in,
+    index_face_out,
+    i,
+    r,
+    Norm_vect,
+    num_face,
+)
     # If the projections are in no face, take the average projection and
     # normal vectors. Save the faces number used
     if isempty(index_face_in) == 1
@@ -344,14 +512,24 @@ end
 
 
 """
-    calculate_forces_between_particles(Vect, Distmat, k)
+    calculate_forces_between_particles(
+    Vect,
+    Distmat,
+    k,
+    σ,
+    r_adh,
+    k_adh
+)
 
 """
-function calculate_forces_between_particles(Vect, Distmat, k)
-    σ = 5/12; # particle radius
-    r_adh = 1; # Cut off radius for adhesive forces
-    k_adh = 0.75; # Adhesive forces
-
+function calculate_forces_between_particles(
+    Vect,
+    Distmat,
+    k,
+    σ,
+    r_adh,
+    k_adh
+)
     Fij_rep = (-k*(2*σ.-Distmat))./(2*σ)
     Fij_adh = (k_adh*(2*σ.-Distmat))./(2*σ-r_adh)
 
@@ -390,7 +568,7 @@ end
 
 
 """
-    calculate_order_parameter(r, r_dot, num_part)
+    calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep)
 
 """
 function calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep)
@@ -407,34 +585,63 @@ function calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep)
 end
 
 
-
 """
-    simulate_next_step(tt, r, num_part, n, Norm_vect)
+    simulate_next_step(
+    tt,
+    observe_r,
+    face_neighbors,
+    Faces_coord,
+    num_face,
+    num_part,
+    observe_n,
+    observe_nr_dot,
+    observe_nr_dot_cross,
+    observe_order,
+    Norm_vect;
+    v0,
+    v0_next,
+    k,
+    k_next,
+    σ,
+    μ,
+    τ,
+    r_adh,
+    k_adh
+)
 
 calculate force, displacement and reorientation for all particles. In the second
 part, for each particle project them on closest face. In the third part,
 we sometimes plot the position and orientation of the cells
 """
-function simulate_next_step(tt, observe_r, face_neighbors, num_face, num_part, observe_n, observe_nr_dot, observe_nr_dot_cross, observe_order, Norm_vect)
+function simulate_next_step(
+    tt,
+    observe_r,
+    face_neighbors,
+    Faces_coord,
+    N,
+    num_face,
+    num_part,
+    observe_n,
+    observe_nr_dot,
+    observe_nr_dot_cross,
+    observe_order,
+    Norm_vect;
+    v0,
+    v0_next,
+    k,
+    k_next,
+    σ,
+    μ,
+    τ,
+    r_adh,
+    k_adh
+)
     r = observe_r[] |> vec_of_vec_to_array
     n = observe_n[] |> vec_of_vec_to_array
     nr_dot = observe_nr_dot[] |> vec_of_vec_to_array
     nr_dot_cross = observe_nr_dot_cross[] |> vec_of_vec_to_array
     v_order = observe_order[] |> vec_of_vec_to_array
 
-    # ! TODO: remove the constants
-    v0 = 0.1; # velocity of particles
-    v0_next = 0.1; # if velocity is to be changed after a certain number of timesteps
-
-    σ = 5/12; # particle radius
-
-    # Define parameters for the force calculations:
-    # ---------------------------------------------
-    k = 10.; # Elastic constant for repulsive forces
-    k_next = 10.; # value of elastic constant after a certain number of timesteps
-
-    μ = 1.; # arbitrary mass of particle
-    τ = 1; #time of relaxation of collision between 2 particles
 
     dt = 0.01*τ; # Step size
     plotstep = 0.1/dt; # Number of calculation between plot
@@ -457,7 +664,14 @@ function simulate_next_step(tt, observe_r, face_neighbors, num_face, num_part, o
 
     Distmat = sqrt.(sum(Vect.^2,dims=3))[:,:,1]  # distance of each point with the others
 
-    F_track = calculate_forces_between_particles(Vect, Distmat, k)  # calculate the force between particles
+    F_track = calculate_forces_between_particles(
+        Vect,
+        Distmat,
+        k,
+        σ,
+        r_adh,
+        k_adh
+    )  # calculate the force between particles
     r_dot = P_perp(Norm_vect, v0.*n+μ.*F_track)  # velocity of each particle
     r = r+r_dot*dt  # calculate next position
 
@@ -551,114 +765,24 @@ function simulate_next_step(tt, observe_r, face_neighbors, num_face, num_part, o
 end
 
 
-# Define perpendicular projection functions, adapted from "PhysRevE 91 022306"
-# P_perp does a normal projection of the vector b on the plane normal to a
-P_perp(a, b) = (b-(sum(b.*a,dims=2)./(sqrt.(sum(a.^2,dims=2)).^2)*ones(1,3)).*a)
+"""
+    P_perp(a, b)
 
-# P_plan does a projection of the vector b on vector normal to a1 in the plane normal to a
-P_plan(a,b,a1) = ((sum(b.*a,dims=2)./(sqrt.(sum(a.^2,dims=2)))*ones(1,3)).*[
-    a[:,2].*a1[:,3]-a[:,3].*a1[:,2],-a[:,1].*a1[:,3]+a[:,3].*a1[:,1],a[:,1].*a1[:,2]-a[:,2].*a1[:,1]
-    ])
-
-
-########################################################################################
-# Step 1.: Initialize the Observables for the visualization
-########################################################################################
-
-observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))  # position of particles
-observe_n = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized orientation of particles
-observe_nr_dot = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized velocity vector
-observe_nr_dot_cross = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized binormal vector of the plane normal to the orientation vector
-observe_order = Makie.Observable(Vector{Float64}(undef, Int(num_step/plotstep)))
-
-
-########################################################################################
-# Step 2.: Get the geometric data from the mesh
-########################################################################################
-
-N = mesh_loaded.normals
-vertices = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
-faces = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
-# a = length(vertices)/3
-# faces = Int.(reshape(1:a, 3, :)')  # this is faster: return the faces of the mesh
-
-
-########################################################################################
-# Step 3.: Analyse the geometry of the mesh surface
-#
-# When we plot surfaces, we are interested only in some part of the
-# geometry, so we select the faces which have at least one vertex in the
-# area of interest
-########################################################################################
-
-V_plot = ones(length(faces[:,1]),1); # Will store the num of the faces in the ROI
-face_num_plot=[];
-
-Faces_coord = cat(dim_data(vertices, faces, 1), dim_data(vertices, faces, 2), dim_data(vertices, faces, 3), dims=3)
-
-time_points = Int(num_step/plotstep)
-v_order = zeros(time_points, 1)
-face_neighbors = find_face_neighbors(faces, Faces_coord)  # TODO: fix this function for the uv plot case
-
-
-# ########################################################################################
-# # Step 4.: Initialize particles on the mesh with random initial orientation
-# ########################################################################################
-
-Norm_vect = ones(num_part,3); # Initialisation of normal vector of each faces
-num_face = fill(NaN, num_part, length(face_neighbors[1,:])^2)   # Initialisation of face on which is the particle
-
-r = observe_r[] |> vec_of_vec_to_array  # transform the Observable vector to our used Matrix notation
-n = observe_n[] |> vec_of_vec_to_array
-
-# for-loop where particle are randomly positioned and orientated in a 3D
-# box, then projected on the closest face. The normal vector of that face
-# is then also saved
-
-# Julia supports parallel loops using the Threads.@threads macro. 
-# This macro is affixed in front of a for loop to indicate to Julia that the loop is a multi-threaded region
-# the order of assigning the values to the particles isn't important, so we can use parallel loops
-@threads for i=1:num_part
-    r[i,:] = spread_particles_random_on_mesh(vertices)
-    p0s, N_temp, index_binary, index_face_in, index_face_out = next_face_for_the_particle(Faces_coord, N, r, i)
-    n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]  #random particle orientation
-    r[i,:], Norm_vect[i,:], num_face[i,1] = update_initial_particle!(p0s, N_temp, index_binary, index_face_in, index_face_out, i)
+Define perpendicular projection functions, adapted from "PhysRevE 91 022306"
+P_perp does a normal projection of the vector b on the plane normal to a
+"""
+function P_perp(a, b)
+    return (b-(sum(b.*a,dims=2)./(sqrt.(sum(a.^2,dims=2)).^2)*ones(1,3)).*a)
 end
 
-observe_r[] = array_to_vec_of_vec(r)
-observe_n[] = array_to_vec_of_vec(n)
 
+"""
+    P_plan(a,b,a1)
 
-########################################################################################
-# Step 5.: Simulate and visualize
-########################################################################################
-
-scene = GLMakie.Scene(resolution = (400,400), show_axis = false);
-
-figure = GLMakie.Figure(; resolution=(1200, 400))
-ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
-ax2 = Makie.Axis(figure[1, 2])
-colsize!(figure.layout, 1, Relative(2 / 3))
-
-mesh!(ax1, mesh_loaded)
-wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
-meshscatter!(ax1, observe_r, color = :black, markersize = 0.05)  # overgive the Observable the plotting function to TRACK it
-arrows!(ax1, observe_r, observe_n, arrowsize = 0.05, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
-arrows!(ax1, observe_r, observe_nr_dot, arrowsize = 0.05, linecolor = (:red, 0.7), linewidth = 0.02, lengthscale = scale)
-arrows!(ax1, observe_r, observe_nr_dot_cross, arrowsize = 0.05, linecolor = (:blue, 0.7), linewidth = 0.02, lengthscale = scale)
-
-# Colorbar(fig[1, 4], hm, label="values", height=Relative(0.5))
-ylims!(ax2, 0, 1)
-lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
-
-
-# %Project the orientation of the corresponding faces using normal vectors
-n = P_perp(Norm_vect,n)
-n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
-
-# cam = cameracontrols(scene)
-# update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
-# update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
-record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
-    simulate_next_step(tt, observe_r, face_neighbors, num_face, num_part, observe_n, observe_nr_dot, observe_nr_dot_cross, observe_order, Norm_vect)
+P_plan does a projection of the vector b on vector normal to a1 in the plane normal to a
+"""
+function P_plan(a,b,a1)
+    return ((sum(b.*a,dims=2)./(sqrt.(sum(a.^2,dims=2)))*ones(1,3)).*[
+    a[:,2].*a1[:,3]-a[:,3].*a1[:,2],-a[:,1].*a1[:,3]+a[:,3].*a1[:,1],a[:,1].*a1[:,2]-a[:,2].*a1[:,1]
+    ])
 end
