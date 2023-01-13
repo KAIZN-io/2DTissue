@@ -40,7 +40,14 @@ int main(int argc, char *argv[])
     Eigen::MatrixXd bnd_uv;
     igl::map_vertices_to_circle(vertices, bnd, bnd_uv);
 
-    igl::harmonic(vertices, faces, bnd, bnd_uv, 1, initial_guess);  // the '1' is the k power of harmonic operation (1: harmonic, 2: biharmonic, etc)
+    // compute the inital parameterization of the mesh
+    // input is a 3D mesh and a list of boundary vertices
+    // the boundary has to be planar equiareal
+    // output is a 2D mesh
+    // the k refers to the exponent of the Laplacian operator used in the calculation of the harmonic function. 
+    // '2' is used for example in area-preserving maps
+    // Output: discrete (integrated) k-Laplacian  
+    igl::harmonic(vertices, faces, bnd, bnd_uv, 1, initial_guess);  // the '1' is the k power of harmonic operation (1: harmonic (=Laplace-Beltrami operator (?)), 2: biharmonic, etc)
 
     // Add dynamic regularization to avoid to specify boundary conditions
     igl::ARAPData arap_data;
