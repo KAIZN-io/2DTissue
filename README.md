@@ -34,6 +34,10 @@ This is how you manage packages with it:
 
 All your modifications to the packages will be reflected in the `Project.toml` and `Manifest.toml` respectively.
 
+## Run the simulation in Julia
+
+Execute the following command in the project folder inside your shell: `julia -t 8 --project main.jl`
+
 ---
 
 ## Requirements 
