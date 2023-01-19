@@ -1,6 +1,9 @@
-// // g++ -std=c++14 -lpthread -I ./libigl/include/ -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/eigen3 -I /opt/homebrew/Cellar/open-mesh/9.0/include -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include src/calc_distance.cpp -o src/calc_distance
+// g++ -std=c++14 -lpthread -I ./libigl/include/ -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/eigen3 -I /opt/homebrew/Cellar/open-mesh/9.0/include -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include src/calc_distance.cpp -o src/calc_distance
 
-// // ! anschauen: https://doc.cgal.org/latest/BGL/index.html#title30
+// ! anschauen: https://doc.cgal.org/latest/BGL/index.html#title30
+// TODO: transform the Polyhedron into a Graph or a Surface_mesh and use the Dijkstra algorithm to find the shortest path between two vertices 
+// -> https://doc.cgal.org/latest/BGL/group__PkgBGLRef.html
+
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Polyhedron_3.h>
@@ -14,12 +17,14 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/boost/graph/graph_traits_Triangulation_2.h>
 #include <CGAL/boost/graph/dijkstra_shortest_paths.h>
-
 #include <CGAL/boost/graph/graph_traits_Polyhedron_3.h>
-
 #include <boost/property_map/property_map.hpp>
 
+#include <CGAL/IO/Polyhedron_iostream.h>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graph_traits.hpp>
 
+// typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;  // ? vielliecht ist dieser Kernel besser?
 typedef CGAL::Simple_cartesian<double>                               Kernel;
 typedef Kernel::Point_3                                              Point;
 typedef Kernel::Vector_3                                             Vector;
@@ -28,6 +33,7 @@ typedef boost::graph_traits<Polyhedron>::vertex_iterator            vertex_itera
 typedef boost::graph_traits<Polyhedron>::vertex_descriptor          vertex_descriptor;
 typedef boost::graph_traits<Polyhedron>::edge_descriptor            edge_descriptor;
 typedef Polyhedron::Vertex_handle                                   Vertex_handle;
+typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS> Graph;
 
 // We use a std::map to store the index
 typedef std::map<vertex_descriptor, int>                              VertexIndexMap;
@@ -65,12 +71,26 @@ Point furthest_vertex(Polyhedron& P, vertex_descriptor start, std::vector<int>& 
 }
 
 
+Graph Polyhedron_to_Graph(Polyhedron& P){
+    Graph g;
+    for(Polyhedron::Vertex_iterator vi = P.vertices_begin(); vi != P.vertices_end(); ++vi) {
+        boost::add_vertex(g);
+    }
+    for(Polyhedron::Edge_iterator ei = P.edges_begin(); ei != P.edges_end(); ++ei) {
+        boost::add_edge(ei->vertex()->id(), ei->opposite()->vertex()->id(), g);
+    }
+    return g;
+}
+
+
 int main(int argc, char** argv) {
 
     // get the mesh in form of a polyhedron
     Polyhedron P;
     std::ifstream in((argc>1)?argv[1]:CGAL::data_file_path("git_repos/Confined_active_particles/meshes/sphere.off"));
     in >> P ;
+
+    // auto g = Polyhedron_to_Graph(P);  // TODO: maybe fix this
 
     // associate indices to the vertices using the "id()" field of the vertex.
     vertex_iterator vertex_begin, vertex_end;
@@ -80,7 +100,8 @@ int main(int argc, char** argv) {
     for(boost::tie(vertex_begin,vertex_end)=boost::vertices(P); vertex_begin!=vertex_end; ++vertex_begin ){
         vertex_descriptor  vd = *vertex_begin;
         vd->id() = index++;
-        // vertex_index_pmap[*vertex_begin]= index++;   // ? warum klappt das nicht ?
+        std::cout <<  vd -> id() << std::endl;
+        // vertex_index_pmap[vd->id()]= index++;   // ? warum klappt das nicht ? ! deshald is die vertex_index_pmap sinnlos 
     }
 
     // This is the vector where the distance gets written to
@@ -93,169 +114,85 @@ int main(int argc, char** argv) {
     vertex_descriptor start = *vertex_begin;      // vertex_descriptor start = *(vertices(P).first);
     std::cout << "We compute the distances to the following point: " << start->point() << std::endl;
 
-    auto end_point = furthest_vertex(P, start, distance, vertex_begin, vertex_end);
-    std::cout << "got the following target point: " << end_point << std::endl;
-    // vertex_descriptor source_p = source(source_a->point(), P);
-    // vertex_descriptor target_p = target(end_point, P);
+    auto target = furthest_vertex(P, start, distance, vertex_begin, vertex_end);
+    std::cout << "got the following target point: " << target << std::endl;
 
-    // TODO: gibt die Roote zum am weitesten entfernten Vertex aus   -> https://stackoverflow.com/questions/47518846/how-to-find-the-shortest-path-between-two-vertices-in-a-bgl-graph
+    // Dijkstra's shortest path needs property maps for the predecessor and distance
+    // writes the predecessor of each vertex, as well as the distance to the source in such a property map.
+    std::vector<vertex_descriptor> predecessor(boost::num_vertices(P));  // We first declare a vector
+    boost::iterator_property_map<std::vector<vertex_descriptor>::iterator, VertexIdPropertyMap> predecessor_pmap(predecessor.begin(), vertex_index_pmap);  // and then turn it into a property map
+    boost::iterator_property_map<std::vector<int>::iterator, VertexIdPropertyMap> distance_pmap(distance.begin(), vertex_index_pmap);
+
+    // add the property map to the Dijistra algorithm
+    boost::dijkstra_shortest_paths(P, start, distance_map(distance_pmap).predecessor_map(predecessor_pmap).vertex_index_map(vertex_index_pmap));
+    auto xd = boost::get(predecessor_pmap, start);
+    auto xd2 = boost::get(predecessor_pmap,  xd);
+
+    std::cout << xd -> point() << std::endl;
+
+
+    // TODO: gibt die Roote zum am weitesten entfernten Vertex aus
     // TODO: nehme dann ein Nachbar Vertex und gehe zu diesem Vertex
     // TODO: verbinde die Vertices zu einer cut-line
-
-    //  // Create a vector to store the distances from the source vertex
-    // std::vector<double> distances(boost::num_vertices(P));
-
-    // // Dijkstra's shortest path needs property maps for the predecessor and distance
-    // // writes the predecessor of each vertex, as well as the distance to the source in such a property map.
-    // std::vector<vertex_descriptor> predecessors(boost::num_vertices(P));  // We first declare a vector
-    // boost::iterator_property_map<std::vector<vertex_descriptor>::iterator, VertexIdPropertyMap> predecessor_pmap(predecessors.begin(), vertex_index_pmap);  // and then turn it into a property map
-    // boost::iterator_property_map<std::vector<double>::iterator, VertexIdPropertyMap> distance_pmap(distances.begin(), vertex_index_pmap);
-
-    // std::cout << "\nStart dijkstra_shortest_paths at " << source_a->point() <<"\n";
-    // boost::dijkstra_shortest_paths(P, source_a, distance_map(distance_pmap).predecessor_map(predecessor_pmap).vertex_index_map(vertex_index_pmap));
-
-    // // Print the distance from the source to the target vertex
-    // // while (predecessor_pmap[end_point] != end_point) {
-    // //     end_point = predecessor_pmap[end_point];
-    // //     std::cout << " <- " << end_point;
-    // // }
-    // // TODO: predeccessor_pmap doesn't work
-    // for(vertex_descriptor vd : vertices(P))
-    // {
-    //     std::cout << vd->point() << " [" <<  vertex_id_map[vd] << "] ";
-    //     std::cout << " has distance = " << boost::get(distance_pmap,vd)
-    //             << " and predecessor ";
-    //     vd = boost::get(predecessor_pmap,vd);
-    //     std::cout << vd->point() << " [" <<  vertex_id_map[vd] << "]\n ";
-    // }
-
-
-    // std::vector<int> predecessors(boost::num_vertices(P));
-    // std::cout << predecessors.begin() << std::endl;
-    // and then turn it into a property map
-    // boost::iterator_property_map<std::vector<vertex_descriptor>::iterator, VertexIdPropertyMap> predecessor_pmap(predecessors.begin(), indexmap);
-    // boost::iterator_property_map<std::vector<vertex_descriptor>::iterator,boost::property_map<Polyhedron, boost::vertex_index_t>::const_type> predecessor_map(predecessors.begin(), get(boost::vertex_index, P));
-    
-    // boost::iterator_property_map<std::vector<double>::iterator, VertexIdPropertyMap> distance_pmap(distance.begin(), indexmap);
-    // distance_pmap = boost::make_iterator_property_map(distances.begin(), boost::get(boost::vertex_index, P));
-    // Use Dijkstra's algorithm to find the shortest path
-    // boost::dijkstra_shortest_paths(P, source, boost::distance_map(boost::make_iterator_property_map(distances.begin(), boost::get(boost::vertex_index, P))).predecessor_map(predecessor_map));
-    // boost::dijkstra_shortest_paths(P, source, distance_map(distance_pmap).predecessor_map(predecessor_map).vertex_index_map(vertex_index_pmap));
-
 
     return 0;
 }
 
 
-// #include <CGAL/Simple_cartesian.h>
-// #include <CGAL/Surface_mesh.h>
-// #include <boost/graph/astar_search.hpp>
-// #include <CGAL/Astar_face_oriented_ordering.h>
-
-// typedef CGAL::Simple_cartesian<double> K;
-// typedef CGAL::Surface_mesh<K::Point_3> Mesh;
-
-// typedef Mesh::Vertex_index vertex_descriptor;
-
-// struct Face_cost {
-//   template <typename F>
-//   typename F::FT operator()(F f) const {
-//     return 1;
-//   }
-// };
-
-// struct Vertex_cost {
-//   template <typename V>
-//   typename V::FT operator()(V v) const {
-//     return 1;
-//   }
-// };
-
-// struct Astar_visitor {
-//   template <typename V, typename G>
-//   void initialize_vertex(V v, G& g) {}
-//   template <typename V, typename G>
-//   void discover_vertex(V v, G& g) {}
-//   template <typename V, typename G>
-//   void examine_vertex(V v, G& g) {}
-//   template <typename E, typename G>
-//   void examine_edge(E e, G& g) {}
-//   template <typename E, typename G>
-//   void edge_relaxed(E e, G& g) {}
-//   template <typename E, typename G>
-//   void edge_not_relaxed(E e, G& g) {}
-//   template <typename V, typename G>
-//   void finish_vertex(V v, G& g) {}
-// };
-
-// int main()
-// {
-//   Mesh mesh;
-//   // load the mesh
-  
-//   // define the start and end vertex
-//   vertex_descriptor start = vertex_descriptor(0);
-//   vertex_descriptor end = vertex_descriptor(1);
-  
-//   // use A* algorithm to find the shortest path
-//   CGAL::Astar_search<Mesh,
-//                     CGAL::Astar_face_oriented_ordering<Mesh,
-//                                                      Face_cost,
-//                                                      Vertex_cost> >
-//     astar(mesh);
-//   astar.search(start, end, Astar_visitor());
-  
-//   // output the shortest path
-//   for (vertex_descriptor v : astar.came_from_map(end))
-//     std::cout << v << " ";
-//   std::cout << end << std::endl;
-  
-//   return 0;
-// }
-
 
 
 // #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 // #include <CGAL/Polyhedron_3.h>
-// #include <CGAL/boost/graph/graph_traits_Polyhedron_3.h>
-// #include <boost/graph/astar_search.hpp>
-// #include <vector>
+// #include <CGAL/Polyhedron_items_with_id_3.h>
+// #include <CGAL/Surface_mesh_shortest_path.h>
+// #include <CGAL/Random.h>
+// #include <boost/lexical_cast.hpp>
+// #include <cstdlib>
 // #include <iostream>
-
+// #include <fstream>
+// #include <iterator>
 // typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-// typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
-// typedef boost::graph_traits<Polyhedron>::vertex_descriptor Vertex;
-
-// struct EdgeProperties {
-//   double weight;
-// };
-
-// int main() {
-//   Polyhedron P;
-//   // load the mesh
-//   // ...
-
-//   // define the start and end vertex
-//   Vertex start = vertex(0, P);
-//   Vertex end = vertex(1, P);
-
-//   std::vector<Vertex> predecessor(num_vertices(P));
-//   std::vector<double> distance(num_vertices(P));
-  
-//   try {
-//     boost::astar_search(P, start,
-//                         boost::distance_heuristic<Polyhedron, double>(P, end),
-//                         boost::predecessor_map(&predecessor[0]).
-//                         distance_map(&distance[0]).
-//                         weight_map(get(&EdgeProperties::weight, P)));
-//   }
-//   catch(boost::found_goal fg) { // found a path to the goal
-//     for(Vertex v = end;; v = predecessor[v]) {
-//       std::cout << v << " ";
-//       if(predecessor[v] == v)
-//         break;
-//     }
-//     std::cout << std::endl;
+// typedef CGAL::Polyhedron_3<Kernel, CGAL::Polyhedron_items_with_id_3> Triangle_mesh;
+// typedef CGAL::Surface_mesh_shortest_path_traits<Kernel, Triangle_mesh> Traits;
+// typedef CGAL::Surface_mesh_shortest_path<Traits> Surface_mesh_shortest_path;
+// typedef boost::graph_traits<Triangle_mesh> Graph_traits;
+// typedef Graph_traits::vertex_iterator vertex_iterator;
+// typedef Graph_traits::face_iterator face_iterator;
+// int main(int argc, char** argv)
+// {
+//   // read input polyhedron
+//   Triangle_mesh tmesh;
+//   std::ifstream input((argc>1)?argv[1]:CGAL::data_file_path("git_repos/Confined_active_particles/meshes/sphere.off"));
+//   input >> tmesh;
+//   // initialize indices of vertices, halfedges and faces
+//   CGAL::set_halfedgeds_items_id(tmesh);
+//   // pick up a random face
+//   const unsigned int randSeed = argc > 2 ? boost::lexical_cast<unsigned int>(argv[2]) : 7915421;
+//   CGAL::Random rand(randSeed);
+//   const int target_face_index = rand.get_int(0, static_cast<int>(num_faces(tmesh)));
+//   face_iterator face_it = faces(tmesh).first;
+//   std::advance(face_it,target_face_index);
+//   // ... and define a barycentric coordinates inside the face
+//   Traits::Barycentric_coordinates face_location = {{0.25, 0.5, 0.25}};
+//   // construct a shortest path query object and add a source point
+//   Surface_mesh_shortest_path shortest_paths(tmesh);
+//   shortest_paths.add_source_point(*face_it, face_location);
+//   // For all vertices in the tmesh, compute the points of
+//   // the shortest path to the source point and write them
+//   // into a file readable using the CGAL Polyhedron demo
+//   std::ofstream output("git_repos/Confined_active_particles/sphere_shortest_paths_with_id.polylines.txt");
+//   vertex_iterator vit, vit_end;
+//   for ( boost::tie(vit, vit_end) = vertices(tmesh);
+//         vit != vit_end; ++vit)
+//   {
+//     std::vector<Traits::Point_3> points;
+//     shortest_paths.shortest_path_points_to_source_points(*vit, std::back_inserter(points));
+//     // print the points
+//     output << points.size() << " ";
+//     for (std::size_t i = 0; i < points.size(); ++i)
+//       output << " " << points[i];
+//     output << std::endl;
 //   }
 //   return 0;
 // }
+
