@@ -43,15 +43,25 @@ typedef boost::associative_property_map<VertexIndexMap>               VertexIdPr
 VertexIdPropertyMap vertex_index_pmap(vertex_id_map);
 
 
-// bfs = breadth first search explores the graph
-//      -> based on Moore, E. F. (1959). "The shortest path through a maze". Proceedings of an International Symposium on the Theory of Switching (Cambridge, Massachusetts, 2–5 April 1957). Cambridge: Harvard University Press. pp. 285–292.
-// Just as the distance_recorder there is a way to record the predecessor of a vertex
+ // !!! Look at this https://theboostcpplibraries.com/boost.graph-algorithms
+/*
+bfs = breadth first search explores the graph
+      -> based on Moore, E. F. (1959). "The shortest path through a maze". Proceedings of an International Symposium on the Theory of Switching (Cambridge, Massachusetts, 2–5 April 1957). Cambridge: Harvard University Press. pp. 285–292.
+Can only be used if every line has the same weight.
+Just as the distance_recorder there is a way to record the predecessor of a vertex 
+*/
 Point furthest_vertex(Polyhedron& P, vertex_descriptor start, std::vector<int>& distance, vertex_iterator vertex_begin, vertex_iterator vertex_end){
 
     auto indexmap = get(boost::vertex_index, P);
-
     auto dist_pmap = make_iterator_property_map(distance.begin(), indexmap);
-    auto vis = boost::make_bfs_visitor(boost::record_distances(dist_pmap, boost::on_tree_edge()));
+
+    // record the predecessor of each vertex
+    std::vector<vertex_descriptor> predecessor(boost::num_vertices(P));  // We first declare a vector
+    boost::iterator_property_map<std::vector<vertex_descriptor>::iterator, VertexIdPropertyMap> predecessor_pmap(predecessor.begin(), vertex_index_pmap);  // and then turn it into a property map
+  
+    // to use two visitors, you need to put them in a pair (from https://theboostcpplibraries.com/boost.graph-algorithms)
+    auto vis = boost::make_bfs_visitor(std::make_pair(boost::record_distances(dist_pmap, boost::on_tree_edge{}),boost::record_predecessors(predecessor_pmap, boost::on_tree_edge{})));
+    // run the search
     boost::breadth_first_search(P, start, visitor(vis));
 
     // Traverse all vertices and show at what distance they are
@@ -60,6 +70,11 @@ Point furthest_vertex(Polyhedron& P, vertex_descriptor start, std::vector<int>& 
     for(boost::tie(vertex_begin,vertex_end)=boost::vertices(P); vertex_begin!=vertex_end; ++vertex_begin ){
         start = *vertex_begin;
         auto v_distance = distance[start->id()];
+
+        // ! somehow like this you can get the predecessor, but does not work
+        // auto v_predecessor = predecessor[start->id()];
+        // std::cout << "The predecessor is " << v_predecessor->point()<< std::endl;
+
         std::cout <<  start->point() << "  is " << v_distance << " hops away" << std::endl;
         if (v_distance > max_distances) {
             max_distances = v_distance;
@@ -126,7 +141,6 @@ int main(int argc, char** argv) {
     // add the property map to the Dijistra algorithm
     boost::dijkstra_shortest_paths(P, start, distance_map(distance_pmap).predecessor_map(predecessor_pmap).vertex_index_map(vertex_index_pmap));
     auto xd = boost::get(predecessor_pmap, start);
-    auto xd2 = boost::get(predecessor_pmap,  xd);
 
     std::cout << xd -> point() << std::endl;
 
@@ -137,62 +151,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-
-
-
-
-// #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-// #include <CGAL/Polyhedron_3.h>
-// #include <CGAL/Polyhedron_items_with_id_3.h>
-// #include <CGAL/Surface_mesh_shortest_path.h>
-// #include <CGAL/Random.h>
-// #include <boost/lexical_cast.hpp>
-// #include <cstdlib>
-// #include <iostream>
-// #include <fstream>
-// #include <iterator>
-// typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
-// typedef CGAL::Polyhedron_3<Kernel, CGAL::Polyhedron_items_with_id_3> Triangle_mesh;
-// typedef CGAL::Surface_mesh_shortest_path_traits<Kernel, Triangle_mesh> Traits;
-// typedef CGAL::Surface_mesh_shortest_path<Traits> Surface_mesh_shortest_path;
-// typedef boost::graph_traits<Triangle_mesh> Graph_traits;
-// typedef Graph_traits::vertex_iterator vertex_iterator;
-// typedef Graph_traits::face_iterator face_iterator;
-// int main(int argc, char** argv)
-// {
-//   // read input polyhedron
-//   Triangle_mesh tmesh;
-//   std::ifstream input((argc>1)?argv[1]:CGAL::data_file_path("git_repos/Confined_active_particles/meshes/sphere.off"));
-//   input >> tmesh;
-//   // initialize indices of vertices, halfedges and faces
-//   CGAL::set_halfedgeds_items_id(tmesh);
-//   // pick up a random face
-//   const unsigned int randSeed = argc > 2 ? boost::lexical_cast<unsigned int>(argv[2]) : 7915421;
-//   CGAL::Random rand(randSeed);
-//   const int target_face_index = rand.get_int(0, static_cast<int>(num_faces(tmesh)));
-//   face_iterator face_it = faces(tmesh).first;
-//   std::advance(face_it,target_face_index);
-//   // ... and define a barycentric coordinates inside the face
-//   Traits::Barycentric_coordinates face_location = {{0.25, 0.5, 0.25}};
-//   // construct a shortest path query object and add a source point
-//   Surface_mesh_shortest_path shortest_paths(tmesh);
-//   shortest_paths.add_source_point(*face_it, face_location);
-//   // For all vertices in the tmesh, compute the points of
-//   // the shortest path to the source point and write them
-//   // into a file readable using the CGAL Polyhedron demo
-//   std::ofstream output("git_repos/Confined_active_particles/sphere_shortest_paths_with_id.polylines.txt");
-//   vertex_iterator vit, vit_end;
-//   for ( boost::tie(vit, vit_end) = vertices(tmesh);
-//         vit != vit_end; ++vit)
-//   {
-//     std::vector<Traits::Point_3> points;
-//     shortest_paths.shortest_path_points_to_source_points(*vit, std::back_inserter(points));
-//     // print the points
-//     output << points.size() << " ";
-//     for (std::size_t i = 0; i < points.size(); ++i)
-//       output << " " << points[i];
-//     output << std::endl;
-//   }
-//   return 0;
-// }
-
