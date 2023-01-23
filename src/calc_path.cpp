@@ -1,5 +1,7 @@
 // g++ -std=c++14 -lpthread -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include src/calc_path.cpp -o src/calc_path
 
+// ! Look at this again : https://theboostcpplibraries.com/boost.graph-algorithms 
+
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/Polyhedron_items_with_id_3.h>
@@ -21,6 +23,8 @@
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <iostream>
+#include <iterator>
+#include <string>
 
 typedef CGAL::Simple_cartesian<double> K;
 typedef K::Point_3 Point_3;
@@ -101,29 +105,38 @@ int main(int argc, char** argv)
 
 
 
-    //p[] is the predecessor map obtained through dijkstra
-    //name[] is a vector with the names of the vertices
-    //s and goal are vertex descriptors
-    std::vector<boost::graph_traits<My::Mesh>::vertex_descriptor > path;
+    /*
+    The following code workes and is tested
+    -> get the vertices of the path between the start and the target node
+    */
+    std::vector<boost::graph_traits<My::Mesh>::vertex_descriptor > path_list;
     boost::graph_traits<My::Mesh>::vertex_descriptor current = target_node;
- 
+
     while(current!=start_node) 
     {
-        path.push_back(current);
+        path_list.push_back(current);
         current = predecessor_pmap[current];
     }
-    path.push_back(start_node);
+    path_list.push_back(start_node);
 
     // Prints the path obtained in reverse
     std::vector<boost::graph_traits<My::Mesh>::vertex_descriptor >::reverse_iterator it;
- 
     int hope_number = 0;
-    for (it = path.rbegin(); it != path.rend(); ++it) {
-        std::cout << get(ppm, *it) << " \n";
+    std::vector<Point_3> path_list_points;
+    for (it = path_list.rbegin(); it != path_list.rend(); ++it) {
+        std::cout << *it<< " \n";
+        path_list_points.push_back(get(ppm, *it));
         hope_number++;
     }
+
+    std::cout << path_list_points[1] << std::endl;
     std::cout << "\n " << hope_number << std::endl;
     std::cout << "number of edges in the mesh: " << mesh.number_of_edges() << '\n';
+
+    // Write the path to a file
+    std::ofstream output_file("git_repos/Confined_active_particles/meshes/cut_line.selection.txt");
+    std::ostream_iterator<Point_3> output_iterator(output_file, "\n");
+    std::copy(path_list_points.begin(), path_list_points.end(), output_iterator);
 
     return 0;
 }
