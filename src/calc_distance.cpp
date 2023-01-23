@@ -86,18 +86,6 @@ Point furthest_vertex(Polyhedron& P, vertex_descriptor start, std::vector<int>& 
 }
 
 
-Graph Polyhedron_to_Graph(Polyhedron& P){
-    Graph g;
-    for(Polyhedron::Vertex_iterator vi = P.vertices_begin(); vi != P.vertices_end(); ++vi) {
-        boost::add_vertex(g);
-    }
-    for(Polyhedron::Edge_iterator ei = P.edges_begin(); ei != P.edges_end(); ++ei) {
-        boost::add_edge(ei->vertex()->id(), ei->opposite()->vertex()->id(), g);
-    }
-    return g;
-}
-
-
 int main(int argc, char** argv) {
 
     // get the mesh in form of a polyhedron
