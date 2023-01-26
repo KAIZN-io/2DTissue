@@ -17,6 +17,7 @@
 // input - output
 #include <CGAL/boost/graph/io.h>
 #include <CGAL/Surface_mesh_parameterization/IO/File_off.h>
+#include <CGAL/IO/Polyhedron_iostream.h>
 
 // borders
 #include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
@@ -79,7 +80,9 @@ int main(int argc, char** argv)
         std::cerr << "Invalid input file." << std::endl;
         return EXIT_FAILURE;
     }
-
+    std::ofstream out("git_repos/Confined_active_particles/meshes/mesh.stl");
+    CGAL::save_polyhedron_to_stl(out, mesh);
+    out.close();
     // Create a Seam_mesh
     // Two property maps to store the seam edges and vertices
     Seam_edge_uhm seam_edge_uhm(false);
