@@ -1,8 +1,6 @@
-# ! TODO:
-# 1. create rectangular planar equiareal parametrization mesh (--> C++ file)
-# 2. link 2D mesh simulation with the 3D mesh in GLMakie over chaining the Observable with 'lift'
+# ! TODO: link 2D mesh simulation with the 3D mesh in GLMakie over chaining the Observable with 'lift'
 #    -> see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
-
+# ! This can only work, if we don't have to exclude a vertice to open the closed mesh
 
 using Makie
 using GLMakie
@@ -13,6 +11,7 @@ using GeometryBasics
 using Statistics
 using LinearAlgebra
 using Base.Threads
+using Logging
 
 
 GLMakie.activate!()
@@ -24,11 +23,11 @@ GLMakie.set_window_config!(
 
 UpFolder = pwd();
 namestructure = "ellipsoid_x4"
-mesh_loaded = FileIO.load("assets/ellipsoid_x4.stl")
-# mesh_loaded_uv = FileIO.load("meshes/camel_uv.stl")
+mesh_loaded = FileIO.load("assets/ellipsoid_x4.stl")  # 3D mesh
+mesh_loaded_uv = FileIO.load("meshes/ellipsoid_uv.off")  # planar equiareal parametrization
 
-# % Define folder structure and pre-process meshes:
-# % -----------------------------------------------
+# Define folder structure and pre-process meshes:
+# -----------------------------------------------
 folder_plots = joinpath(UpFolder, "images", namestructure)
 folder_particle_simula = joinpath(UpFolder, "simulation_structure")
 
@@ -126,7 +125,12 @@ function active_particles_simulation(
     ########################################################################################
 
     N = mesh_loaded.normals
+    # ! TODO: check if both 'vertices' and 'vertices_uv' have the same lenght of vertices after you fixed the script 'flatten_closed_mesh.cpp'
     vertices = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
+    vertices_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
+    @info "vertices in 3D: " length(vertices)
+    @info "vertices in 2D: " length(vertices_uv)
+
     faces = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
     # a = length(vertices)/3
     # faces = Int.(reshape(1:a, 3, :)')  # this is faster: return the faces of the mesh
@@ -190,11 +194,11 @@ function active_particles_simulation(
     figure = GLMakie.Figure(resolution=(2600, 1200))
     ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
     ax2 = Makie.Axis(figure[1, 2])
-    # ax3 = Makie.Axis3(figure[2, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    ax3 = Makie.Axis3(figure[2, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
     colsize!(figure.layout, 1, Relative(2 / 3))
 
-    # mesh!(ax3, mesh_loaded_uv)
-    # wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
+    mesh!(ax3, mesh_loaded_uv)
+    wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
 
     mesh!(ax1, mesh_loaded)
     wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
@@ -207,7 +211,7 @@ function active_particles_simulation(
     ylims!(ax2, 0, 1)
     lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
 
-    # %Project the orientation of the corresponding faces using normal vectors
+    # Project the orientation of the corresponding faces using normal vectors
     n = P_perp(Norm_vect,n)
     n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
 
