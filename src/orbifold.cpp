@@ -5,7 +5,9 @@
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
 
+#include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Orbifold_Tutte_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>  // for fixed borders
 
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
@@ -47,6 +49,7 @@ int main(int argc, char** argv)
   task_timer.start();
 
   const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off");
+  // const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.stl");
 
   SurfaceMesh sm;
   if(!CGAL::IO::read_polygon_mesh(filename, sm))
@@ -108,14 +111,21 @@ int main(int argc, char** argv)
   UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
 
   // Parameterizer
-  typedef SMP::Orbifold_Tutte_parameterizer_3<Mesh>         Parameterizer;
-  Parameterizer parameterizer(SMP::Triangle, SMP::Cotangent);
+  typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
+  Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
+
+  // typedef SMP::Orbifold_Tutte_parameterizer_3<Mesh>         Parameterizer;
+  // Parameterizer parameterizer(SMP::Triangle, SMP::Cotangent);
+  typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
+  Parameterizer parameterizer(border_parameterizer);
 
   // a halfedge on the (possibly virtual) border
   // only used in output (will also be used to handle multiple connected components in the future)
   halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
-  parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
+  // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
+  const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 15;
+  SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
   std::ofstream out("git_repos/Confined_active_particles/result_bear.off");
   SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
   std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;
