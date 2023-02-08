@@ -85,7 +85,7 @@ Calculate the virtual border of the mesh
 
 ! NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
 */
-int calc_virtual_border()
+std::vector<my_edge_descriptor> calc_virtual_border()
 {
     My::Mesh mesh;
     std::ifstream in(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off"));
@@ -181,8 +181,7 @@ int calc_virtual_border()
     // // write the list to the second line of the output_files
     // std::copy(path_list.begin(), path_list.end(), output_iterators);
 
-    // return path_list;
-    return 0;
+    return path_list;
 }
 
 
@@ -227,28 +226,28 @@ int main(int argc, char** argv)
 
   // If not provided, compute the paths using shortest paths
   if(smhd == SM_halfedge_descriptor() ) {
-    std::cout << "No seams given in input, computing the shortest paths between consecutive cones" << std::endl;
 
-    std::list<SM_edge_descriptor> seam_edges;
-    std::vector<SM_edge_descriptor> calc_edges;
+    // std::list<SM_edge_descriptor> seam_edges;
 
-    // ! TODO: use insted the function in the file 'calc_virtual_border.cpp'
-    // ! Get the edge path of the shortest path between two cones
-
-    calc_virtual_border();
-    std::ifstream infile("git_repos/Confined_active_particles/meshes/bear_now.selection.txt");
-
-    SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);  // ! TDOO: replace this 
-    // Add the seams to the seam mesh
-    for(SM_edge_descriptor e : seam_edges) {
-      std::cout << "Adding seam edge " << e << std::endl;
-      std::cout << "  source: " << source(e, sm) << std::endl;
-      std::cout << "  target: " << target(e, sm) << std::endl;
-      // Adding seam edge e4775 on h9551
-      //        source: v1546
-      //        target: v1553
+    // calculate the virtual border
+    // ! wenn ich mir das Endergebnis anschaue, dann liegt hier wohl das Problem
+    auto calc_edges = calc_virtual_border();
+    for (SM_edge_descriptor e : calc_edges) {
       mesh.add_seam(source(e, sm), target(e, sm));
     }
+    // std::ifstream infile("git_repos/Confined_active_particles/meshes/bear_now.selection.txt");
+
+    // SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);  // ! TDOO: replace this 
+    // // Add the seams to the seam mesh
+    // for(SM_edge_descriptor e : seam_edges) {
+    //   // std::cout << "Adding seam edge " << e << std::endl;
+    //   // std::cout << "  source: " << source(e, sm) << std::endl;
+    //   // std::cout << "  target: " << target(e, sm) << std::endl;
+    //   // Adding seam edge e4775 on h9551
+    //   //        source: v1546
+    //   //        target: v1553
+    //   mesh.add_seam(source(e, sm), target(e, sm));
+    // }
   }
 
   std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
