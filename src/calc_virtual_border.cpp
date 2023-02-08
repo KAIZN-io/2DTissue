@@ -1,6 +1,13 @@
-// g++ -std=c++14 -lpthread -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include src/calc_path.cpp -o src/calc_path
+// author: @janpiotraschke
+// date: 2023-01-27
+// license: Apache License 2.0
+// version: 0.1.0
+
+
+// g++ -std=c++14 -lpthread -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include src/calc_virtual_border.cpp -o src/calc_virtual_border
 
 // ! Look at this again : https://theboostcpplibraries.com/boost.graph-algorithms 
+// ! also look at this: https://doc.cgal.org/4.14.3/BGL/classCGAL_1_1Seam__mesh.html#a27d5997959e6a348e7206e359a378d85  
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Polyhedron_3.h>
@@ -20,14 +27,13 @@
 #include <CGAL/IO/Polyhedron_iostream.h>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
+
 #include <iostream>
 #include <iterator>
 #include <string>
 
 typedef CGAL::Simple_cartesian<double> K;
-typedef K::Point_3 Point_3;
+typedef K::Point_3                                          Point_3;
 namespace My {
   struct Mesh: public CGAL::Surface_mesh<Point_3> {
     typedef CGAL::Surface_mesh<Point_3> Base;
@@ -67,8 +73,8 @@ int main(int argc, char** argv)
 
     auto indexmap = get(boost::vertex_index, mesh);
     auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
-
     std::vector<vertex_descriptor> predecessor(num_vertices(mesh));  // We first declare a vector
+
     boost::iterator_property_map<std::vector<vertex_descriptor>::iterator, VertexIdPropertyMap> predecessor_pmapa(predecessor.begin(), vertex_index_pmap);  // and then turn it into a property map
 
     // to use two visitors, you need to put them in a pair (from https://theboostcpplibraries.com/boost.graph-algorithms)
@@ -98,6 +104,7 @@ int main(int argc, char** argv)
         }
     }
     std::cout << "max distance: " << max_distances << std::endl;
+    std::cout << "got the following start point: " << start_node << " at " << get(ppm, start_node) << std::endl;
     std::cout << "got the following target point: " << target_node << " at " << get(ppm, target_node) << std::endl;
 
 
@@ -112,29 +119,27 @@ int main(int argc, char** argv)
     */
     std::vector<boost::graph_traits<My::Mesh>::vertex_descriptor > path_list;
     boost::graph_traits<My::Mesh>::vertex_descriptor current = target_node;
-
+    // .selection.txt needs this weird format: https://stackoverflow.com/questions/62426624/cgal-seam-mesh-how-to-include-the-seam-in-the-halfedge-descriptor-of-the-bounda
+    // Note the duplicities (each vertex is there once as a starting point and once as an endpoint) and the two leading empty lines.
+    // "The edges to be marked as seams are described by the range [first, last) of vertices of the underlying mesh. Each edge to be marked is described by two consecutive iterators."
+    // ! TODO: remove the 'v' from the output nodes
     while(current!=start_node) 
     {
         path_list.push_back(current);
         current = predecessor_pmap[current];
+        path_list.push_back(current);
     }
-    path_list.push_back(start_node);
 
-    // Prints the path obtained in reverse
-    std::vector<boost::graph_traits<My::Mesh>::vertex_descriptor >::reverse_iterator it;
-    int hope_number = 0;
-    std::vector<Point_3> path_list_points;
-    for (it = path_list.rbegin(); it != path_list.rend(); ++it) {
-        std::cout << *it<< " \n";
-        path_list_points.push_back(get(ppm, *it));
-        hope_number++;
-    }
-    std::cout << "hope_number = " << hope_number << std::endl;
+    // reverse the list
+    std::reverse(path_list.begin(), path_list.end());
 
     // Write the path to a file
-    std::ofstream output_file("git_repos/Confined_active_particles/meshes/cut_line.selection.txt");
-    std::ostream_iterator<Point_3> output_iterator(output_file, "\n");
-    std::copy(path_list_points.begin(), path_list_points.end(), output_iterator);
+    // ! filename should be the name of a CGAL selection file with file extension "*.selection.txt": 
+    // ! TODO: edges are described by pairs of integers, on the THIRD line of the file.
+    // std::ofstream output_files("git_repos/Confined_active_particles/meshes/cut_line.selection.txt");
+    // std::ostream_iterator<vertex_descriptor> output_iterators(output_files, " ");
+    // // write the list to the second line of the output_files
+    // std::copy(path_list.begin(), path_list.end(), output_iterators);
 
     return 0;
 }
