@@ -19,6 +19,7 @@
 
 #include <unordered_map>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <list>
 #include <string>
@@ -85,9 +86,7 @@ int main(int argc, char** argv)
   if(smhd == SM_halfedge_descriptor() ) {
     std::cout << "No seams given in input, computing the shortest paths between consecutive cones" << std::endl;
 
-  
     std::list<SM_edge_descriptor> seam_edges;
-    SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);  // ! TDOO: replace this 
     // ! TODO: use insted the function in the file 'calc_virtual_border.cpp'
     // ! Get the edge path of the shortest path between two cones
 
@@ -96,11 +95,23 @@ int main(int argc, char** argv)
 
     if (infile.good())
     {
-      std::string sLine;
-      std::getline(infile, sLine);
-      std::cout << sLine << std::endl;
-    }
+      std::string line;
+      std::getline(infile, line);  // get first line from file
+      std::istringstream linestream(line);
+      std::string item;
+      std::vector<std::string> line_items;
+      // std::vector<SM_edge_descriptor> line_items;
 
+      // split line into items using ',' as delimiter
+      while (std::getline(linestream, item, ',')) {
+        std::cout << item << std::endl;
+        line_items.push_back(item);
+      }
+    }
+    // ! TODO: transform the line_items into a list of edges
+    std::list<SM_edge_descriptor> calc_edges;
+
+    SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);  // ! TDOO: replace this 
     // Add the seams to the seam mesh
     for(SM_edge_descriptor e : seam_edges) {
       std::cout << "Adding seam edge " << e << std::endl;
@@ -152,5 +163,6 @@ int main(int argc, char** argv)
   std::ofstream out("git_repos/Confined_active_particles/result_bear.off");
   SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
   std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;
+
   return EXIT_SUCCESS;
 }
