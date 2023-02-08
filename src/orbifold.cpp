@@ -1,4 +1,6 @@
-// g++ -std=c++14 -lpthread -I /usr/local/Cellar/CGAL/5.5.1/include -I /usr/local/Cellar/boost/1.80.0/include  -I /usr/local/Cellar/eigen/3.4.0_1/include/eigen3 src/orbifold.cpp -o src/orbifold
+// g++ -std=c++14 -lpthread -I /usr/local/Cellar/CGAL/5.5.1/include -I /usr/local/Cellar/boost/1.80.0/include  -I /usr/local/Cellar/eigen/3.4.0_1/include/eigen3 src/orbifold.cpp src/calc_virtual_border.cpp  -o src/orbifold
+
+#include "calc_virtual_border.h"
 
 #include <CGAL/Simple_cartesian.h>
 
@@ -62,6 +64,7 @@ int main(int argc, char** argv)
   // -- the first line for the cones indices
   // -- the second line must be empty
   // -- the third line optionally provides the seam edges indices as 'e11 e12 e21 e22 e31 e32' etc.
+  // const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/meshes/bear2.selection.txt";
   const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
 
   // Read the cones and compute their corresponding vertex_descriptor in the underlying mesh 'sm'
@@ -81,11 +84,31 @@ int main(int argc, char** argv)
   // If not provided, compute the paths using shortest paths
   if(smhd == SM_halfedge_descriptor() ) {
     std::cout << "No seams given in input, computing the shortest paths between consecutive cones" << std::endl;
+
+  
     std::list<SM_edge_descriptor> seam_edges;
-    SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);
+    SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);  // ! TDOO: replace this 
+    // ! TODO: use insted the function in the file 'calc_virtual_border.cpp'
+    // ! Get the edge path of the shortest path between two cones
+
+    calc_virtual_border();
+    std::ifstream infile("git_repos/Confined_active_particles/meshes/bear_now.selection.txt");
+
+    if (infile.good())
+    {
+      std::string sLine;
+      std::getline(infile, sLine);
+      std::cout << sLine << std::endl;
+    }
 
     // Add the seams to the seam mesh
     for(SM_edge_descriptor e : seam_edges) {
+      std::cout << "Adding seam edge " << e << std::endl;
+      std::cout << "  source: " << source(e, sm) << std::endl;
+      std::cout << "  target: " << target(e, sm) << std::endl;
+      // Adding seam edge e4775 on h9551
+      //        source: v1546
+      //        target: v1553
       mesh.add_seam(source(e, sm), target(e, sm));
     }
   }
@@ -124,7 +147,7 @@ int main(int argc, char** argv)
   halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
   // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
-  const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 15;
+  const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 5;
   SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
   std::ofstream out("git_repos/Confined_active_particles/result_bear.off");
   SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
