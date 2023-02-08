@@ -80,9 +80,9 @@ int main(int argc, char** argv)
         std::cerr << "Invalid input file." << std::endl;
         return EXIT_FAILURE;
     }
-    std::ofstream out("git_repos/Confined_active_particles/meshes/mesh.stl");
-    CGAL::save_polyhedron_to_stl(out, mesh);
-    out.close();
+    // std::ofstream out("git_repos/Confined_active_particles/meshes/mesh.stl");
+    // CGAL::save_polyhedron_to_stl(out, mesh);
+    // out.close();
     // Create a Seam_mesh
     // Two property maps to store the seam edges and vertices
     Seam_edge_uhm seam_edge_uhm(false);
@@ -126,8 +126,8 @@ int main(int argc, char** argv)
 
 
     // Choose the border of the uv parametrisation
-    // typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
-    typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
+    typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
+    // typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
     Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
 
     // NOTE: A one-to-one mapping is not guaranteed for the ARAP algorithm
@@ -150,15 +150,15 @@ int main(int argc, char** argv)
 
 
     const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 15;
-    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uv_map, iterations);
+    // SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uv_map, iterations);
 
-    if(err != SMP::OK){
-        std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
-        return EXIT_FAILURE;
-    }
+    // if(err != SMP::OK){
+    //     std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
+    //     return EXIT_FAILURE;
+    // }
 
-    std::ofstream out("git_repos/Confined_active_particles/meshes/flatten_ellipsoid.stl");
-    SMP::IO::output_uvmap_to_off(mesh, bhd, uv_map, out);
+    // std::ofstream out("git_repos/Confined_active_particles/meshes/flatten_ellipsoid.stl");
+    // SMP::IO::output_uvmap_to_off(mesh, bhd, uv_map, out);
 
     return EXIT_SUCCESS;
 }
