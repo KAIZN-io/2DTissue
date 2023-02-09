@@ -153,7 +153,7 @@ std::vector<my_edge_descriptor> calc_virtual_border()
 
     // SMP::compute_shortest_paths_between_cones(sm, target_node_vec.begin(), start_node_vec.begin(), seam_edges2);
     // ! Try this https://doc.cgal.org/latest/Surface_mesh_parameterization/group__PkgSurfaceMeshParameterizationOrbifoldHelperFunctions.html#ga7afcc810eb830de23cd823efac112cb4
-    // https://github.com/BlackHungry/CGALForUE4.19/blob/f63c28544a95993c554c85e5c72bd2f986c04cc9/ThirdParty/CGAL/includes/CGAL/Surface_mesh_parameterization/orbifold_shortest_path.h
+    // !! Reimplement einfach jene Dijkstra Auswertung: https://github.com/BlackHungry/CGALForUE4.19/blob/f63c28544a95993c554c85e5c72bd2f986c04cc9/ThirdParty/CGAL/includes/CGAL/Surface_mesh_parameterization/orbifold_shortest_path.h
     // SMP::compute_shortest_paths_between_two_cones(sm, source_N, target_n, cone_sms_vds);
 
 
