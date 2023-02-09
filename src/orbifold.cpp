@@ -68,6 +68,8 @@ VertexIdPropertyMap my_vertex_index_pmap(my_vertex_id_map);
 typedef boost::graph_traits<SurfaceMesh>::vertex_descriptor     SM_vertex_descriptor;
 typedef boost::graph_traits<SurfaceMesh>::halfedge_descriptor   SM_halfedge_descriptor;
 typedef boost::graph_traits<SurfaceMesh>::edge_descriptor       SM_edge_descriptor;
+typedef boost::graph_traits<SurfaceMesh>::edge_iterator                      SM_edge_iterator;
+typedef boost::graph_traits<SurfaceMesh>::halfedge_iterator                      SM_halfedge_iterator;
 
 typedef SurfaceMesh::Property_map<SM_edge_descriptor, bool>           Seam_edge_pmap;
 typedef SurfaceMesh::Property_map<SM_vertex_descriptor, bool>         Seam_vertex_pmap;
@@ -89,7 +91,8 @@ Calculate the virtual border of the mesh
 std::vector<my_edge_descriptor> calc_virtual_border()
 {
     My::Mesh mesh;
-    std::ifstream in(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off"));
+    // std::ifstream in(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off"));
+    std::ifstream in(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
     in >> mesh;
 
     // typedef boost::graph_traits<My::Mesh>::vertex_descriptor vertex_descriptor;
@@ -114,7 +117,6 @@ std::vector<my_edge_descriptor> calc_virtual_border()
 
     my_vertex_descriptor start_node = *(vertices(mesh).first);
 
-
     /*
     Find the target node
     */
@@ -136,6 +138,31 @@ std::vector<my_edge_descriptor> calc_virtual_border()
     std::cout << "got the following start point: " << start_node << " at " << get(ppm, start_node) << std::endl;
     std::cout << "got the following target point: " << target_node << " at " << get(ppm, target_node) << std::endl;
 
+  
+    // build a iter wraper around the target node
+    // std::vector<my_vertex_descriptor> start_node_vec;
+    // std::vector<my_vertex_descriptor> target_node_vec;
+    
+    // start_node_vec.push_back(start_node);
+    // target_node_vec.push_back(target_node);
+
+    // // // the .begin() command turns the node into a iter wraper
+    // std::cout << "start node " << *start_node_vec.begin() << std::endl;
+    // std::cout << "target node " << *target_node_vec.begin() << std::endl;
+
+
+    // SMP::compute_shortest_paths_between_cones(sm, target_node_vec.begin(), start_node_vec.begin(), seam_edges2);
+    // ! Try this https://doc.cgal.org/latest/Surface_mesh_parameterization/group__PkgSurfaceMeshParameterizationOrbifoldHelperFunctions.html#ga7afcc810eb830de23cd823efac112cb4
+    // https://github.com/BlackHungry/CGALForUE4.19/blob/f63c28544a95993c554c85e5c72bd2f986c04cc9/ThirdParty/CGAL/includes/CGAL/Surface_mesh_parameterization/orbifold_shortest_path.h
+    // SMP::compute_shortest_paths_between_two_cones(sm, source_N, target_n, cone_sms_vds);
+
+
+    // for(SM_edge_descriptor e : seam_edges2) {
+    //   mesh2.add_seam(source(e, sm), target(e, sm));
+    // }
+    // std::cout << mesh2.number_of_seam_edges() << " seam edges in input" << std::endl;
+
+
 
     // ! From: https://www.technical-recipes.com/2015/getting-started-with-the-boost-graph-library/
     // Evaluate Dijkstra on graph mesh with source start_node, predecessor_map predecessor_pmap and distance_map d
@@ -153,7 +180,10 @@ std::vector<my_edge_descriptor> calc_virtual_border()
         // current = predecessor_pmap[current];  // ! maybe this line is better than the previous one
     }
 
-    return path_list;
+    // ! Temporary solution: return only the 20 first elements of the path
+    std::vector<my_edge_descriptor> b(path_list.begin(), path_list.begin() + 20);
+
+    return b;
 }
 
 
@@ -163,8 +193,8 @@ int main(int argc, char** argv)
   CGAL::Timer task_timer;
   task_timer.start();
 
-  const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off");
-  // const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.stl");
+  // const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off");
+  const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
 
   SurfaceMesh sm;
   if(!CGAL::IO::read_polygon_mesh(filename, sm))
@@ -183,16 +213,11 @@ int main(int argc, char** argv)
 
 
   // Selection file that contains the cones and possibly the path between cones
-  // ? Couldn't I maybe just implement some dummy cones for our Ellipsoid?
+  // ? NOTE: Couldn't I maybe just implement some dummy cones for our Ellipsoid?
   // ! -- the first line for the cones indices
   // -- the second line must be empty
   // ! -- the third line optionally provides the seam edges indices as 'e11 e12 e21 e22 e31 e32' etc.
   const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
-
-  // Read the cones and compute their corresponding vertex_descriptor in the underlying mesh 'sm'
-  std::vector<SM_vertex_descriptor> cone_sm_vds;
-  SMP::read_cones<SurfaceMesh>(sm, cone_filename, std::back_inserter(cone_sm_vds));
-
 
 
 
@@ -203,20 +228,30 @@ int main(int argc, char** argv)
   */
   // ! wenn ich mir das Endergebnis anschaue, dann liegt hier wohl das Problem
   auto calc_edges = calc_virtual_border();
-  // for(SM_edge_descriptor e : calc_edges) {
-  //   mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
-  // }
+  for(SM_edge_descriptor e : calc_edges) {
+    mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
+  }
 
   /*
   Our test function if the virtual border is calculated correctly
   -> 99 seam edges in input
   */
-  std::list<SM_edge_descriptor> seam_edges;
-  SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);
-  for(SM_edge_descriptor e : seam_edges) {
-    mesh.add_seam(source(e, sm), target(e, sm));
-  }
+  // Read the cones and compute their corresponding vertex_descriptor in the underlying mesh 'sm'
+  // std::vector<SM_vertex_descriptor> cone_sm_vds;
+  // SMP::read_cones<SurfaceMesh>(sm, cone_filename, std::back_inserter(cone_sm_vds));
 
+  // std::cout << "type of cones: " << typeid(cone_sm_vds.begin()).name() << std::endl;
+  // std::cout << "begin of cones: " << *cone_sm_vds.begin() << std::endl;
+  // std::cout << "end of cones: " << *cone_sm_vds.end() << std::endl;
+
+  // std::list<SM_edge_descriptor> seam_edges;
+  // SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);
+  // for(SM_edge_descriptor e : seam_edges) {
+  //   mesh.add_seam(source(e, sm), target(e, sm));
+  // }
+  // Mark the cones in the seam mesh
+  // std::unordered_map<vertex_descriptor, SMP::Cone_type> cmap;
+  // SMP::locate_cones(mesh, cone_sm_vds.begin(), cone_sm_vds.end(), cmap);
   std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
 
 
@@ -230,10 +265,6 @@ int main(int argc, char** argv)
   for(vertex_descriptor vd : vertices(mesh)) {
     put(vimap, vd, counter++);
   }
-
-  // Mark the cones in the seam mesh
-  std::unordered_map<vertex_descriptor, SMP::Cone_type> cmap;
-  SMP::locate_cones(mesh, cone_sm_vds.begin(), cone_sm_vds.end(), cmap);
 
   // The 2D points of the uv parametrisation will be written into this map
   // Note that this is a halfedge property map, and that uv values
@@ -253,10 +284,11 @@ int main(int argc, char** argv)
   halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
   // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
-  const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 5;
+  const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 9;
   SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
   std::ofstream out("git_repos/Confined_active_particles/result_bear.off");
   SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
+
   std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;
 
   return EXIT_SUCCESS;
