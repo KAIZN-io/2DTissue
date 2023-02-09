@@ -5,6 +5,7 @@
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
 
+#include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Orbifold_Tutte_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>  // for fixed borders
@@ -148,38 +149,9 @@ std::vector<my_edge_descriptor> calc_virtual_border()
         std::pair<my_edge_descriptor, bool> edge_pair = edge(predecessor, current, mesh);
         my_edge_descriptor edge = edge_pair.first;
         path_list.push_back(edge);
-        // current = predecessor;
-        // std::cout << predecessor << " -> " << current << std::endl;
-        current = predecessor_pmap[current];
+        current = predecessor;
+        // current = predecessor_pmap[current];  // ! maybe this line is better than the previous one
     }
-
-    /*
-    The following code workes and is tested
-    -> get the vertices of the path between the start and the target node
-    */
-    // std::vector<boost::graph_traits<My::Mesh>::vertex_descriptor > path_list;
-    // boost::graph_traits<My::Mesh>::vertex_descriptor current = target_node;
-    // .selection.txt needs this weird format: https://stackoverflow.com/questions/62426624/cgal-seam-mesh-how-to-include-the-seam-in-the-halfedge-descriptor-of-the-bounda
-    // Note the duplicities (each vertex is there once as a starting point and once as an endpoint) and the two leading empty lines.
-    // "The edges to be marked as seams are described by the range [first, last) of vertices of the underlying mesh. Each edge to be marked is described by two consecutive iterators."
-    // ! TODO: remove the 'v' from the output nodes
-    // while(current!=start_node) 
-    // {
-    //     path_list.push_back(current);
-    //     current = predecessor_pmap[current];
-    //     path_list.push_back(current);
-    // }
-
-    // reverse the list
-    // std::reverse(path_list.begin(), path_list.end());
-
-    // Write the path to a file
-    // ! filename should be the name of a CGAL selection file with file extension "*.selection.txt": 
-    // ! TODO: edges are described by pairs of integers, on the THIRD line of the file.
-    // std::ofstream output_files("git_repos/Confined_active_particles/meshes/bear_now.selection.txt");
-    // std::ostream_iterator<edge_descriptor> output_iterators(output_files, ", ");
-    // // write the list to the second line of the output_files
-    // std::copy(path_list.begin(), path_list.end(), output_iterators);
 
     return path_list;
 }
@@ -201,17 +173,6 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 
-  // Selection file that contains the cones and possibly the path between cones
-  // -- the first line for the cones indices
-  // -- the second line must be empty
-  // -- the third line optionally provides the seam edges indices as 'e11 e12 e21 e22 e31 e32' etc.
-  // const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/meshes/bear2.selection.txt";
-  const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
-
-  // Read the cones and compute their corresponding vertex_descriptor in the underlying mesh 'sm'
-  std::vector<SM_vertex_descriptor> cone_sm_vds;
-  SMP::read_cones<SurfaceMesh>(sm, cone_filename, std::back_inserter(cone_sm_vds));
-
   // Two property maps to store the seam edges and vertices
   Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;
   Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam",false).first;
@@ -219,38 +180,47 @@ int main(int argc, char** argv)
   // The seam mesh
   Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
 
-  // If provided, use the path between cones to create a seam mesh
-  // SM_halfedge_descriptor smhd = mesh.add_seams(cone_filename);
-  SM_halfedge_descriptor smhd = mesh.add_seams("git_repos/Confined_active_particles/meshes/bear_now.selection.txt");
-  std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
 
-  // If not provided, compute the paths using shortest paths
-  if(smhd == SM_halfedge_descriptor() ) {
 
-    // std::list<SM_edge_descriptor> seam_edges;
+  // Selection file that contains the cones and possibly the path between cones
+  // ? Couldn't I maybe just implement some dummy cones for our Ellipsoid?
+  // ! -- the first line for the cones indices
+  // -- the second line must be empty
+  // ! -- the third line optionally provides the seam edges indices as 'e11 e12 e21 e22 e31 e32' etc.
+  const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
 
-    // calculate the virtual border
-    // ! wenn ich mir das Endergebnis anschaue, dann liegt hier wohl das Problem
-    auto calc_edges = calc_virtual_border();
-    for (SM_edge_descriptor e : calc_edges) {
-      mesh.add_seam(source(e, sm), target(e, sm));
-    }
-    // std::ifstream infile("git_repos/Confined_active_particles/meshes/bear_now.selection.txt");
+  // Read the cones and compute their corresponding vertex_descriptor in the underlying mesh 'sm'
+  std::vector<SM_vertex_descriptor> cone_sm_vds;
+  SMP::read_cones<SurfaceMesh>(sm, cone_filename, std::back_inserter(cone_sm_vds));
 
-    // SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);  // ! TDOO: replace this 
-    // // Add the seams to the seam mesh
-    // for(SM_edge_descriptor e : seam_edges) {
-    //   // std::cout << "Adding seam edge " << e << std::endl;
-    //   // std::cout << "  source: " << source(e, sm) << std::endl;
-    //   // std::cout << "  target: " << target(e, sm) << std::endl;
-    //   // Adding seam edge e4775 on h9551
-    //   //        source: v1546
-    //   //        target: v1553
-    //   mesh.add_seam(source(e, sm), target(e, sm));
-    // }
+
+
+
+  /*
+  Calculate the virtual border
+  1. mit der Funktion 'calc_virtual_border' wird die virtuelle Kante berechnet
+  2. Testfunktion: mit der Funktion 'compute_shortest_paths_between_cones' wird die virtuelle Kante berechnet
+  */
+  // ! wenn ich mir das Endergebnis anschaue, dann liegt hier wohl das Problem
+  auto calc_edges = calc_virtual_border();
+  // for(SM_edge_descriptor e : calc_edges) {
+  //   mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
+  // }
+
+  /*
+  Our test function if the virtual border is calculated correctly
+  -> 99 seam edges in input
+  */
+  std::list<SM_edge_descriptor> seam_edges;
+  SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);
+  for(SM_edge_descriptor e : seam_edges) {
+    mesh.add_seam(source(e, sm), target(e, sm));
   }
 
   std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
+
+
+
 
   // Index map of the seam mesh (assuming a single connected component so far)
   typedef std::unordered_map<vertex_descriptor, int> Indices;
@@ -271,11 +241,10 @@ int main(int argc, char** argv)
   UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
 
   // Parameterizer
-  typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
+  typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
+  // typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
   Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
 
-  // typedef SMP::Orbifold_Tutte_parameterizer_3<Mesh>         Parameterizer;
-  // Parameterizer parameterizer(SMP::Triangle, SMP::Cotangent);
   typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
   Parameterizer parameterizer(border_parameterizer);
 
