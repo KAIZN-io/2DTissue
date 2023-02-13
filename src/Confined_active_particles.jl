@@ -133,15 +133,27 @@ function active_particles_simulation(
     # Step 2.: Get the geometric data from the mesh
     ########################################################################################
 
-    N = mesh_loaded.normals
     # ! TODO: check if both 'vertices' and 'vertices_uv' have the same lenght of vertices after you fixed the script 'flatten_closed_mesh.cpp'
     vertices = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
     vertices_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
-    @info "vertices in 3D: " length(vertices)
-    @info "vertices in 2D: " length(vertices_uv)
 
     faces = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
     faces_uv = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_uv) |> vec_of_vec_to_array  # return the faces of the mesh
+    @info "faces in 3D: " length(faces)
+    @info "faces in 2D: " length(faces_uv)
+
+    # mesh_loaded_stl = FileIO.load("meshes/ellipsoid_x4.stl")  # 3D mesh
+    # N_stl = mesh_loaded_stl.normals
+    # vertices_stl = GeometryBasics.coordinates(mesh_loaded_stl) |> vec_of_vec_to_array
+    # faces_stl = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_stl) |> vec_of_vec_to_array  # return the faces of the mesh
+
+    # create empty vector for the normal vectors
+    N = zeros(size(faces_uv))
+    # calculate normal vectors for each face
+    for i in 1:size(faces_uv)[1]
+        # overgive N the normal vector of the face
+        N[i,:] = calculate_vertex_normals(faces_uv, vertices_uv, i)
+    end
 
     # a = length(vertices)/3
     # faces = Int.(reshape(1:a, 3, :)')  # this is faster: return the faces of the mesh
@@ -158,9 +170,14 @@ function active_particles_simulation(
     Faces_coord = cat(dim_data(vertices, faces, 1), dim_data(vertices, faces, 2), dim_data(vertices, faces, 3), dims=3)
     face_neighbors = find_face_neighbors(faces, Faces_coord)  # TODO: fix this function for the uv plot case
 
+    Faces_coord_uv = cat(dim_data(vertices_uv, faces_uv, 1), dim_data(vertices_uv, faces_uv, 2), dim_data(vertices_uv, faces_uv, 3), dims=3)
+    face_neighbors_uv = find_face_neighbors(faces_uv, Faces_coord_uv)  # TODO: fix this function for the uv plot case
+    Faces_coord = Faces_coord_uv
+    face_neighbors = face_neighbors_uv
+
 
     # ########################################################################################
-    # # Step 4.: Initialize particles on the mesh with random initial orientation
+    # # Step 4.: Initialize particles on the mesh faces with random initial orientation
     # ########################################################################################
 
     Norm_vect = ones(num_part,3); # Initialisation of normal vector of each faces
@@ -172,24 +189,38 @@ function active_particles_simulation(
     # for-loop where particle are randomly positioned and orientated in a 3D
     # box, then projected on the closest face. The normal vector of that face
     # is then also saved
-
+   
     # Julia supports parallel loops using the Threads.@threads macro. 
     # This macro is affixed in front of a for loop to indicate to Julia that the loop is a multi-threaded region
     # the order of assigning the values to the particles isn't important, so we can use parallel loops
     vertices_length = length(vertices[:,1])
     vertices_list = range(1, vertices_length, step=1)
+
+    faces_length = length(faces_uv[:,1])
+    faces_list = range(1, faces_length, step=1)
     @threads for i=1:num_part
         # Randomly position of particles on the mesh
-        random_vertice = rand(vertices_list)  # choose a random vertice from the vertice list
-        vertices_list = filter(!=(random_vertice), vertices_list)  # remove the random vertice from the vertice list so that it won't be chosen again
-        r[i,:] = vertices[random_vertice, :]  # get random row from vertices and assign it to the particle
+        random_face = rand(faces_list)  # choose a random vertice from the vertice list
+        faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
+    
+        r_face_uv = Int.(faces_uv[random_face, :])  # get the random face
+
+        # calculate the center of gravity of the face
+        center_face = [0,0,0]
+        for j=1:3
+            center_face += vertices_uv[r_face_uv[j],:]
+        end
+        center_face = center_face/3
+        r[i,:] = center_face
 
         #random particle orientation
         n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
 
         # TODO: the following two lines are the bootle-neck
         p0s, N_temp, index_binary, index_face_in, index_face_out = next_face_for_the_particle(Faces_coord, N, r, i)
+        # TODO ? warum ist num_face so eine breites array?
         r[i,:], Norm_vect[i,:], num_face[i,1] = update_initial_particle!(p0s, N_temp, index_binary, index_face_in, index_face_out, i, r, Norm_vect, num_face)
+
     end
 
     observe_r[] = array_to_vec_of_vec(r)
@@ -204,56 +235,61 @@ function active_particles_simulation(
 
     figure = GLMakie.Figure(resolution=(2600, 1200))
     ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
-    ax2 = Makie.Axis(figure[1, 2])
+    # ax2 = Makie.Axis(figure[1, 2])
     ax3 = Makie.Axis3(figure[2, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
     colsize!(figure.layout, 1, Relative(2 / 3))
+
+    mesh!(ax1, mesh_loaded)
+    # wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
 
     mesh!(ax3, mesh_loaded_uv)
     wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
 
-    mesh!(ax1, mesh_loaded)
-    wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
+    # Plot the particles
     meshscatter!(ax1, observe_r, color = :black, markersize = 0.05)  # overgive the Observable the plotting function to TRACK it
-    arrows!(ax1, observe_r, observe_n, arrowsize = 0.05, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
-    arrows!(ax1, observe_r, observe_nr_dot, arrowsize = 0.05, linecolor = (:red, 0.7), linewidth = 0.02, lengthscale = scale)
-    arrows!(ax1, observe_r, observe_nr_dot_cross, arrowsize = 0.05, linecolor = (:blue, 0.7), linewidth = 0.02, lengthscale = scale)
+    meshscatter!(ax3, observe_r, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
+
+    # NOTE: for a planar system it is more difficult to visualize the height of the vertices
+    # arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
+    # arrows!(ax3, observe_r, observe_nr_dot, arrowsize = 0.01, linecolor = (:red, 0.7), linewidth = 0.02, lengthscale = scale)
+    # arrows!(ax3, observe_r, observe_nr_dot_cross, arrowsize = 0.01, linecolor = (:blue, 0.7), linewidth = 0.02, lengthscale = scale)
 
     # Colorbar(fig[1, 4], hm, label="values", height=Relative(0.5))
-    ylims!(ax2, 0, 1)
-    lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
+    # ylims!(ax2, 0, 1)
+    # lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
 
     # Project the orientation of the corresponding faces using normal vectors
-    n = P_perp(Norm_vect,n)
-    n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
+    # n = P_perp(Norm_vect,n)
+    # n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
 
     # cam = cameracontrols(scene)
     # update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
     # update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
-    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
-        simulate_next_step(
-            tt,
-            observe_r,
-            face_neighbors,
-            Faces_coord,
-            N,
-            num_face,
-            num_part,
-            observe_n,
-            observe_nr_dot,
-            observe_nr_dot_cross,
-            observe_order,
-            Norm_vect;
-            v0,
-            v0_next,
-            k,
-            k_next,
-            σ,
-            μ,
-            τ,
-            r_adh,
-            k_adh,
-        )
-    end
+    # record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
+    #     simulate_next_step(
+    #         tt,
+    #         observe_r,
+    #         face_neighbors,
+    #         Faces_coord,
+    #         N,
+    #         num_face,
+    #         num_part,
+    #         observe_n,
+    #         observe_nr_dot,
+    #         observe_nr_dot_cross,
+    #         observe_order,
+    #         Norm_vect;
+    #         v0,
+    #         v0_next,
+    #         k,
+    #         k_next,
+    #         σ,
+    #         μ,
+    #         τ,
+    #         r_adh,
+    #         k_adh,
+    #     )
+    # end
 
 end
 
@@ -308,9 +344,32 @@ function array_to_vec_of_vec(A::Array)
 end
 
 
+"""
+calculate_vertex_normals(faces_stl, vertices_stl, row_number)
+
+"""
+function calculate_vertex_normals(faces_stl, vertices_stl, row_number)
+    a = faces_stl[row_number,1]
+    b = faces_stl[row_number,2]
+    c = faces_stl[row_number,3]
+
+    A = vertices_stl[a,:]
+    B = vertices_stl[b,:]
+    C = vertices_stl[c,:]
+
+    BA = B-A
+    CA = C-A
+
+# calculate the cross product of BA and CA vectors
+    return cross(BA, CA)
+end
+
+
 ########################################################################################
 # SIMULATION SPECIFIC FUNCTIONS
 ########################################################################################
+
+
 
 # TODO: implement this: https://docs.makie.org/v0.19.1/documentation/nodes/index.html#the_observable_structure
 """
@@ -330,8 +389,9 @@ end
 Create index matrix of neighbourg faces to each face
 """
 function find_face_neighbors(Faces, Faces_coord)
-    
-    face_neighbors = fill(NaN, length(Faces[:,1]), 100)  # matrix of neighbourg faces
+
+    # TODO: the column size '130' should be dynamically selected
+    face_neighbors = fill(NaN, length(Faces[:,1]), 130)  # matrix of neighbourg faces
 
     maximum_neighbour = 0  # maximumimum number of neighbourg faces
     # % Loop for to search all neighbours for each faces within a radius 
@@ -396,7 +456,7 @@ end
 
 
 """
-    get_particle_position(_face_coord_temp::Array, N_temp, r, i::Int)
+get_particle_position(_face_coord_temp::Array, N_temp, r, i::Int)
 
 Getestete Funktion, 05 JAN 2023
 """
@@ -409,8 +469,9 @@ function get_particle_position(_face_coord_temp::Array, N_temp, r, i::Int)
     return p0s
 end
 
+
 """
-    next_face_for_the_particle(_Faces_coord, _N, _r, _i)
+next_face_for_the_particle(_Faces_coord, _N, _r, _i)
 
 """
 function next_face_for_the_particle(_Faces_coord, _N, _r, _i)
@@ -425,7 +486,7 @@ function next_face_for_the_particle(_Faces_coord, _N, _r, _i)
     # Faces with closest point to r[i,:] and associated normal vectors
     index_binary = get_index_binary(Dist2faces)
     face_coord_temp = _Faces_coord[index_binary,:,:]
-    N_temp = _N[index_binary,:] |> vec_of_vec_to_array  # transform the vec of vec into array
+    N_temp = _N[index_binary,:] # OLD: |> vec_of_vec_to_array  # transform the vec of vec into array
 
     p0s = get_particle_position(face_coord_temp, N_temp, _r, _i)
     index_face_in, index_face_out = get_face_in_and_out(p0s, face_coord_temp) 
