@@ -26,6 +26,11 @@ namestructure = "ellipsoid_x4"
 mesh_loaded = FileIO.load("assets/ellipsoid_x4.stl")  # 3D mesh
 mesh_loaded_uv = FileIO.load("meshes/ellipsoid_uv.off")  # planar equiareal parametrization
 
+# get the number of vertices of the mesh
+num_vertices = length(GeometryBasics.coordinates(mesh_loaded))
+num_vertices_uv = length(GeometryBasics.coordinates(mesh_loaded_uv))
+check_vertices_number_consistency = num_vertices / num_vertices_uv   # this should be 1.0
+
 # Define folder structure and pre-process meshes:
 # -----------------------------------------------
 folder_plots = joinpath(UpFolder, "images", namestructure)

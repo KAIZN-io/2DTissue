@@ -252,7 +252,7 @@ int calc_virtual_border()
     // ! filename should be the name of a CGAL selection file with file extension "*.selection.txt": 
     // ! TODO: edges are described by pairs of integers, on the THIRD line of the file.
     std::ofstream output_files("git_repos/Confined_active_particles/meshes/bear_now.selection.txt");
-    std::ostream_iterator<edge_descriptor> output_iterators(output_files, " ");
+    std::ostream_iterator<edge_descriptor> output_iterators(output_files, ", ");
     // write the list to the second line of the output_files
     std::copy(path_list.begin(), path_list.end(), output_iterators);
 
