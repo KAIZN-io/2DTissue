@@ -1,4 +1,7 @@
 // g++ -std=c++14 -lpthread -I /usr/local/Cellar/CGAL/5.5.1/include -I /usr/local/Cellar/boost/1.80.0/include  -I /usr/local/Cellar/eigen/3.4.0_1/include/eigen3 src/orbifold.cpp -o src/orbifold
+// g++ -std=c++14 -lpthread -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/eigen3 src/orbifold.cpp -o src/orbifold
+
+
 
 #include <CGAL/Simple_cartesian.h>
 
@@ -203,6 +206,11 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 
+  // save the STL file as an OFF file
+  // std::ofstream out_OFF("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
+  // CGAL::IO::write_OFF(out_OFF, sm);
+  // out_OFF.close();
+
   // Two property maps to store the seam edges and vertices
   Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;
   Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam",false).first;
@@ -217,7 +225,7 @@ int main(int argc, char** argv)
   // ! -- the first line for the cones indices
   // -- the second line must be empty
   // ! -- the third line optionally provides the seam edges indices as 'e11 e12 e21 e22 e31 e32' etc.
-  const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
+  // const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
 
 
 
@@ -286,7 +294,11 @@ int main(int argc, char** argv)
   // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
   const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 9;
   SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
-  std::ofstream out("git_repos/Confined_active_particles/result_bear.off");
+
+  // print the number of vertices of the uvmap
+  std::cout << "Number of vertices in uvmap: " << indices.size() << std::endl;
+
+  std::ofstream out("git_repos/Confined_active_particles/meshes/ellipsoid_uv.off");
   SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
 
   std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;

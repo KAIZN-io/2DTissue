@@ -23,7 +23,7 @@ GLMakie.set_window_config!(
 
 UpFolder = pwd();
 namestructure = "ellipsoid_x4"
-mesh_loaded = FileIO.load("assets/ellipsoid_x4.stl")  # 3D mesh
+mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_loaded_uv = FileIO.load("meshes/ellipsoid_uv.off")  # planar equiareal parametrization
 
 # get the number of vertices of the mesh
