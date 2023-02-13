@@ -29,7 +29,11 @@ mesh_loaded_uv = FileIO.load("meshes/ellipsoid_uv.off")  # planar equiareal para
 # get the number of vertices of the mesh
 num_vertices = length(GeometryBasics.coordinates(mesh_loaded))
 num_vertices_uv = length(GeometryBasics.coordinates(mesh_loaded_uv))
-check_vertices_number_consistency = num_vertices / num_vertices_uv   # this should be 1.0
+
+ # ! this should be 1.0 but it can be, because of following logic:
+ # number_vertices_uv = number_vertices + (number of seam edges - 1)
+ # and we need seam edges to open the closed mesh
+check_vertices_number_consistency = num_vertices / num_vertices_uv
 
 # Define folder structure and pre-process meshes:
 # -----------------------------------------------
@@ -137,6 +141,8 @@ function active_particles_simulation(
     @info "vertices in 2D: " length(vertices_uv)
 
     faces = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
+    faces_uv = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_uv) |> vec_of_vec_to_array  # return the faces of the mesh
+
     # a = length(vertices)/3
     # faces = Int.(reshape(1:a, 3, :)')  # this is faster: return the faces of the mesh
 
