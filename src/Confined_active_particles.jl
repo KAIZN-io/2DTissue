@@ -1,6 +1,5 @@
 # ! TODO: link 2D mesh simulation with the 3D mesh in GLMakie over chaining the Observable with 'lift'
 #    -> see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
-# ! This can only work, if we don't have to exclude a vertice to open the closed mesh
 
 using Makie
 using GLMakie
@@ -25,15 +24,6 @@ UpFolder = pwd();
 namestructure = "ellipsoid_x4"
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_loaded_uv = FileIO.load("meshes/ellipsoid_uv.off")  # planar equiareal parametrization
-
-# get the number of vertices of the mesh
-num_vertices = length(GeometryBasics.coordinates(mesh_loaded))
-num_vertices_uv = length(GeometryBasics.coordinates(mesh_loaded_uv))
-
- # ! this should be 1.0 but it can be, because of following logic:
- # number_vertices_uv = number_vertices + (number of seam edges - 1)
- # and we need seam edges to open the closed mesh
-check_vertices_number_consistency = num_vertices / num_vertices_uv
 
 # Define folder structure and pre-process meshes:
 # -----------------------------------------------
@@ -167,13 +157,16 @@ function active_particles_simulation(
     # area of interest
     ########################################################################################
 
+    # HINWEIS: wir verwenden hier das 3D mesh für die Findung der Nachbarn
+    # Test: kann ich die Daten von Faces auch für die Berechnung der Nachbarn benutzen und dass dann auch für die UV-Plot?
     Faces_coord = cat(dim_data(vertices, faces, 1), dim_data(vertices, faces, 2), dim_data(vertices, faces, 3), dims=3)
-    face_neighbors = find_face_neighbors(faces, Faces_coord)  # TODO: fix this function for the uv plot case
+    face_neighbors = find_face_neighbors(faces, Faces_coord)
 
     Faces_coord_uv = cat(dim_data(vertices_uv, faces_uv, 1), dim_data(vertices_uv, faces_uv, 2), dim_data(vertices_uv, faces_uv, 3), dims=3)
     face_neighbors_uv = find_face_neighbors(faces_uv, Faces_coord_uv)  # TODO: fix this function for the uv plot case
-    Faces_coord = Faces_coord_uv
-    face_neighbors = face_neighbors_uv
+
+    # Faces_coord = Faces_coord_uv
+    # face_neighbors = face_neighbors_uv
 
 
     # ########################################################################################
@@ -223,6 +216,7 @@ function active_particles_simulation(
 
     end
 
+    r[:,3] .= 0  # set the third column to 0, because we are only interested in the 2D plot
     observe_r[] = array_to_vec_of_vec(r)
     observe_n[] = array_to_vec_of_vec(n)
 
@@ -249,7 +243,7 @@ function active_particles_simulation(
     meshscatter!(ax1, observe_r, color = :black, markersize = 0.05)  # overgive the Observable the plotting function to TRACK it
     meshscatter!(ax3, observe_r, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
 
-    # NOTE: for a planar system it is more difficult to visualize the height of the vertices
+    # # NOTE: for a planar system it is more difficult to visualize the height of the vertices
     # arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
     # arrows!(ax3, observe_r, observe_nr_dot, arrowsize = 0.01, linecolor = (:red, 0.7), linewidth = 0.02, lengthscale = scale)
     # arrows!(ax3, observe_r, observe_nr_dot_cross, arrowsize = 0.01, linecolor = (:blue, 0.7), linewidth = 0.02, lengthscale = scale)
@@ -259,37 +253,37 @@ function active_particles_simulation(
     # lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
 
     # Project the orientation of the corresponding faces using normal vectors
-    # n = P_perp(Norm_vect,n)
-    # n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
-
+    n = P_perp(Norm_vect,n)
+    n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
+    
     # cam = cameracontrols(scene)
     # update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
     # update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
-    # record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
-    #     simulate_next_step(
-    #         tt,
-    #         observe_r,
-    #         face_neighbors,
-    #         Faces_coord,
-    #         N,
-    #         num_face,
-    #         num_part,
-    #         observe_n,
-    #         observe_nr_dot,
-    #         observe_nr_dot_cross,
-    #         observe_order,
-    #         Norm_vect;
-    #         v0,
-    #         v0_next,
-    #         k,
-    #         k_next,
-    #         σ,
-    #         μ,
-    #         τ,
-    #         r_adh,
-    #         k_adh,
-    #     )
-    # end
+    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
+        simulate_next_step(
+            tt,
+            observe_r,
+            face_neighbors,
+            Faces_coord,
+            N,
+            num_face,
+            num_part,
+            observe_n,
+            observe_nr_dot,
+            observe_nr_dot_cross,
+            observe_order,
+            Norm_vect;
+            v0,
+            v0_next,
+            k,
+            k_next,
+            σ,
+            μ,
+            τ,
+            r_adh,
+            k_adh,
+        )
+    end
 
 end
 
