@@ -113,6 +113,7 @@ function active_particles_simulation(
     ########################################################################################
 
     observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))  # position of particles
+    observe_r_3D = Makie.Observable(fill(Point3f0(NaN), num_part))  # position of particles in 3D
     observe_n = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized orientation of particles
     observe_nr_dot = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized velocity vector
     observe_nr_dot_cross = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized binormal vector of the plane normal to the orientation vector
@@ -178,6 +179,7 @@ function active_particles_simulation(
 
     r = observe_r[] |> vec_of_vec_to_array  # transform the Observable vector to our used Matrix notation
     n = observe_n[] |> vec_of_vec_to_array
+    r_3D = observe_r_3D[] |> vec_of_vec_to_array
 
     # for-loop where particle are randomly positioned and orientated in a 3D
     # box, then projected on the closest face. The normal vector of that face
@@ -197,14 +199,22 @@ function active_particles_simulation(
         faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
     
         r_face_uv = Int.(faces_uv[random_face, :])  # get the random face
+        r_face = faces[random_face, :]
 
         # calculate the center of gravity of the face
         center_face = [0,0,0]
         for j=1:3
-            center_face += vertices_uv[r_face_uv[j],:]
+            center_face += vertices[r_face[j],:]
         end
         center_face = center_face/3
-        r[i,:] = center_face
+        r_3D[i,:] = center_face
+
+        center_face_uv = [0,0,0]
+        for j=1:3
+            center_face_uv += vertices_uv[r_face_uv[j],:]
+        end
+        center_face_uv = center_face_uv/3
+        r[i,:] = center_face_uv
 
         #random particle orientation
         n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
@@ -218,6 +228,7 @@ function active_particles_simulation(
 
     r[:,3] .= 0  # set the third column to 0, because we are only interested in the 2D plot
     observe_r[] = array_to_vec_of_vec(r)
+    observe_r_3D[] = array_to_vec_of_vec(r_3D)   # TODO: 'lift' this observable with observe_r
     observe_n[] = array_to_vec_of_vec(n)
 
 
@@ -240,7 +251,7 @@ function active_particles_simulation(
     wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
 
     # Plot the particles
-    meshscatter!(ax1, observe_r, color = :black, markersize = 0.05)  # overgive the Observable the plotting function to TRACK it
+    meshscatter!(ax1, observe_r_3D, color = :black, markersize = 0.05)  # overgive the Observable the plotting function to TRACK it
     meshscatter!(ax3, observe_r, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
 
     # # NOTE: for a planar system it is more difficult to visualize the height of the vertices
