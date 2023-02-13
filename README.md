@@ -42,7 +42,11 @@ Execute the following command in the project folder inside your shell: `julia -t
 
 ## Requirements 
 
-For C++ please install Libigl and Eigen (https://libigl.github.io). Libigl has to be installed into this project folder.  
+For C++ please install following libraries:
+1. CGAL (version 5.5.1)
+2. Boost (version 1.80.0)
+3. Eigen (version 3.4.0_1)
+
 For Matlab you need the Statistics toolbox installed.
 
 ---
