@@ -11,6 +11,7 @@ using Statistics
 using LinearAlgebra
 using Base.Threads
 using Logging
+using LinearAlgebra, SparseArrays
 
 
 GLMakie.activate!()
@@ -389,6 +390,62 @@ then simply simulate the particle behaviour on the mesh surface.
 """
 function simulate_on_mesh(mesh_surf, particle_form, particle_n)
 
+end
+
+
+"""
+    calc_heat_distance()
+
+The source and target points should be given as the vertex indices in the mesh.
+"""
+function calc_heat_distance()
+    # Define mesh and source/target points
+    vertices = rand(1:100, 100, 3)
+    faces = rand(1:100, 100, 3)
+    source = 4
+    target = 50
+
+    # Compute adjacency matrix
+    n_vertices = size(vertices, 1)
+    Vs = faces[:, [2,3,1]] |> vec  # = np.roll(faces, 1, axis=1).ravel()
+    Js = faces |> vec
+    Is = ones(Int, size(faces, 1),3) |> vec
+
+    # Compute the adjacency matrix A of the mesh, where A[i, j] = 1 if vertices i and j are connected by
+    # an edge, and A[i, j] = 0 otherwise.
+    adjacency = sparse(Js, Vs, Is)
+
+    # Compute the diagonal matrix D of vertex degrees, where D[i, i] is the sum of the weights of the 
+    # edges connected to vertex i
+    degree = sparse(1:n_vertices, 1:n_vertices, vec(sum(adjacency, dims=1)))
+
+    # Compute Laplacian matrix
+    laplacian = degree - adjacency
+
+    # turn the laplacian into an array
+    laplacian = Array(laplacian)  # NOTE: because there is a dummy bug in the paket
+
+    """
+        heat_kernel(t)
+
+    Compute heat kernel
+    """
+    function heat_kernel(t)
+        return exp(-t * laplacian)
+    end
+
+    # Compute initial heat distribution
+    u_0 = zeros(n_vertices)
+    u_0[source] = 1
+
+    # Compute heat distribution at time t
+    t = 0.1
+    u_t = heat_kernel(t) * u_0
+
+    # Compute geodesic distance
+    distance = sqrt(u_t[target])
+
+    return distance
 end
 
 
