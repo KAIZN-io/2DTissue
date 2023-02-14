@@ -396,15 +396,10 @@ end
 """
     calc_heat_distance()
 
+NOTE: This function is not working yet.
 The source and target points should be given as the vertex indices in the mesh.
 """
-function calc_heat_distance()
-    # Define mesh and source/target points
-    vertices = rand(1:100, 100, 3)
-    faces = rand(1:100, 100, 3)
-    source = 4
-    target = 50
-
+function calc_heat_distance(vertices=rand(1:100, 100, 3), faces=rand(1:100, 100, 3), source=4)
     # Compute adjacency matrix
     n_vertices = size(vertices, 1)
     Vs = faces[:, [2,3,1]] |> vec  # = np.roll(faces, 1, axis=1).ravel()
@@ -442,10 +437,18 @@ function calc_heat_distance()
     t = 0.1
     u_t = heat_kernel(t) * u_0
 
-    # Compute geodesic distance
-    distance = sqrt(u_t[target])
+    distance_max = 0
+    target_max = 0
+    for target=1:n_vertices
+        # Compute geodesic distance
+        distance = sqrt(abs(u_t[target]))
+        if distance_max < distance
+            distance_max = distance
+            target_max = target
+        end
+    end
 
-    return distance
+    return distance_max, target_max
 end
 
 
