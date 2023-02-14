@@ -1,41 +1,39 @@
-// g++ -std=c++14 -lpthread -I /usr/local/Cellar/CGAL/5.5.1/include -I /usr/local/Cellar/boost/1.80.0/include  -I /usr/local/Cellar/eigen/3.4.0_1/include/eigen3 src/orbifold.cpp -o src/orbifold
-// g++ -std=c++14 -lpthread -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/eigen3 src/orbifold.cpp -o src/orbifold
+// author: @Jan-Piotraschke
+// date: 2023-02-13
+// license: Apache License 2.0
+// version: 0.1.0
 
+// g++ -std=c++14 -lpthread -I /usr/local/Cellar/CGAL/5.5.1/include -I /usr/local/Cellar/boost/1.80.0/include  -I /usr/local/Cellar/eigen/3.4.0_1/include/eigen3 src/create_uv_surface.cpp -o src/create_uv_surface
+// g++ -std=c++14 -lpthread -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/eigen3 src/create_uv_surface.cpp -o src/create_uv_surface
 
 
 #include <CGAL/Simple_cartesian.h>
+#include <CGAL/Timer.h>
 
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
 
+// borders
 #include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
-#include <CGAL/Surface_mesh_parameterization/Orbifold_Tutte_parameterizer_3.h>
-#include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>  // for fixed borders
+
+// surface parameterization methods
+#include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>
 
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
+
+// boost graph
 #include <CGAL/boost/graph/properties.h>
-
-#include <CGAL/Timer.h>
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Polyhedron_3.h>
-#include <CGAL/Polyhedron_items_with_id_3.h>
 #include <CGAL/boost/graph/breadth_first_search.h>
-#include <boost/graph/depth_first_search.hpp>
-#include <vector>
-#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
-#include <fstream>
-#include <iostream>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/boost/graph/graph_traits_Triangulation_2.h>
 #include <CGAL/boost/graph/dijkstra_shortest_paths.h>
-#include <CGAL/boost/graph/graph_traits_Polyhedron_3.h>
-#include <boost/property_map/property_map.hpp>
-
-#include <CGAL/IO/Polyhedron_iostream.h>
+#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
+
+#include <boost/property_map/property_map.hpp>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+
 #include <unordered_map>
 #include <fstream>
 #include <sstream>
@@ -49,12 +47,14 @@ typedef CGAL::Simple_cartesian<double>            Kernel;
 typedef Kernel::Point_2                           Point_2;
 typedef Kernel::Point_3                           Point_3;
 typedef CGAL::Surface_mesh<Kernel::Point_3>       SurfaceMesh;
+
 namespace My {
   struct Mesh: public CGAL::Surface_mesh<Point_3> {
     typedef CGAL::Surface_mesh<Point_3> Base;
     std::string name;
   };
 } // namespace My
+
 #define CGAL_GRAPH_TRAITS_INHERITANCE_CLASS_NAME My::Mesh
 #define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Point_3>
 #include <CGAL/boost/graph/graph_traits_inheritance_macros.h>
@@ -164,7 +164,6 @@ std::vector<my_edge_descriptor> calc_virtual_border()
     //   mesh2.add_seam(source(e, sm), target(e, sm));
     // }
     // std::cout << mesh2.number_of_seam_edges() << " seam edges in input" << std::endl;
-
 
 
     // ! From: https://www.technical-recipes.com/2015/getting-started-with-the-boost-graph-library/
@@ -279,11 +278,15 @@ int main(int argc, char** argv)
   // are only stored for the canonical halfedges representing a vertex
   UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
 
-  // Parameterizer
+  // Choose the border of the uv parametrisation
   typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
   // typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
   Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
 
+  // Iterative Authalic Parameterization:
+  // from https://doi.org/10.1109/ICCVW.2019.00508
+  // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
+  // meaning that it aims to minimize area distortion between the input surface mesh and the parameterized output.
   typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
   Parameterizer parameterizer(border_parameterizer);
 
@@ -294,6 +297,11 @@ int main(int argc, char** argv)
   // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
   const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 9;
   SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
+
+  if(err != SMP::OK){
+      std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
+      return EXIT_FAILURE;
+  }
 
   // print the number of vertices of the uvmap
   std::cout << "Number of vertices in uvmap: " << indices.size() << std::endl;
