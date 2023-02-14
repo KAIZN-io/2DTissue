@@ -166,9 +166,6 @@ function active_particles_simulation(
     Faces_coord_uv = cat(dim_data(vertices_uv, faces_uv, 1), dim_data(vertices_uv, faces_uv, 2), dim_data(vertices_uv, faces_uv, 3), dims=3)
     face_neighbors_uv = find_face_neighbors(faces_uv, Faces_coord_uv)  # TODO: fix this function for the uv plot case
 
-    # Faces_coord = Faces_coord_uv
-    # face_neighbors = face_neighbors_uv
-
 
     # ########################################################################################
     # # Step 4.: Initialize particles on the mesh faces with random initial orientation
@@ -197,24 +194,13 @@ function active_particles_simulation(
         # Randomly position of particles on the mesh
         random_face = rand(faces_list)  # choose a random vertice from the vertice list
         faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
-    
+
         r_face_uv = Int.(faces_uv[random_face, :])  # get the random face
         r_face = faces_3D[random_face, :]
 
-        # calculate the center of gravity of the face
-        center_face = [0,0,0]
-        for j=1:3
-            center_face += vertices_3D[r_face[j],:]
-        end
-        center_face = center_face/3
-        r_3D[i,:] = center_face
-
-        center_face_uv = [0,0,0]
-        for j=1:3
-            center_face_uv += vertices_uv[r_face_uv[j],:]
-        end
-        center_face_uv = center_face_uv/3
-        r[i,:] = center_face_uv
+        # project the random particle into the center of the random face
+        r_3D[i,:] = get_face_center_coord(vertices_3D, r_face)
+        r[i,:] = get_face_center_coord(vertices_uv, r_face_uv)
 
         #random particle orientation
         n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
@@ -347,7 +333,7 @@ end
 """
     array_to_vec_of_vec(A::Array)
 
-transform matrix to vector of vectors 
+transform matrix to vector of vectors
 """
 function array_to_vec_of_vec(A::Array)
     return [A[i,:] for i in 1:size(A,1)]
@@ -356,8 +342,9 @@ end
 
 
 """
-calculate_vertex_normals(faces_stl, vertices_stl, row_number)
+    calculate_vertex_normals(faces_stl, vertices_stl, row_number)
 
+calculate the cross product of BA and CA vectors
 """
 function calculate_vertex_normals(faces_stl, vertices_stl, row_number)
     a = faces_stl[row_number,1]
@@ -370,8 +357,6 @@ function calculate_vertex_normals(faces_stl, vertices_stl, row_number)
 
     BA = B-A
     CA = C-A
-
-# calculate the cross product of BA and CA vectors
     return cross(BA, CA)
 end
 
@@ -380,6 +365,19 @@ end
 # SIMULATION SPECIFIC FUNCTIONS
 ########################################################################################
 
+
+"""
+    get_face_center_coord(_vertices, _r_face)
+
+calculate the center of gravity of the face
+"""
+function get_face_center_coord(_vertices, _r_face)
+    center_face = [0,0,0]
+    for j=1:3
+        center_face += _vertices[_r_face[j],:]
+    end
+    return center_face/3
+end
 
 
 # TODO: implement this: https://docs.makie.org/v0.19.1/documentation/nodes/index.html#the_observable_structure
@@ -601,7 +599,7 @@ end
 """
     calculate_forces_between_particles(
     Vect,
-    Distmat,
+    dist_length,
     k,
     σ,
     r_adh,
@@ -610,23 +608,23 @@ end
 
 """
 function calculate_forces_between_particles(
-    Vect,
-    Distmat,
+    dist_vect,
+    dist_length,
     k,
     σ,
     r_adh,
     k_adh
 )
-    Fij_rep = (-k*(2*σ.-Distmat))./(2*σ)
-    Fij_adh = (k_adh*(2*σ.-Distmat))./(2*σ-r_adh)
+    Fij_rep = (-k*(2*σ.-dist_length))./(2*σ)
+    Fij_adh = (k_adh*(2*σ.-dist_length))./(2*σ-r_adh)
 
     # No force if particles too far from each other or if particle itself
-    Fij_rep[(Distmat .>= 2*σ) .| (Distmat .== 0)] .= 0
-    Fij_adh[(Distmat .< 2*σ) .| (Distmat .> r_adh) .| (Distmat .== 0)] .= 0
+    Fij_rep[(dist_length .>= 2*σ) .| (dist_length .== 0)] .= 0
+    Fij_adh[(dist_length .< 2*σ) .| (dist_length .> r_adh) .| (dist_length .== 0)] .= 0
 
     # Fij is the force between particles
     Fij = Fij_rep .+ Fij_adh
-    Fij = cat(dims=3,Fij,Fij,Fij).*(Vect./(cat(dims=3,Distmat,Distmat,Distmat)))
+    Fij = cat(dims=3,Fij,Fij,Fij).*(dist_vect./(cat(dims=3,dist_length,dist_length,dist_length)))
 
     # % Actual force felt by each particle
     return reshape(sum(replace!(Fij, NaN=>0), dims=1),: ,size(Fij,3))
@@ -723,6 +721,7 @@ function simulate_next_step(
     r_adh,
     k_adh
 )
+
     r = observe_r[] |> vec_of_vec_to_array
     n = observe_n[] |> vec_of_vec_to_array
     nr_dot = observe_nr_dot[] |> vec_of_vec_to_array
@@ -741,19 +740,29 @@ function simulate_next_step(
         k = k_next;
     end
 
+    # ! TODO: diese Berechnung ist falsch im 2D Fall, da die mesh face unterschiedlich groß sind
+    # ! Daraus resultiert eine unnatürlich große Kraft, die die Zellen weg vom Mesh schleudert
+    # Dummy Code wie es eigentlich aussehen könnte:
+    # 1. Partikel wissen, auf welchen Face sie sich befinden
+    # 2. Es gibt eine bereinigte dist_length matrix mapping die die wahre Weglänge der einzelnen Vertice Face zueinander beinhaltet
+    #     2.1 diese Mapping Matrix ist eine Konstante
+    # 3. Für die Berechnung der Kraft schaut man, mit welchen Faktor die Weglänge multipliziert werden muss
+    # TODO: calc_geodesic_distance() on an UV plane
+    # ! Heat Method developed by Keenan Crane (http://doi.acm.org/10.1145/3131280)
+
     # % Vector between all particles (1->2; 1->3; 1->4;... 641->1; 641->2;
     # % 641->3; 641->4;...641->640...)
-    Vect = cat(dims=3,
+    dist_vect = cat(dims=3,
         r[:,1]*ones(1,num_part)-ones(num_part,1)*r[:,1]',
         r[:,2]*ones(1,num_part)-ones(num_part,1)*r[:,2]',
         r[:,3]*ones(1,num_part)-ones(num_part,1)*r[:,3]'
         )
 
-    Distmat = sqrt.(sum(Vect.^2,dims=3))[:,:,1]  # distance of each point with the others
+    dist_length = sqrt.(sum(dist_vect.^2,dims=3))[:,:,1]  # distance of each point with the others
 
     F_track = calculate_forces_between_particles(
-        Vect,
-        Distmat,
+        dist_vect,
+        dist_length,
         k,
         σ,
         r_adh,
@@ -825,8 +834,8 @@ function simulate_next_step(
     # %Graphic output if plotstep is a multiple of tt
     if rem(tt,plotstep)==0
         # %evaluate number of neighbourgs within 2.4 sigma cut off
-        num_partic = ones(size(Distmat));
-        num_partic[(Distmat .== 0) .| (Distmat .> 2.4*σ)] .= 0;
+        num_partic = ones(size(dist_length));
+        num_partic[(dist_length .== 0) .| (dist_length .> 2.4*σ)] .= 0;
         number_neighbours=sum(num_partic,dims=2);  # list of nearest neighbour to each particle
 
         N_color=[];
