@@ -238,10 +238,16 @@ function active_particles_simulation(
 
     scene = GLMakie.Scene(resolution = (400,400), show_axis = false);
 
-    figure = GLMakie.Figure(resolution=(2600, 1200))
+    figure = GLMakie.Figure(resolution=(1400, 2100))
     ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    ax1.title = "3D-Plot"
+
     # ax2 = Makie.Axis(figure[1, 2])
-    ax3 = Makie.Axis3(figure[2, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    ax3 = Makie.Axis(figure[2, 1]; aspect=(1))  # NOTE: remove the aspect ratio to dynamically size the plot
+    ax3.title = "UV-Plot"
+    ax3.xlabel = "u"
+    ax3.ylabel = "v"
+
     colsize!(figure.layout, 1, Relative(2 / 3))
 
     mesh!(ax1, mesh_loaded)
