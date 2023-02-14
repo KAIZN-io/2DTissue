@@ -125,12 +125,12 @@ function active_particles_simulation(
     ########################################################################################
 
     # ! TODO: check if both 'vertices' and 'vertices_uv' have the same lenght of vertices after you fixed the script 'flatten_closed_mesh.cpp'
-    vertices = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
+    vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
     vertices_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
 
-    faces = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
+    faces_3D = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
     faces_uv = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_uv) |> vec_of_vec_to_array  # return the faces of the mesh
-    @info "faces in 3D: " length(faces)
+    @info "faces in 3D: " length(faces_3D)
     @info "faces in 2D: " length(faces_uv)
 
     # mesh_loaded_stl = FileIO.load("meshes/ellipsoid_x4.stl")  # 3D mesh
@@ -160,8 +160,8 @@ function active_particles_simulation(
 
     # HINWEIS: wir verwenden hier das 3D mesh für die Findung der Nachbarn
     # Test: kann ich die Daten von Faces auch für die Berechnung der Nachbarn benutzen und dass dann auch für die UV-Plot?
-    Faces_coord = cat(dim_data(vertices, faces, 1), dim_data(vertices, faces, 2), dim_data(vertices, faces, 3), dims=3)
-    face_neighbors = find_face_neighbors(faces, Faces_coord)
+    Faces_coord = cat(dim_data(vertices_3D, faces_3D, 1), dim_data(vertices_3D, faces_3D, 2), dim_data(vertices_3D, faces_3D, 3), dims=3)
+    face_neighbors = find_face_neighbors(faces_3D, Faces_coord)
 
     Faces_coord_uv = cat(dim_data(vertices_uv, faces_uv, 1), dim_data(vertices_uv, faces_uv, 2), dim_data(vertices_uv, faces_uv, 3), dims=3)
     face_neighbors_uv = find_face_neighbors(faces_uv, Faces_coord_uv)  # TODO: fix this function for the uv plot case
@@ -188,7 +188,7 @@ function active_particles_simulation(
     # Julia supports parallel loops using the Threads.@threads macro. 
     # This macro is affixed in front of a for loop to indicate to Julia that the loop is a multi-threaded region
     # the order of assigning the values to the particles isn't important, so we can use parallel loops
-    vertices_length = length(vertices[:,1])
+    vertices_length = length(vertices_3D[:,1])
     vertices_list = range(1, vertices_length, step=1)
 
     faces_length = length(faces_uv[:,1])
@@ -199,12 +199,12 @@ function active_particles_simulation(
         faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
     
         r_face_uv = Int.(faces_uv[random_face, :])  # get the random face
-        r_face = faces[random_face, :]
+        r_face = faces_3D[random_face, :]
 
         # calculate the center of gravity of the face
         center_face = [0,0,0]
         for j=1:3
-            center_face += vertices[r_face[j],:]
+            center_face += vertices_3D[r_face[j],:]
         end
         center_face = center_face/3
         r_3D[i,:] = center_face
@@ -391,7 +391,7 @@ end
 """
     find_face_neighbors(Faces, Faces_coord)
 
-Create index matrix of neighbourg faces to each face
+Create index matrix of neighbour faces to each face
 """
 function find_face_neighbors(Faces, Faces_coord)
 
