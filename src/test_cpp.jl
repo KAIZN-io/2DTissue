@@ -1,10 +1,10 @@
 # ! NOTE: if you activate a venv inside the src folder, you can run this code because CxxWrap doens't have an import problem
+# ! Please note that you need .julia/artifacts/Overrides.toml where you refere to your C++ builts
 
 # Load the module and generate the functions
-module CppHello2
+module CppHello
   using CxxWrap
   @wrapmodule(joinpath(CxxWrap.prefix_path(), "lib", "libhello"))
-#   @wrapmodule CxxWrap.CxxWrapCore.libhello()
 
   function __init__()
     @initcxx
@@ -12,4 +12,4 @@ module CppHello2
 end
 
 # Call greet and show the result
-@show CppHello2.greet()
+@show CppHello.greet()
