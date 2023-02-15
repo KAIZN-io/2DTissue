@@ -51,7 +51,9 @@ Execute the following command in the project folder inside your shell: `julia -t
 ---
 
 ## Trouble shooting:  
-If you can't use CxxWrap, please delete all the artifacts inside .julia/artifacts and try again.
+If you can't use CxxWrap, please delete all the artifacts inside .julia/artifacts.  
+Print out the Prefix_path using `CxxWrap.prefix_path()` inside the Julia REPL.  
+If this works, you can run `make build` inside your shell.
 
 
 ---
