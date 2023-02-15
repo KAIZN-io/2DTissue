@@ -15,6 +15,16 @@ The results of the simulation for ellipsoidal surfaces have been published in ["
 
 The accepted version of the paper is available for free on arxiv: https://arxiv.org/abs/1610.05987.
 
+
+---
+
+## Compile the C++ code for accessing it in Julia
+
+1. register your C++ script in the CMakeLists.txt file
+2. open a terminal in the root of the project
+3. run `make build` to compile the C++ code
+
+
 ---
 
 ## Package management in Julia
