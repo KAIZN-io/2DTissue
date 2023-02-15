@@ -40,6 +40,12 @@ Execute the following command in the project folder inside your shell: `julia -t
 
 ---
 
+## Trouble shooting:  
+If you can't use CxxWrap, please delete all the artifacts inside .julia/artifacts and try again.
+
+
+---
+
 ## Requirements 
 
 For C++ please install following libraries:
