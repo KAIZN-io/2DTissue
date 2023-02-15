@@ -38,3 +38,7 @@ images/
 .vscode/
 libigl/
 assets/
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
