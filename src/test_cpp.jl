@@ -1,17 +1,3 @@
-# Load the module and generate the functions
-module CppHello
-  using CxxWrap
-
-  @wrapmodule(joinpath(@__DIR__, "build/lib", "libhello"))
-
-  function __init__()
-    @initcxx
-  end
-end
-# Call greet and show the result
-@show CppHello.greet()
-
-
 module HeatMethod
   using CxxWrap
 
@@ -21,5 +7,5 @@ module HeatMethod
     @initcxx
   end
 end
-@show HeatMethod.geo_distance()
+max_distance = HeatMethod.geo_distance()
 

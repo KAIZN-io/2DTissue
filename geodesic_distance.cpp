@@ -25,9 +25,9 @@ typedef Triangle_mesh::Property_map<vertex_descriptor,double> Vertex_distance_ma
 typedef CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CGAL::Heat_method_3::Direct> Heat_method_idt;
 
 
-int main()
+double geo_distance()
 {
-  std::ifstream filename(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+  std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
   Triangle_mesh tm;
   filename >> tm;
 
@@ -49,7 +49,14 @@ int main()
   }
   std::cout << "Our max distace is " << max_distance << std::endl;
 
-  return 0;
+  return max_distance;
+}
+
+
+int main()
+{
+    geo_distance();
+    return 0;
 }
 
 
@@ -57,5 +64,5 @@ int main()
 JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
 {
     // register a standard C++ function
-    mod.method("geo_distance", main);
+    mod.method("geo_distance", geo_distance);
 }
