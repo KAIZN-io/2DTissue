@@ -55,9 +55,11 @@ include_directories(BEFORE include)
 
 create_single_source_cgal_program("src/geodesic_distance.cpp")
 target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia)
+create_single_source_cgal_program("src/create_uv_surface.cpp")
+target_link_libraries(create_uv_surface PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia)
 
 # Compile
-install(TARGETS geodesic_distance
+install(TARGETS geodesic_distance create_uv_surface
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib

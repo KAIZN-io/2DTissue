@@ -43,6 +43,14 @@
 #include <utility>
 #include <vector>
 
+#include <algorithm>
+#include <cstddef>
+
+#include "jlcxx/jlcxx.hpp"
+#include "jlcxx/array.hpp"
+#include "jlcxx/functions.hpp"
+
+
 typedef CGAL::Simple_cartesian<double>            Kernel;
 typedef Kernel::Point_2                           Point_2;
 typedef Kernel::Point_3                           Point_3;
@@ -200,11 +208,7 @@ int main()
   std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
 
   SurfaceMesh sm;
-  if(!CGAL::IO::read_polygon_mesh(filename, sm))
-  {
-    std::cerr << "Invalid input file." << std::endl;
-    return EXIT_FAILURE;
-  }
+  filename >> sm;
 
   // save the STL file as an OFF file
   // std::ofstream out_OFF("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
@@ -296,7 +300,7 @@ int main()
   halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
   // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
-  const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 9;
+  const unsigned int iterations = 9;
   SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
 
   if(err != SMP::OK){
@@ -312,5 +316,13 @@ int main()
 
   std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;
 
-  return EXIT_SUCCESS;
+  return 0;
+}
+
+
+// make this function visible to Julia
+JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
+{
+    // register a standard C++ function
+    mod.method("create_uv_surface", main);
 }
