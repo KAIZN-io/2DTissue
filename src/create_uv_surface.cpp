@@ -95,7 +95,7 @@ std::vector<my_edge_descriptor> calc_virtual_border()
 {
     My::Mesh mesh;
     // std::ifstream in(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off"));
-    std::ifstream in(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+    std::ifstream in(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
     in >> mesh;
 
     // typedef boost::graph_traits<My::Mesh>::vertex_descriptor vertex_descriptor;
@@ -190,13 +190,14 @@ std::vector<my_edge_descriptor> calc_virtual_border()
 
 
 
-int main(int argc, char** argv)
+int main()
 {
   CGAL::Timer task_timer;
   task_timer.start();
 
   // const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off");
-  const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
+  // const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
+  std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
 
   SurfaceMesh sm;
   if(!CGAL::IO::read_polygon_mesh(filename, sm))
@@ -306,7 +307,7 @@ int main(int argc, char** argv)
   // print the number of vertices of the uvmap
   std::cout << "Number of vertices in uvmap: " << indices.size() << std::endl;
 
-  std::ofstream out("git_repos/Confined_active_particles/meshes/ellipsoid_uv.off");
+  std::ofstream out("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_uv.off");
   SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
 
   std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;

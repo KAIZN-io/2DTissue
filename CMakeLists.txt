@@ -49,25 +49,14 @@ message(STATUS "Found JlCxx at ${JlCxx_location}")
 include_directories(BEFORE include)
 
 # Creating entries for all C++ files with "main" routine
+# Use target_link_libraries() to express direct dependencies!
+# PUBLIC, if you use the libraries in the headers
 # ##########################################################
 
-create_single_source_cgal_program("geodesic_distance.cpp")
+create_single_source_cgal_program("src/geodesic_distance.cpp")
 target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia)
 
-
-# # Add our library
-# add_library(hello SHARED src/hello.cpp)
-# add_library(func SHARED src/call_func.cpp)
-# add_executable(geodesic_distance src/geodesic_distance.cpp)
-
-# # Link to JlCxx
-# # PUBLIC, if you use the libraries in the header
-# # Use target_link_libraries() to express direct dependencies!
-# target_link_libraries(hello JlCxx::cxxwrap_julia)
-# target_link_libraries(func JlCxx::cxxwrap_julia)
-# target_link_libraries(geodesic_distance PUBLIC CGAL Boost Eigen3 JlCxx::cxxwrap_julia)
-
-# Install
+# Compile
 install(TARGETS geodesic_distance
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
