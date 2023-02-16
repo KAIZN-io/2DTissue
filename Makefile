@@ -17,7 +17,7 @@ all: build
 .PHONY: init
 init: clone
 	cd $(REPOSITORY)-build && \
-	cmake -DJulia_EXECUTABLE=/opt/homebrew/bin/julia  ../$(REPOSITORY)
+	cmake -DJulia_EXECUTABLE=${shell which julia} ../$(REPOSITORY)
 	cmake --build $(REPOSITORY)-build --config Release
 
 # Clone the repository
