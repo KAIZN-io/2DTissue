@@ -37,7 +37,7 @@ add_library(geo_distance SHARED src/geodesic_distance.cpp)
 # PUBLIC, if you use the libraries in the header
 target_link_libraries(hello JlCxx::cxxwrap_julia)
 target_link_libraries(func JlCxx::cxxwrap_julia)
-target_link_libraries(geodesic_distance PUBLIC Boost CGAL Eigen3 JlCxx::cxxwrap_julia)
+target_sources(geodesic_distance PUBLIC Boost CGAL Eigen3 JlCxx::cxxwrap_julia)
 
 # Install
 install(TARGETS hello func geo_distance
