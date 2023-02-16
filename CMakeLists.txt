@@ -12,7 +12,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 # installed.
 # ! Next, you can build your own code against this by setting the JlCxx_DIR CMake variable to the build directory 
 # (libcxxwrap-julia-build) used above, or add it to the CMAKE_PREFIX_PATH CMake variable.
-list(APPEND CMAKE_PREFIX_PATH "/Users/jan-piotraschke/.julia/artifacts/434257acf70ce7407e3946f2c8452e814d7cca64")
+list(APPEND CMAKE_PREFIX_PATH "${HOME}/.julia/artifacts/434257acf70ce7407e3946f2c8452e814d7cca64")
 
 # Find JlCxx
 find_package(JlCxx REQUIRED)
