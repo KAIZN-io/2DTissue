@@ -22,14 +22,14 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_location}")
 message(STATUS "Found JlCxx at ${JlCxx_location}")
 
 # Add our library
-add_library(libhello SHARED src/libhello.cpp)
+add_library(hello SHARED src/hello.cpp)
 
 # Link to JlCxx
-target_link_libraries(libhello JlCxx::cxxwrap_julia)
-# target_link_libraries(libhello JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
+target_link_libraries(hello JlCxx::cxxwrap_julia)
+# target_link_libraries(hello JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 
 # Install
-install(TARGETS libhello
+install(TARGETS hello
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib
