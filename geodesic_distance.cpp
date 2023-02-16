@@ -6,6 +6,13 @@
 
 #include <iostream>
 #include <fstream>
+#include <algorithm>
+#include <sstream>
+#include <cstddef>
+
+#include "jlcxx/jlcxx.hpp"
+#include "jlcxx/array.hpp"
+#include "jlcxx/functions.hpp"
 
 
 typedef CGAL::Simple_cartesian<double>                       Kernel;
@@ -40,15 +47,15 @@ int main()
       std::cout << vd << "  is at distance " << get(vertex_distance, vd) << " from " << source << std::endl;
       max_distance = std::max(max_distance, get(vertex_distance, vd));
   }
-  std::cout << max_distance << std::endl;
+  std::cout << "Our max distace is " << max_distance << std::endl;
 
   return 0;
 }
 
 
-// // make this function visible to Julia
-// JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
-// {
-//     // register a standard C++ function
-//     mod.method("geo_distance", geodesic_distance);
-// }
+// make this function visible to Julia
+JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
+{
+    // register a standard C++ function
+    mod.method("geo_distance", main);
+}

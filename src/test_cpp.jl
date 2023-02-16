@@ -12,14 +12,14 @@ end
 @show CppHello.greet()
 
 
-module HalfFunction
+module HeatMethod
   using CxxWrap
 
-  @wrapmodule(joinpath(@__DIR__, "build/lib", "libfunc"))
+  @wrapmodule(joinpath(@__DIR__, "build", "geodesic_distance"))
 
   function __init__()
     @initcxx
   end
 end
-@show HalfFunction.half_d(3)
+@show HeatMethod.geo_distance()
 

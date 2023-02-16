@@ -22,12 +22,10 @@ find_package(CGAL 5.5.1 REQUIRED)
 find_package(Boost 1.80.0 REQUIRED)  # find_package(Boost 1.56 REQUIRED COMPONENTS date_time filesystem iostreams)
 
 if(NOT Boost_FOUND)
-
   message(
-    STATUS "This project requires the Boost library, and will not be compiled.")
-
+    STATUS "This project requires the Boost library, and will not be compiled."
+    )
   return()
-
 endif()
 
 find_package(Eigen3 3.4.0 REQUIRED)
@@ -41,24 +39,21 @@ if(NOT TARGET CGAL::Eigen3_support)
   return()
 endif()
 
+find_package(JlCxx REQUIRED)
+get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)
+get_filename_component(JlCxx_location ${JlCxx_location} DIRECTORY)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_location}")
+message(STATUS "Found JlCxx at ${JlCxx_location}")
+
 # include for local directory
 include_directories(BEFORE include)
 
 # Creating entries for all C++ files with "main" routine
 # ##########################################################
 
-create_single_source_cgal_program("heat_method_polyhedron.cpp")
-target_link_libraries(heat_method_polyhedron PUBLIC CGAL::Eigen3_support)
 create_single_source_cgal_program("geodesic_distance.cpp")
-target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support)
+target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia)
 
-
-# find_package(JlCxx REQUIRED)
-
-# get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)
-# get_filename_component(JlCxx_location ${JlCxx_location} DIRECTORY)
-# set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_location}")
-# message(STATUS "Found JlCxx at ${JlCxx_location}")
 
 # # Add our library
 # add_library(hello SHARED src/hello.cpp)
@@ -73,7 +68,7 @@ target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support)
 # target_link_libraries(geodesic_distance PUBLIC CGAL Boost Eigen3 JlCxx::cxxwrap_julia)
 
 # Install
-install(TARGETS heat_method_polyhedron geodesic_distance
+install(TARGETS geodesic_distance
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib
