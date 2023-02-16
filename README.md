@@ -20,6 +20,7 @@ The accepted version of the paper is available for free on arxiv: https://arxiv.
 
 ## Compile the C++ code for accessing it in Julia
 
+0. only once: run `make init` to initialize the project
 1. register your C++ script in the CMakeLists.txt file
 2. open a terminal in the root of the project
 3. run `make build` to compile the C++ code
