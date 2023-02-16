@@ -16,31 +16,64 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 list(APPEND CMAKE_PREFIX_PATH "${HOME}/.julia/artifacts/434257acf70ce7407e3946f2c8452e814d7cca64")
 
+find_package(CGAL 5.5.1 REQUIRED)
+
 # Include here your dependend libraries (e.g. CGAL, Eigen, Boost, etc.)
 find_package(Boost 1.80.0 REQUIRED)  # find_package(Boost 1.56 REQUIRED COMPONENTS date_time filesystem iostreams)
-find_package(CGAL 5.5.1 REQUIRED)
+
+if(NOT Boost_FOUND)
+
+  message(
+    STATUS "This project requires the Boost library, and will not be compiled.")
+
+  return()
+
+endif()
+
 find_package(Eigen3 3.4.0 REQUIRED)
-find_package(JlCxx REQUIRED)
+include(CGAL_Eigen3_support)
 
-get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)
-get_filename_component(JlCxx_location ${JlCxx_location} DIRECTORY)
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_location}")
-message(STATUS "Found JlCxx at ${JlCxx_location}")
+if(NOT TARGET CGAL::Eigen3_support)
+  message(
+    STATUS
+      "This project requires the Eigen library (3.3 or greater), and will not be compiled."
+  )
+  return()
+endif()
 
-# Add our library
-add_library(hello SHARED src/hello.cpp)
-add_library(func SHARED src/call_func.cpp)
-add_executable(geodesic_distance src/geodesic_distance.cpp)
+# include for local directory
+include_directories(BEFORE include)
 
-# Link to JlCxx
-# PUBLIC, if you use the libraries in the header
-# Use target_link_libraries() to express direct dependencies!
-target_link_libraries(hello JlCxx::cxxwrap_julia)
-target_link_libraries(func JlCxx::cxxwrap_julia)
-target_link_libraries(geodesic_distance PUBLIC CGAL Boost Eigen3 JlCxx::cxxwrap_julia)
+# Creating entries for all C++ files with "main" routine
+# ##########################################################
+
+create_single_source_cgal_program("heat_method_polyhedron.cpp")
+target_link_libraries(heat_method_polyhedron PUBLIC CGAL::Eigen3_support)
+create_single_source_cgal_program("geodesic_distance.cpp")
+target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support)
+
+
+# find_package(JlCxx REQUIRED)
+
+# get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)
+# get_filename_component(JlCxx_location ${JlCxx_location} DIRECTORY)
+# set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_location}")
+# message(STATUS "Found JlCxx at ${JlCxx_location}")
+
+# # Add our library
+# add_library(hello SHARED src/hello.cpp)
+# add_library(func SHARED src/call_func.cpp)
+# add_executable(geodesic_distance src/geodesic_distance.cpp)
+
+# # Link to JlCxx
+# # PUBLIC, if you use the libraries in the header
+# # Use target_link_libraries() to express direct dependencies!
+# target_link_libraries(hello JlCxx::cxxwrap_julia)
+# target_link_libraries(func JlCxx::cxxwrap_julia)
+# target_link_libraries(geodesic_distance PUBLIC CGAL Boost Eigen3 JlCxx::cxxwrap_julia)
 
 # Install
-install(TARGETS hello func geodesic_distance
+install(TARGETS heat_method_polyhedron geodesic_distance
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib
