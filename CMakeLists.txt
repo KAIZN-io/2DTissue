@@ -31,16 +31,16 @@ message(STATUS "Found JlCxx at ${JlCxx_location}")
 add_library(hello SHARED src/hello.cpp)
 add_library(func SHARED src/call_func.cpp)
 add_executable(geodesic_distance src/geodesic_distance.cpp)
-add_library(geo_distance SHARED src/geodesic_distance.cpp)
 
 # Link to JlCxx
 # PUBLIC, if you use the libraries in the header
+# Use target_link_libraries() to express direct dependencies!
 target_link_libraries(hello JlCxx::cxxwrap_julia)
 target_link_libraries(func JlCxx::cxxwrap_julia)
-target_sources(geodesic_distance PUBLIC Boost CGAL Eigen3 JlCxx::cxxwrap_julia)
+target_link_libraries(geodesic_distance PUBLIC CGAL Boost Eigen3 JlCxx::cxxwrap_julia)
 
 # Install
-install(TARGETS hello func geo_distance
+install(TARGETS hello func geodesic_distance
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION lib
