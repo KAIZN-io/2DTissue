@@ -15,6 +15,17 @@ The results of the simulation for ellipsoidal surfaces have been published in ["
 
 The accepted version of the paper is available for free on arxiv: https://arxiv.org/abs/1610.05987.
 
+
+---
+
+## Compile the C++ code for accessing it in Julia
+
+0. only once: run `make init` to initialize the project
+1. register your C++ script in the CMakeLists.txt file
+2. open a terminal in the root of the project
+3. run `make build` to compile the C++ code
+
+
 ---
 
 ## Package management in Julia
@@ -37,6 +48,14 @@ All your modifications to the packages will be reflected in the `Project.toml` a
 ## Run the simulation in Julia
 
 Execute the following command in the project folder inside your shell: `julia -t 8 --project main.jl`
+
+---
+
+## Trouble shooting:  
+If you can't use CxxWrap, please delete all the artifacts inside .julia/artifacts.  
+Print out the Prefix_path using `CxxWrap.prefix_path()` inside the Julia REPL.  
+If this works, you can run `make build` inside your shell.
+
 
 ---
 

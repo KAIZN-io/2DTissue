@@ -11,6 +11,7 @@ using Statistics
 using LinearAlgebra
 using Base.Threads
 using Logging
+using LinearAlgebra, SparseArrays
 
 
 GLMakie.activate!()
@@ -166,9 +167,6 @@ function active_particles_simulation(
     Faces_coord_uv = cat(dim_data(vertices_uv, faces_uv, 1), dim_data(vertices_uv, faces_uv, 2), dim_data(vertices_uv, faces_uv, 3), dims=3)
     face_neighbors_uv = find_face_neighbors(faces_uv, Faces_coord_uv)  # TODO: fix this function for the uv plot case
 
-    # Faces_coord = Faces_coord_uv
-    # face_neighbors = face_neighbors_uv
-
 
     # ########################################################################################
     # # Step 4.: Initialize particles on the mesh faces with random initial orientation
@@ -197,24 +195,13 @@ function active_particles_simulation(
         # Randomly position of particles on the mesh
         random_face = rand(faces_list)  # choose a random vertice from the vertice list
         faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
-    
+
         r_face_uv = Int.(faces_uv[random_face, :])  # get the random face
         r_face = faces_3D[random_face, :]
 
-        # calculate the center of gravity of the face
-        center_face = [0,0,0]
-        for j=1:3
-            center_face += vertices_3D[r_face[j],:]
-        end
-        center_face = center_face/3
-        r_3D[i,:] = center_face
-
-        center_face_uv = [0,0,0]
-        for j=1:3
-            center_face_uv += vertices_uv[r_face_uv[j],:]
-        end
-        center_face_uv = center_face_uv/3
-        r[i,:] = center_face_uv
+        # project the random particle into the center of the random face
+        r_3D[i,:] = get_face_center_coord(vertices_3D, r_face)
+        r[i,:] = get_face_center_coord(vertices_uv, r_face_uv)
 
         #random particle orientation
         n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
@@ -238,10 +225,16 @@ function active_particles_simulation(
 
     scene = GLMakie.Scene(resolution = (400,400), show_axis = false);
 
-    figure = GLMakie.Figure(resolution=(2600, 1200))
+    figure = GLMakie.Figure(resolution=(1400, 2100))
     ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    ax1.title = "3D-Plot"
+
     # ax2 = Makie.Axis(figure[1, 2])
-    ax3 = Makie.Axis3(figure[2, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    ax3 = Makie.Axis(figure[2, 1]; aspect=(1))  # NOTE: remove the aspect ratio to dynamically size the plot
+    ax3.title = "UV-Plot"
+    ax3.xlabel = "u"
+    ax3.ylabel = "v"
+
     colsize!(figure.layout, 1, Relative(2 / 3))
 
     mesh!(ax1, mesh_loaded)
@@ -341,7 +334,7 @@ end
 """
     array_to_vec_of_vec(A::Array)
 
-transform matrix to vector of vectors 
+transform matrix to vector of vectors
 """
 function array_to_vec_of_vec(A::Array)
     return [A[i,:] for i in 1:size(A,1)]
@@ -350,8 +343,9 @@ end
 
 
 """
-calculate_vertex_normals(faces_stl, vertices_stl, row_number)
+    calculate_vertex_normals(faces_stl, vertices_stl, row_number)
 
+calculate the cross product of BA and CA vectors
 """
 function calculate_vertex_normals(faces_stl, vertices_stl, row_number)
     a = faces_stl[row_number,1]
@@ -364,8 +358,6 @@ function calculate_vertex_normals(faces_stl, vertices_stl, row_number)
 
     BA = B-A
     CA = C-A
-
-# calculate the cross product of BA and CA vectors
     return cross(BA, CA)
 end
 
@@ -374,6 +366,19 @@ end
 # SIMULATION SPECIFIC FUNCTIONS
 ########################################################################################
 
+
+"""
+    get_face_center_coord(_vertices, _r_face)
+
+calculate the center of gravity of the face
+"""
+function get_face_center_coord(_vertices, _r_face)
+    center_face = [0,0,0]
+    for j=1:3
+        center_face += _vertices[_r_face[j],:]
+    end
+    return center_face/3
+end
 
 
 # TODO: implement this: https://docs.makie.org/v0.19.1/documentation/nodes/index.html#the_observable_structure
@@ -385,6 +390,65 @@ then simply simulate the particle behaviour on the mesh surface.
 """
 function simulate_on_mesh(mesh_surf, particle_form, particle_n)
 
+end
+
+
+"""
+    calc_heat_distance()
+
+NOTE: This function is not working yet.
+The source and target points should be given as the vertex indices in the mesh.
+"""
+function calc_heat_distance(vertices=rand(1:100, 100, 3), faces=rand(1:100, 100, 3), source=4)
+    # Compute adjacency matrix
+    n_vertices = size(vertices, 1)
+    Vs = faces[:, [2,3,1]] |> vec  # = np.roll(faces, 1, axis=1).ravel()
+    Js = faces |> vec
+    Is = ones(Int, size(faces, 1),3) |> vec
+
+    # Compute the adjacency matrix A of the mesh, where A[i, j] = 1 if vertices i and j are connected by
+    # an edge, and A[i, j] = 0 otherwise.
+    adjacency = sparse(Js, Vs, Is)
+
+    # Compute the diagonal matrix D of vertex degrees, where D[i, i] is the sum of the weights of the 
+    # edges connected to vertex i
+    degree = sparse(1:n_vertices, 1:n_vertices, vec(sum(adjacency, dims=1)))
+
+    # Compute Laplacian matrix
+    laplacian = degree - adjacency
+
+    # turn the laplacian into an array
+    laplacian = Array(laplacian)  # NOTE: because there is a dummy bug in the paket
+
+    """
+        heat_kernel(t)
+
+    Compute heat kernel
+    """
+    function heat_kernel(t)
+        return exp(-t * laplacian)
+    end
+
+    # Compute initial heat distribution
+    u_0 = zeros(n_vertices)
+    u_0[source] = 1
+
+    # Compute heat distribution at time t
+    t = 0.1
+    u_t = heat_kernel(t) * u_0
+
+    distance_max = 0
+    target_max = 0
+    for target=1:n_vertices
+        # Compute geodesic distance
+        distance = sqrt(abs(u_t[target]))
+        if distance_max < distance
+            distance_max = distance
+            target_max = target
+        end
+    end
+
+    return distance_max, target_max
 end
 
 
@@ -595,7 +659,7 @@ end
 """
     calculate_forces_between_particles(
     Vect,
-    Distmat,
+    dist_length,
     k,
     σ,
     r_adh,
@@ -604,23 +668,23 @@ end
 
 """
 function calculate_forces_between_particles(
-    Vect,
-    Distmat,
+    dist_vect,
+    dist_length,
     k,
     σ,
     r_adh,
     k_adh
 )
-    Fij_rep = (-k*(2*σ.-Distmat))./(2*σ)
-    Fij_adh = (k_adh*(2*σ.-Distmat))./(2*σ-r_adh)
+    Fij_rep = (-k*(2*σ.-dist_length))./(2*σ)
+    Fij_adh = (k_adh*(2*σ.-dist_length))./(2*σ-r_adh)
 
     # No force if particles too far from each other or if particle itself
-    Fij_rep[(Distmat .>= 2*σ) .| (Distmat .== 0)] .= 0
-    Fij_adh[(Distmat .< 2*σ) .| (Distmat .> r_adh) .| (Distmat .== 0)] .= 0
+    Fij_rep[(dist_length .>= 2*σ) .| (dist_length .== 0)] .= 0
+    Fij_adh[(dist_length .< 2*σ) .| (dist_length .> r_adh) .| (dist_length .== 0)] .= 0
 
     # Fij is the force between particles
     Fij = Fij_rep .+ Fij_adh
-    Fij = cat(dims=3,Fij,Fij,Fij).*(Vect./(cat(dims=3,Distmat,Distmat,Distmat)))
+    Fij = cat(dims=3,Fij,Fij,Fij).*(dist_vect./(cat(dims=3,dist_length,dist_length,dist_length)))
 
     # % Actual force felt by each particle
     return reshape(sum(replace!(Fij, NaN=>0), dims=1),: ,size(Fij,3))
@@ -717,6 +781,7 @@ function simulate_next_step(
     r_adh,
     k_adh
 )
+
     r = observe_r[] |> vec_of_vec_to_array
     n = observe_n[] |> vec_of_vec_to_array
     nr_dot = observe_nr_dot[] |> vec_of_vec_to_array
@@ -735,19 +800,29 @@ function simulate_next_step(
         k = k_next;
     end
 
+    # ! TODO: diese Berechnung ist falsch im 2D Fall, da die mesh face unterschiedlich groß sind
+    # ! Daraus resultiert eine unnatürlich große Kraft, die die Zellen weg vom Mesh schleudert
+    # Dummy Code wie es eigentlich aussehen könnte:
+    # 1. Partikel wissen, auf welchen Face sie sich befinden
+    # 2. Es gibt eine bereinigte dist_length matrix mapping die die wahre Weglänge der einzelnen Vertice Face zueinander beinhaltet
+    #     2.1 diese Mapping Matrix ist eine Konstante
+    # 3. Für die Berechnung der Kraft schaut man, mit welchen Faktor die Weglänge multipliziert werden muss
+    # TODO: calc_geodesic_distance() on an UV plane
+    # ! Heat Method developed by Keenan Crane (http://doi.acm.org/10.1145/3131280)
+
     # % Vector between all particles (1->2; 1->3; 1->4;... 641->1; 641->2;
     # % 641->3; 641->4;...641->640...)
-    Vect = cat(dims=3,
+    dist_vect = cat(dims=3,
         r[:,1]*ones(1,num_part)-ones(num_part,1)*r[:,1]',
         r[:,2]*ones(1,num_part)-ones(num_part,1)*r[:,2]',
         r[:,3]*ones(1,num_part)-ones(num_part,1)*r[:,3]'
         )
 
-    Distmat = sqrt.(sum(Vect.^2,dims=3))[:,:,1]  # distance of each point with the others
+    dist_length = sqrt.(sum(dist_vect.^2,dims=3))[:,:,1]  # distance of each point with the others
 
     F_track = calculate_forces_between_particles(
-        Vect,
-        Distmat,
+        dist_vect,
+        dist_length,
         k,
         σ,
         r_adh,
@@ -819,8 +894,8 @@ function simulate_next_step(
     # %Graphic output if plotstep is a multiple of tt
     if rem(tt,plotstep)==0
         # %evaluate number of neighbourgs within 2.4 sigma cut off
-        num_partic = ones(size(Distmat));
-        num_partic[(Distmat .== 0) .| (Distmat .> 2.4*σ)] .= 0;
+        num_partic = ones(size(dist_length));
+        num_partic[(dist_length .== 0) .| (dist_length .> 2.4*σ)] .= 0;
         number_neighbours=sum(num_partic,dims=2);  # list of nearest neighbour to each particle
 
         N_color=[];

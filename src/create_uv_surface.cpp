@@ -3,10 +3,6 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-// g++ -std=c++14 -lpthread -I /usr/local/Cellar/CGAL/5.5.1/include -I /usr/local/Cellar/boost/1.80.0/include  -I /usr/local/Cellar/eigen/3.4.0_1/include/eigen3 src/create_uv_surface.cpp -o src/create_uv_surface
-// g++ -std=c++14 -lpthread -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/eigen3 src/create_uv_surface.cpp -o src/create_uv_surface
-
-
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Timer.h>
 
@@ -33,6 +29,7 @@
 
 #include <boost/property_map/property_map.hpp>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <boost/format.hpp>
 
 #include <unordered_map>
 #include <fstream>
@@ -42,6 +39,15 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <format>
+
+#include <algorithm>
+#include <cstddef>
+
+#include "jlcxx/jlcxx.hpp"
+#include "jlcxx/array.hpp"
+#include "jlcxx/functions.hpp"
+
 
 typedef CGAL::Simple_cartesian<double>            Kernel;
 typedef Kernel::Point_2                           Point_2;
@@ -87,15 +93,43 @@ namespace SMP = CGAL::Surface_mesh_parameterization;
 
 
 /*
+Get the mesh from the file.
+Add new meshes with there path in this function
+*/
+std::ifstream get_mesh_obj(std::string mesh_3D)
+{
+    if (mesh_3D == "Ellipsoid")
+    {
+        std::ifstream in(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+        return in;
+    }
+    else if (mesh_3D == "Sphere")
+    {
+        std::ifstream in(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/sphere.off"));
+        return in;
+    }
+    else if (mesh_3D == "Bear")
+    {
+        std::ifstream in(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/bear.off"));
+        return in;
+    }
+    else
+    {
+        std::ifstream in(CGAL::data_file_path(mesh_3D));
+        return in;
+    }
+}
+
+
+/*
 Calculate the virtual border of the mesh
 
 ! NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
 */
-std::vector<my_edge_descriptor> calc_virtual_border()
+std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
 {
     My::Mesh mesh;
-    // std::ifstream in(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off"));
-    std::ifstream in(CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+    auto in = get_mesh_obj(mesh_3D);
     in >> mesh;
 
     // typedef boost::graph_traits<My::Mesh>::vertex_descriptor vertex_descriptor;
@@ -189,127 +223,151 @@ std::vector<my_edge_descriptor> calc_virtual_border()
 }
 
 
-
-int main(int argc, char** argv)
+int create_uv_surface(std::string mesh_3D)
 {
-  CGAL::Timer task_timer;
-  task_timer.start();
+    CGAL::Timer task_timer;
+    task_timer.start();
 
-  // const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/bear.off");
-  const std::string filename = (argc>1) ? argv[1] : CGAL::data_file_path("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
+    SurfaceMesh sm;
+    auto filename = get_mesh_obj(mesh_3D);
+    filename >> sm;
 
-  SurfaceMesh sm;
-  if(!CGAL::IO::read_polygon_mesh(filename, sm))
-  {
-    std::cerr << "Invalid input file." << std::endl;
-    return EXIT_FAILURE;
-  }
+    // save the STL file as an OFF file
+    // std::ofstream out_OFF("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
+    // CGAL::IO::write_OFF(out_OFF, sm);
+    // out_OFF.close();
 
-  // save the STL file as an OFF file
-  // std::ofstream out_OFF("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
-  // CGAL::IO::write_OFF(out_OFF, sm);
-  // out_OFF.close();
+    // Two property maps to store the seam edges and vertices
+    Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;
+    Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam",false).first;
 
-  // Two property maps to store the seam edges and vertices
-  Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;
-  Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam",false).first;
-
-  // The seam mesh
-  Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
+    // The seam mesh
+    Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
 
 
 
-  // Selection file that contains the cones and possibly the path between cones
-  // ? NOTE: Couldn't I maybe just implement some dummy cones for our Ellipsoid?
-  // ! -- the first line for the cones indices
-  // -- the second line must be empty
-  // ! -- the third line optionally provides the seam edges indices as 'e11 e12 e21 e22 e31 e32' etc.
-  // const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
+    // Selection file that contains the cones and possibly the path between cones
+    // ? NOTE: Couldn't I maybe just implement some dummy cones for our Ellipsoid?
+    // ! -- the first line for the cones indices
+    // -- the second line must be empty
+    // ! -- the third line optionally provides the seam edges indices as 'e11 e12 e21 e22 e31 e32' etc.
+    // const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
 
 
 
-  /*
-  Calculate the virtual border
-  1. mit der Funktion 'calc_virtual_border' wird die virtuelle Kante berechnet
-  2. Testfunktion: mit der Funktion 'compute_shortest_paths_between_cones' wird die virtuelle Kante berechnet
-  */
-  // ! wenn ich mir das Endergebnis anschaue, dann liegt hier wohl das Problem
-  auto calc_edges = calc_virtual_border();
-  for(SM_edge_descriptor e : calc_edges) {
+    /*
+    Calculate the virtual border
+    1. mit der Funktion 'calc_virtual_border' wird die virtuelle Kante berechnet
+    2. Testfunktion: mit der Funktion 'compute_shortest_paths_between_cones' wird die virtuelle Kante berechnet
+    */
+    // ! wenn ich mir das Endergebnis anschaue, dann liegt hier wohl das Problem
+    auto calc_edges = calc_virtual_border(mesh_3D);
+    for(SM_edge_descriptor e : calc_edges) {
     mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
-  }
+    }
 
-  /*
-  Our test function if the virtual border is calculated correctly
-  -> 99 seam edges in input
-  */
-  // Read the cones and compute their corresponding vertex_descriptor in the underlying mesh 'sm'
-  // std::vector<SM_vertex_descriptor> cone_sm_vds;
-  // SMP::read_cones<SurfaceMesh>(sm, cone_filename, std::back_inserter(cone_sm_vds));
+    /*
+    Our test function if the virtual border is calculated correctly
+    -> 99 seam edges in input
+    */
+    // Read the cones and compute their corresponding vertex_descriptor in the underlying mesh 'sm'
+    // std::vector<SM_vertex_descriptor> cone_sm_vds;
+    // SMP::read_cones<SurfaceMesh>(sm, cone_filename, std::back_inserter(cone_sm_vds));
 
-  // std::cout << "type of cones: " << typeid(cone_sm_vds.begin()).name() << std::endl;
-  // std::cout << "begin of cones: " << *cone_sm_vds.begin() << std::endl;
-  // std::cout << "end of cones: " << *cone_sm_vds.end() << std::endl;
+    // std::cout << "type of cones: " << typeid(cone_sm_vds.begin()).name() << std::endl;
+    // std::cout << "begin of cones: " << *cone_sm_vds.begin() << std::endl;
+    // std::cout << "end of cones: " << *cone_sm_vds.end() << std::endl;
 
-  // std::list<SM_edge_descriptor> seam_edges;
-  // SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);
-  // for(SM_edge_descriptor e : seam_edges) {
-  //   mesh.add_seam(source(e, sm), target(e, sm));
-  // }
-  // Mark the cones in the seam mesh
-  // std::unordered_map<vertex_descriptor, SMP::Cone_type> cmap;
-  // SMP::locate_cones(mesh, cone_sm_vds.begin(), cone_sm_vds.end(), cmap);
-  std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
-
-
+    // std::list<SM_edge_descriptor> seam_edges;
+    // SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);
+    // for(SM_edge_descriptor e : seam_edges) {
+    //   mesh.add_seam(source(e, sm), target(e, sm));
+    // }
+    // Mark the cones in the seam mesh
+    // std::unordered_map<vertex_descriptor, SMP::Cone_type> cmap;
+    // SMP::locate_cones(mesh, cone_sm_vds.begin(), cone_sm_vds.end(), cmap);
+    std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
 
 
-  // Index map of the seam mesh (assuming a single connected component so far)
-  typedef std::unordered_map<vertex_descriptor, int> Indices;
-  Indices indices;
-  boost::associative_property_map<Indices> vimap(indices);
-  int counter = 0;
-  for(vertex_descriptor vd : vertices(mesh)) {
+
+
+    // Index map of the seam mesh (assuming a single connected component so far)
+    typedef std::unordered_map<vertex_descriptor, int> Indices;
+    Indices indices;
+    boost::associative_property_map<Indices> vimap(indices);
+    int counter = 0;
+    for(vertex_descriptor vd : vertices(mesh)) {
     put(vimap, vd, counter++);
-  }
+    }
 
-  // The 2D points of the uv parametrisation will be written into this map
-  // Note that this is a halfedge property map, and that uv values
-  // are only stored for the canonical halfedges representing a vertex
-  UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
+    // The 2D points of the uv parametrisation will be written into this map
+    // Note that this is a halfedge property map, and that uv values
+    // are only stored for the canonical halfedges representing a vertex
+    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
 
-  // Choose the border of the uv parametrisation
-  typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
-  // typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
-  Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
+    // Choose the border of the uv parametrisation
+    typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
+    // typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
+    Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
 
-  // Iterative Authalic Parameterization:
-  // from https://doi.org/10.1109/ICCVW.2019.00508
-  // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
-  // meaning that it aims to minimize area distortion between the input surface mesh and the parameterized output.
-  typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
-  Parameterizer parameterizer(border_parameterizer);
+    // Iterative Authalic Parameterization:
+    // from https://doi.org/10.1109/ICCVW.2019.00508
+    // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
+    // meaning that it aims to minimize area distortion between the input surface mesh and the parameterized output.
+    typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
+    Parameterizer parameterizer(border_parameterizer);
 
-  // a halfedge on the (possibly virtual) border
-  // only used in output (will also be used to handle multiple connected components in the future)
-  halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
+    // a halfedge on the (possibly virtual) border
+    // only used in output (will also be used to handle multiple connected components in the future)
+    halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
-  // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
-  const unsigned int iterations = (argc > 2) ? std::atoi(argv[2]) : 9;
-  SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
+    // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
+    const unsigned int iterations = 9;
+    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
 
-  if(err != SMP::OK){
-      std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
-      return EXIT_FAILURE;
-  }
+    if(err != SMP::OK){
+        std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
+        return EXIT_FAILURE;
+    }
 
-  // print the number of vertices of the uvmap
-  std::cout << "Number of vertices in uvmap: " << indices.size() << std::endl;
+    // print the number of vertices of the uvmap
+    std::cout << "Number of vertices in uvmap: " << indices.size() << std::endl;
 
-  std::ofstream out("git_repos/Confined_active_particles/meshes/ellipsoid_uv.off");
-  SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
+    std::string mesh_3D_name;
+    if (mesh_3D.find('.') < mesh_3D.length())
+    {
+        size_t pos = mesh_3D.find_last_of(".");
+        size_t pos_slash = mesh_3D.find_last_of("/");
+        mesh_3D_name = mesh_3D.substr(pos_slash+1, pos-pos_slash-1);
+        std::cout << "We extract the mesh name from the path string: " << mesh_3D_name << std::endl;
+    }
+    else
+    {
+        mesh_3D_name = mesh_3D;
+    }
 
-  std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;
+    auto path_uv = str(boost::format("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/%s_uv.off") % mesh_3D_name);
+    std::cout << "The UV mesh is saved to the following path: " << path_uv << "\n" << std::endl;
+    std::ofstream out(path_uv);
+    SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
 
-  return EXIT_SUCCESS;
+    std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;
+    return 0;
+}
+
+
+int main()
+{
+    std::string mesh_3D = "Ellipsoid";
+    create_uv_surface(mesh_3D);
+
+    return 0;
+}
+
+
+// make this function visible to Julia
+JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
+{
+    // register a standard C++ function
+    mod.method("create_uv_surface", create_uv_surface);
 }
