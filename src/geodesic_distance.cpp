@@ -1,4 +1,8 @@
-// g++ -std=c++14 -lpthread -I /opt/homebrew/Cellar/CGAL/5.5.1/include -I /opt/homebrew/Cellar/boost/1.80.0/include -I /opt/homebrew/Cellar/eigen/3.4.0_1/include/eigen3 src/geodesic_distance.cpp -o src/geodesic_distance
+// author: @Jan-Piotraschke
+// date: 2023-02-17
+// license: Apache License 2.0
+// version: 0.1.0
+
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>

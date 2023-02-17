@@ -46,3 +46,6 @@ cmake_install.cmake
 # libcxx
 libcxxwrap-julia
 libcxxwrap-julia-build
+
+# uv meshes
+*_uv.off
