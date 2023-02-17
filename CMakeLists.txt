@@ -1,3 +1,5 @@
+# PLEASE SCROLL TO THE BOTTOM OF THIS FILE FOR READING THE INSTRUCTIONS ON HOW TO ADD YOUR C++ SCRIPT TO THE PROJECT
+
 project(CppHello)
 
 cmake_minimum_required(VERSION 3.14)
@@ -48,11 +50,14 @@ message(STATUS "Found JlCxx at ${JlCxx_location}")
 # include for local directory
 include_directories(BEFORE include)
 
+
+# ##########################################################
 # Creating entries for all C++ files with "main" routine
 # Use target_link_libraries() to express direct dependencies!
 # PUBLIC, if you use the libraries in the headers
 # ##########################################################
 
+# ADD YOUR C++ SCRIPT HERE BY ADDING TWO NEW LINES LIKE THE FOLLOWING ONES
 create_single_source_cgal_program("src/geodesic_distance.cpp")
 target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia)
 create_single_source_cgal_program("src/create_uv_surface.cpp")
