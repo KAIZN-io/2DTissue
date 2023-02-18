@@ -18,6 +18,24 @@ The accepted version of the paper is available for free on arxiv: https://arxiv.
 
 ---
 
+## Background information about the Project Code Setup
+
+C++ is a static programming language, whereas Julia is a dynamic language.  
+
+By combining a static language with a dynamic language, we can utilize the static, compiled C++ files for the routines in Geometry Processing.
+These are for example following procedures:  
+- Creating an UV surface from a 3D mesh
+- Getting the longest distance
+- Calculating paths
+- Getting the distance between particles (e.g., with the Heat Method)
+
+These compiled files are executed quickly since the code doesn't need to be translated every time it is executed.  
+
+With Julia we can handle these data dynamically. This allows us easy adjustments using native mathematical expression (with symbols suchs as ϵ and β) and a more pleasant exploration of new analysis methods.
+
+
+---
+
 ## Compile the C++ code for accessing it in Julia
 
 0. only once: run `make init` to initialize the project
@@ -48,6 +66,7 @@ All your modifications to the packages will be reflected in the `Project.toml` a
 ## Run the simulation in Julia
 
 Execute the following command in the project folder inside your shell: `julia -t 8 --project main.jl`
+
 
 ---
 
