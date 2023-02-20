@@ -2,7 +2,7 @@
 
 project(CppHello)
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.14)  # setting the minimum version of CMake to 3.14
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_CXX_STANDARD 14)  # Sets the C++ standard to C++17
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")

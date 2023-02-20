@@ -225,9 +225,11 @@ std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
 
 int create_uv_surface(std::string mesh_3D)
 {
+    // Start a timer
     CGAL::Timer task_timer;
     task_timer.start();
 
+    // Load the 3D mesh
     SurfaceMesh sm;
     auto filename = get_mesh_obj(mesh_3D);
     filename >> sm;
@@ -237,11 +239,11 @@ int create_uv_surface(std::string mesh_3D)
     // CGAL::IO::write_OFF(out_OFF, sm);
     // out_OFF.close();
 
-    // Two property maps to store the seam edges and vertices
+    // Create property maps to store seam edges and vertices
     Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;
     Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam",false).first;
 
-    // The seam mesh
+    // Create the seam mesh
     Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
 
 
@@ -286,18 +288,20 @@ int create_uv_surface(std::string mesh_3D)
     // Mark the cones in the seam mesh
     // std::unordered_map<vertex_descriptor, SMP::Cone_type> cmap;
     // SMP::locate_cones(mesh, cone_sm_vds.begin(), cone_sm_vds.end(), cmap);
+
+    // Print the number of seam edges in the input
     std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
 
 
 
 
-    // Index map of the seam mesh (assuming a single connected component so far)
+    // Create an index map for the seam mesh
     typedef std::unordered_map<vertex_descriptor, int> Indices;
     Indices indices;
     boost::associative_property_map<Indices> vimap(indices);
     int counter = 0;
     for(vertex_descriptor vd : vertices(mesh)) {
-    put(vimap, vd, counter++);
+        put(vimap, vd, counter++);
     }
 
     // The 2D points of the uv parametrisation will be written into this map
@@ -317,11 +321,10 @@ int create_uv_surface(std::string mesh_3D)
     typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
     Parameterizer parameterizer(border_parameterizer);
 
-    // a halfedge on the (possibly virtual) border
-    // only used in output (will also be used to handle multiple connected components in the future)
+    // Choose a halfedge on the (possibly virtual) border
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
-    // parameterizer.parameterize(mesh, bhd, cmap, uvmap, vimap);
+    // Perform the parameterization
     const unsigned int iterations = 9;
     SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
 

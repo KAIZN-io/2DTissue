@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <sstream>
 #include <cstddef>
+#include <vector>
 
 #include "jlcxx/jlcxx.hpp"
 #include "jlcxx/array.hpp"
@@ -28,32 +29,39 @@ typedef Triangle_mesh::Property_map<vertex_descriptor,double> Vertex_distance_ma
 
 typedef CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CGAL::Heat_method_3::Direct> Heat_method_idt;
 
+typedef jlcxx::ArrayRef<double, 1> JuliaArray;
 
-double geo_distance()
+
+JuliaArray geo_distance()
 {
-  std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
-  Triangle_mesh tm;
-  filename >> tm;
+    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+    Triangle_mesh tm;
+    filename >> tm;
 
-   //property map for the distance values to the source set
-  Vertex_distance_map vertex_distance = tm.add_property_map<vertex_descriptor,double>("v:distance",0).first;
+    //property map for the distance values to the source set
+    Vertex_distance_map vertex_distance = tm.add_property_map<vertex_descriptor,double>("v:distance",0).first;
 
-  //pass in the idt object and its vertex_distance_map
-  Heat_method_idt hm_idt(tm);
+    //pass in the idt object and its vertex_distance_map
+    Heat_method_idt hm_idt(tm);
 
-  //add the first vertex as the source set
-  vertex_descriptor source = *(vertices(tm).first);
-  hm_idt.add_source(source);
-  hm_idt.estimate_geodesic_distances(vertex_distance);
+    //add the first vertex as the source set
+    vertex_descriptor source = *(vertices(tm).first);
+    hm_idt.add_source(source);
+    hm_idt.estimate_geodesic_distances(vertex_distance);
 
-  double max_distance = 0;
-  for(vertex_descriptor vd : vertices(tm)){
-      std::cout << vd << "  is at distance " << get(vertex_distance, vd) << " from " << source << std::endl;
-      max_distance = std::max(max_distance, get(vertex_distance, vd));
-  }
-  std::cout << "Our max distace is " << max_distance << std::endl;
+    std::vector<double> distances_list;
+    double max_distance = 0;
+    for(vertex_descriptor vd : vertices(tm)){
+        std::cout << vd << "  is at distance " << get(vertex_distance, vd) << " from " << source << std::endl;
+        distances_list.push_back(get(vertex_distance, vd));
+        max_distance = std::max(max_distance, get(vertex_distance, vd));
+    }
+    std::cout << "Our max distance is " << max_distance << std::endl;
 
-  return max_distance;
+    // The ArrayRef type is provided to work conveniently with array data from Julia.
+    JuliaArray distances(distances_list.data(), distances_list.size());
+
+    return distances;
 }
 
 
