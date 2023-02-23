@@ -32,7 +32,7 @@ typedef CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CG
 typedef jlcxx::ArrayRef<double, 1> JuliaArray;
 
 
-JuliaArray geo_distance()
+JuliaArray geo_distance(int32_t start_node)
 {
     std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
     Triangle_mesh tm;
@@ -45,18 +45,15 @@ JuliaArray geo_distance()
     Heat_method_idt hm_idt(tm);
 
     //add the first vertex as the source set
-    vertex_descriptor source = *(vertices(tm).first);
+    vertex_descriptor source = *(vertices(tm).first + start_node);
+
     hm_idt.add_source(source);
     hm_idt.estimate_geodesic_distances(vertex_distance);
 
     std::vector<double> distances_list;
-    double max_distance = 0;
     for(vertex_descriptor vd : vertices(tm)){
-        std::cout << vd << "  is at distance " << get(vertex_distance, vd) << " from " << source << std::endl;
         distances_list.push_back(get(vertex_distance, vd));
-        max_distance = std::max(max_distance, get(vertex_distance, vd));
     }
-    std::cout << "Our max distance is " << max_distance << std::endl;
 
     // The ArrayRef type is provided to work conveniently with array data from Julia.
     JuliaArray distances(distances_list.data(), distances_list.size());
@@ -67,7 +64,8 @@ JuliaArray geo_distance()
 
 int main()
 {
-    geo_distance();
+    int32_t start_node = 0;
+    geo_distance(start_node);
     return 0;
 }
 

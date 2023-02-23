@@ -13,6 +13,16 @@ using Base.Threads
 using Logging
 using LinearAlgebra, SparseArrays
 
+module HeatMethod
+  using CxxWrap
+
+  @wrapmodule(joinpath(@__DIR__, "build", "geodesic_distance"))
+
+  function __init__()
+    @initcxx
+  end
+end
+
 
 GLMakie.activate!()
 GLMakie.set_window_config!(
@@ -189,6 +199,9 @@ function active_particles_simulation(
     vertices_length = length(vertices_3D[:,1])
     vertices_list = range(1, vertices_length, step=1)
 
+    # Sparse arrays are arrays that contain enough zeros that storing them in a special data structure leads to savings in space and execution time, compared to dense arrays.
+    distance_matrix = sparse(zeros(vertices_length, vertices_length))  # initialize the distance matrix
+
     faces_length = length(faces_uv[:,1])
     faces_list = range(1, faces_length, step=1)
     @threads for i=1:num_part
@@ -199,11 +212,21 @@ function active_particles_simulation(
         r_face_uv = Int.(faces_uv[random_face, :])  # get the random face
         r_face = faces_3D[random_face, :]
 
-        # project the random particle into the center of the random face
+        test_vertice_x_coord = get_face_center_coord(vertices_3D, r_face)[1]  # get particle position
+        vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
+        min_value, closest_vertice = findmin(x->abs(x-test_vertice_x_coord), vertices_x_coord)  # find the closest vertice to the particle position
+        distance_matrix = fill_distance_matrix(distance_matrix, closest_vertice)
+
+
+        """ project the random particle into the center of the random face
+
+        We don't project the particle directly on a vertice, because we increased the number of vertices in the UV mesh, by transforming
+        the 3D mesh into a 3D seam mesh before cutting it along the now "virtual" border edges.
+        """
         r_3D[i,:] = get_face_center_coord(vertices_3D, r_face)
         r[i,:] = get_face_center_coord(vertices_uv, r_face_uv)
 
-        #random particle orientation
+        # random particle orientation
         n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
 
         # TODO: the following two lines are the bootle-neck
@@ -263,31 +286,31 @@ function active_particles_simulation(
     # cam = cameracontrols(scene)
     # update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
     # update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
-    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
-        simulate_next_step(
-            tt,
-            observe_r,
-            face_neighbors,
-            Faces_coord,
-            N,
-            num_face,
-            num_part,
-            observe_n,
-            observe_nr_dot,
-            observe_nr_dot_cross,
-            observe_order,
-            Norm_vect;
-            v0,
-            v0_next,
-            k,
-            k_next,
-            σ,
-            μ,
-            τ,
-            r_adh,
-            k_adh,
-        )
-    end
+    # record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
+    #     simulate_next_step(
+    #         tt,
+    #         observe_r,
+    #         face_neighbors,
+    #         Faces_coord,
+    #         N,
+    #         num_face,
+    #         num_part,
+    #         observe_n,
+    #         observe_nr_dot,
+    #         observe_nr_dot_cross,
+    #         observe_order,
+    #         Norm_vect;
+    #         v0,
+    #         v0_next,
+    #         k,
+    #         k_next,
+    #         σ,
+    #         μ,
+    #         τ,
+    #         r_adh,
+    #         k_adh,
+    #     )
+    # end
 
 end
 
@@ -365,6 +388,32 @@ end
 ########################################################################################
 # SIMULATION SPECIFIC FUNCTIONS
 ########################################################################################
+
+
+"""
+    fill_distance_matrix(distance_matrix, closest_vertice)
+
+closest vertice to particle x
+    particle 1 -> vertice 1
+    particle 2 -> vertice 3
+    particle 3 -> vertice 5
+    ...
+
+fill the distance matrix in-time
+that means that we solve the Heat Method from vertice X to all other vertices if a particle is on vertice X
+if a particle already was on vertice X, we don't need to solve the Heat Method again, because we already have the distance matrix
+after some time we complete the holes in the distance matrix
+with this approach we also get an indication which node where never visited by a particle.
+
+we only need to check the sum of two rows, because for each row only 1 value is allowed to be zero
+"""
+function fill_distance_matrix(distance_matrix, closest_vertice::Int64)
+    if sum(distance_matrix[1:2,closest_vertice]) == 0
+        vertices_3D_distance_map = HeatMethod.geo_distance(closest_vertice)  # get the distance of all vertices to all other vertices
+        distance_matrix[:,closest_vertice] = vertices_3D_distance_map  # fill the distance matrix
+    end
+    return distance_matrix
+end
 
 
 """
