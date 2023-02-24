@@ -207,7 +207,7 @@ std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
     my_vertex_descriptor current = target_node;
     while (current != start_node) {
         my_vertex_descriptor predecessor = predecessor_pmap[current];
-        // std::cout << predecessor << " -> " << current << std::endl;
+        std::cout << predecessor << " -> " << current << std::endl;
         std::pair<my_edge_descriptor, bool> edge_pair = edge(predecessor, current, mesh);
         my_edge_descriptor edge = edge_pair.first;
         path_list.push_back(edge);
@@ -238,12 +238,15 @@ int create_uv_surface(std::string mesh_3D)
     // out_OFF.close();
 
     // Create property maps to store seam edges and vertices
-    Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;
-    Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam",false).first;
+    Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;  // if not false -> we can't add seam edges
+    Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
 
     // Create the seam mesh
     Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
 
+    // The 2D points of the uv parametrisation will be written into this map
+    // NOTE that this is a halfedge property map, and that uv values are only stored for the canonical Halfedges Representing a Vertex
+    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
 
     /*
     Calculate the virtual border
@@ -251,25 +254,13 @@ int create_uv_surface(std::string mesh_3D)
     */
     auto calc_edges = calc_virtual_border(mesh_3D);
     for(SM_edge_descriptor e : calc_edges) {
-    mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
+        mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
     }
 
     // Print the number of seam edges in the input
     std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
-
-    // Create an index map for the seam mesh
-    typedef std::unordered_map<vertex_descriptor, int> Indices;
-    Indices indices;
-    boost::associative_property_map<Indices> vimap(indices);
-    int counter = 0;
-    for(vertex_descriptor vd : vertices(mesh)) {
-        put(vimap, vd, counter++);
-        // std::cout << "vertex " << vd << " has index " << get(vimap, vd) << std::endl;
-    }
-
-    // The 2D points of the uv parametrisation will be written into this map
-    // NOTE that this is a halfedge property map, and that uv values are only stored for the canonical Halfedges Representing a Vertex
-    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
+    // get the number of vertices in the mesh
+    std::cout << "Number of vertices in the seam mesh: " << num_vertices(mesh) << std::endl;
 
     // Choose the border of the uv parametrisation
     typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
@@ -302,16 +293,34 @@ int create_uv_surface(std::string mesh_3D)
     // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 
     if(err != SMP::OK){
-        std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
+        // std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
         return EXIT_FAILURE;
     }
+    std::cout << "\n";
 
-    // print the number of vertices of the uvmap
-    std::cout << "Number of vertices in uvmap: " << indices.size() << std::endl;
+
+
+    // TODO: try to build a mapping between the 2D and 3D mesh based on the following logic
+    /*
+    Logic:
+        1. each halfedge h is pointing to a target vertex v and has a soure vertex s
+        2. each vertex v on a seam edge has at least 2 halfedges h (due to the cutting along the seam edge we will create these vertices v twice)
+            => "A vertex of the underlying mesh may correspond to multiple vertices in the seam mesh."
+        3. for a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
+            -> thats why we only need to go half the way around the seam edges
+    */
+    // iterate over the bhd of mesh
+    for(halfedge_descriptor hd : halfedges_around_face(bhd, mesh)) {
+        std::cout << "hd = " << hd << " (pointing to vertex: " << target(hd, sm) << ")" << std::endl;
+        std::cout << "opposite = " << opposite(hd, mesh) << " has source " << source(opposite(hd, mesh), sm) << std::endl;
+    }
+
     // get the mapping of vertices between the 3D mesh and the uvmap
     // for(vertex_descriptor vd : vertices(mesh)) {
-    //     std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << '\n';
+    //     std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << std::endl;
     // }
+
+
 
     auto mesh_3D_name = get_mesh_name(mesh_3D);
 
