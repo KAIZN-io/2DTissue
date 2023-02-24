@@ -151,7 +151,12 @@ std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
     auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
 
     // to use two visitors, you need to put them in a pair (from https://theboostcpplibraries.com/boost.graph-algorithms)
-    auto vis = boost::make_bfs_visitor(std::make_pair(boost::record_distances(dist_pmap, boost::on_tree_edge{}),boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})));
+    auto vis = boost::make_bfs_visitor(
+        std::make_pair(
+            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
+            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
+        )
+    );
 
 
     /*
@@ -188,6 +193,7 @@ std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
         current = predecessor;
     }
 
+    // overgive the path_list to the vector b because handling vectors is easier for me
     std::vector<my_edge_descriptor> b(path_list.begin(), path_list.end());
 
     return b;
