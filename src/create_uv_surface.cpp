@@ -131,7 +131,7 @@ std::ifstream get_mesh_obj(std::string mesh_3D)
 /*
 Calculate the virtual border of the mesh
 
-! NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
+NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
 */
 std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
 {
@@ -139,31 +139,25 @@ std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
     auto in = get_mesh_obj(mesh_3D);
     in >> mesh;
 
-    // typedef boost::graph_traits<My::Mesh>::vertex_descriptor vertex_descriptor;
-    typedef boost::property_map<My::Mesh,CGAL::vertex_point_t>::type Point_property_map;
+    std::cout << "number of vertices in the 3D mesh: " << mesh.number_of_vertices() << std::endl;
 
+    typedef boost::property_map<My::Mesh,CGAL::vertex_point_t>::type Point_property_map;
     Point_property_map ppm = get(CGAL::vertex_point, mesh);
+
     // Create vectors to store the predecessors (p) and the distances from the root (d)
     std::vector<my_vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
-    std::vector<int> distance(num_vertices(mesh));
-
     auto indexmap = get(boost::vertex_index, mesh);
+    std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
     auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
-    std::vector<my_vertex_descriptor> predecessor(num_vertices(mesh));  // We first declare a vector
-
-    boost::iterator_property_map<std::vector<my_vertex_descriptor>::iterator, VertexIdPropertyMap> predecessor_pmapa(predecessor.begin(), my_vertex_index_pmap);  // and then turn it into a property map
 
     // to use two visitors, you need to put them in a pair (from https://theboostcpplibraries.com/boost.graph-algorithms)
-    auto vis = boost::make_bfs_visitor(std::make_pair(boost::record_distances(dist_pmap, boost::on_tree_edge{}),boost::record_predecessors(predecessor_pmapa, boost::on_tree_edge{})));
+    auto vis = boost::make_bfs_visitor(std::make_pair(boost::record_distances(dist_pmap, boost::on_tree_edge{}),boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})));
 
-    std::cout << "number of vertices: " << mesh.number_of_vertices() << std::endl;
-    std::cout << "number of edges in the mesh: " << mesh.number_of_edges() << std::endl;
-
-    my_vertex_descriptor start_node = *(vertices(mesh).first);
 
     /*
     Find the target node
     */
+    my_vertex_descriptor start_node = *(vertices(mesh).first);
     boost::breadth_first_search(mesh, start_node, visitor(vis));
 
     // Traverse all vertices and show at what distance they are
@@ -182,49 +176,19 @@ std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
     std::cout << "got the following start point: " << start_node << " at " << get(ppm, start_node) << std::endl;
     std::cout << "got the following target point: " << target_node << " at " << get(ppm, target_node) << std::endl;
 
-  
-    // build a iter wraper around the target node
-    // std::vector<my_vertex_descriptor> start_node_vec;
-    // std::vector<my_vertex_descriptor> target_node_vec;
-    
-    // start_node_vec.push_back(start_node);
-    // target_node_vec.push_back(target_node);
-
-    // // // the .begin() command turns the node into a iter wraper
-    // std::cout << "start node " << *start_node_vec.begin() << std::endl;
-    // std::cout << "target node " << *target_node_vec.begin() << std::endl;
-
-
-    // SMP::compute_shortest_paths_between_cones(sm, target_node_vec.begin(), start_node_vec.begin(), seam_edges2);
-    // ! Try this https://doc.cgal.org/latest/Surface_mesh_parameterization/group__PkgSurfaceMeshParameterizationOrbifoldHelperFunctions.html#ga7afcc810eb830de23cd823efac112cb4
-    // !! Reimplement einfach jene Dijkstra Auswertung: https://github.com/BlackHungry/CGALForUE4.19/blob/f63c28544a95993c554c85e5c72bd2f986c04cc9/ThirdParty/CGAL/includes/CGAL/Surface_mesh_parameterization/orbifold_shortest_path.h
-    // SMP::compute_shortest_paths_between_two_cones(sm, source_N, target_n, cone_sms_vds);
-
-
-    // for(SM_edge_descriptor e : seam_edges2) {
-    //   mesh2.add_seam(source(e, sm), target(e, sm));
-    // }
-    // std::cout << mesh2.number_of_seam_edges() << " seam edges in input" << std::endl;
-
-
-    // ! From: https://www.technical-recipes.com/2015/getting-started-with-the-boost-graph-library/
-    // Evaluate Dijkstra on graph mesh with source start_node, predecessor_map predecessor_pmap and distance_map d
-    boost::dijkstra_shortest_paths(mesh, start_node, boost::predecessor_map(&predecessor_pmap[0]).distance_map(&distance[0]));
-
     // get the edges of the path between the start and the target node
     std::vector<my_edge_descriptor> path_list;
     my_vertex_descriptor current = target_node;
     while (current != start_node) {
         my_vertex_descriptor predecessor = predecessor_pmap[current];
+        // std::cout << predecessor << " -> " << current << std::endl;
         std::pair<my_edge_descriptor, bool> edge_pair = edge(predecessor, current, mesh);
         my_edge_descriptor edge = edge_pair.first;
         path_list.push_back(edge);
         current = predecessor;
-        // current = predecessor_pmap[current];  // ! maybe this line is better than the previous one
     }
 
-    // ! Temporary solution: return only the 20 first elements of the path
-    std::vector<my_edge_descriptor> b(path_list.begin(), path_list.begin() + 20);
+    std::vector<my_edge_descriptor> b(path_list.begin(), path_list.end());
 
     return b;
 }
@@ -258,7 +222,6 @@ int create_uv_surface(std::string mesh_3D)
     Calculate the virtual border
     1. mit der Funktion 'calc_virtual_border' wird die virtuelle Kante berechnet
     */
-    // ! wenn ich mir das Endergebnis anschaue, dann liegt hier wohl das Problem
     auto calc_edges = calc_virtual_border(mesh_3D);
     for(SM_edge_descriptor e : calc_edges) {
     mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
@@ -274,11 +237,11 @@ int create_uv_surface(std::string mesh_3D)
     int counter = 0;
     for(vertex_descriptor vd : vertices(mesh)) {
         put(vimap, vd, counter++);
+        // std::cout << "vertex " << vd << " has index " << get(vimap, vd) << std::endl;
     }
 
     // The 2D points of the uv parametrisation will be written into this map
-    // Note that this is a halfedge property map, and that uv values
-    // are only stored for the canonical halfedges representing a vertex
+    // NOTE that this is a halfedge property map, and that uv values are only stored for the canonical Halfedges Representing a Vertex
     UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
 
     // Choose the border of the uv parametrisation
@@ -333,9 +296,9 @@ int create_uv_surface(std::string mesh_3D)
     }
 
     // get the mapping of vertices between the 3D mesh and the uvmap
-    for(vertex_descriptor vd : vertices(mesh)) {
-        std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << '\n';
-    }
+    // for(vertex_descriptor vd : vertices(mesh)) {
+    //     std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << '\n';
+    // }
 
     auto path_uv = str(boost::format("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/%s_uv.off") % mesh_3D_name);
     std::cout << "The UV mesh is saved to the following path: " << path_uv << "\n" << std::endl;
