@@ -58,7 +58,7 @@
 typedef CGAL::Simple_cartesian<double>            Kernel;
 typedef Kernel::Point_2                           Point_2;
 typedef Kernel::Point_3                           Point_3;
-typedef CGAL::Surface_mesh<Kernel::Point_3>       SurfaceMesh;
+typedef CGAL::Surface_mesh<Point_3>               SurfaceMesh;
 
 namespace My {
   struct Mesh: public CGAL::Surface_mesh<Point_3> {
@@ -97,6 +97,27 @@ typedef boost::graph_traits<Mesh>::vertex_iterator                      vertex_i
 typedef SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>      UV_pmap;
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
+
+
+/*
+Get the mesh name from its path
+*/
+std::string get_mesh_name(std::string mesh_3D)
+{
+    if (mesh_3D.find('.') < mesh_3D.length())
+    {
+        size_t pos = mesh_3D.find_last_of(".");
+        size_t pos_slash = mesh_3D.find_last_of("/");
+        std::string mesh_3D_name = mesh_3D.substr(pos_slash+1, pos-pos_slash-1);
+        std::cout << "We extract the mesh name from the path string: " << mesh_3D_name << std::endl;
+        return mesh_3D_name;
+    }
+    else
+    {
+        std::string mesh_3D_name = mesh_3D;
+        return mesh_3D_name;
+    }
+}
 
 
 /*
@@ -270,14 +291,14 @@ int create_uv_surface(std::string mesh_3D)
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
     // Perform the parameterization
-    const unsigned int iterations = 9;
+    const unsigned int ITERATIONS = 9;
 
     /*
     computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
     The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
     ! A one-to-one mapping may be guaranteed or not, depending on the chosen Parameterizer algorithm
     */
-    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
+    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, ITERATIONS);
     // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 
     if(err != SMP::OK){
@@ -287,24 +308,12 @@ int create_uv_surface(std::string mesh_3D)
 
     // print the number of vertices of the uvmap
     std::cout << "Number of vertices in uvmap: " << indices.size() << std::endl;
-
-    std::string mesh_3D_name;
-    if (mesh_3D.find('.') < mesh_3D.length())
-    {
-        size_t pos = mesh_3D.find_last_of(".");
-        size_t pos_slash = mesh_3D.find_last_of("/");
-        mesh_3D_name = mesh_3D.substr(pos_slash+1, pos-pos_slash-1);
-        std::cout << "We extract the mesh name from the path string: " << mesh_3D_name << std::endl;
-    }
-    else
-    {
-        mesh_3D_name = mesh_3D;
-    }
-
     // get the mapping of vertices between the 3D mesh and the uvmap
     // for(vertex_descriptor vd : vertices(mesh)) {
     //     std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << '\n';
     // }
+
+    auto mesh_3D_name = get_mesh_name(mesh_3D);
 
     auto path_uv = str(boost::format("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/%s_uv.off") % mesh_3D_name);
     std::cout << "The UV mesh is saved to the following path: " << path_uv << "\n" << std::endl;
