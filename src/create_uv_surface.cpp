@@ -3,6 +3,9 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
+// known Issue: https://github.com/CGAL/cgal/issues/2994
+
+
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Timer.h>
 
@@ -15,6 +18,9 @@
 
 // surface parameterization methods
 #include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/Discrete_authalic_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/parameterize.h>
+#include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
@@ -86,6 +92,7 @@ typedef SurfaceMesh::Property_map<SM_vertex_descriptor, bool>         Seam_verte
 typedef CGAL::Seam_mesh<SurfaceMesh, Seam_edge_pmap, Seam_vertex_pmap>  Mesh;
 typedef boost::graph_traits<Mesh>::vertex_descriptor                    vertex_descriptor;
 typedef boost::graph_traits<Mesh>::halfedge_descriptor                  halfedge_descriptor;
+typedef boost::graph_traits<Mesh>::vertex_iterator                      vertex_iterator;
 
 typedef SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>      UV_pmap;
 
@@ -247,20 +254,9 @@ int create_uv_surface(std::string mesh_3D)
     Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
 
 
-
-    // Selection file that contains the cones and possibly the path between cones
-    // ? NOTE: Couldn't I maybe just implement some dummy cones for our Ellipsoid?
-    // ! -- the first line for the cones indices
-    // -- the second line must be empty
-    // ! -- the third line optionally provides the seam edges indices as 'e11 e12 e21 e22 e31 e32' etc.
-    // const char* cone_filename = (argc>2) ? argv[2] : "git_repos/Confined_active_particles/src/data/bear.selection.txt";
-
-
-
     /*
     Calculate the virtual border
     1. mit der Funktion 'calc_virtual_border' wird die virtuelle Kante berechnet
-    2. Testfunktion: mit der Funktion 'compute_shortest_paths_between_cones' wird die virtuelle Kante berechnet
     */
     // ! wenn ich mir das Endergebnis anschaue, dann liegt hier wohl das Problem
     auto calc_edges = calc_virtual_border(mesh_3D);
@@ -268,32 +264,8 @@ int create_uv_surface(std::string mesh_3D)
     mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
     }
 
-    /*
-    Our test function if the virtual border is calculated correctly
-    -> 99 seam edges in input
-    */
-    // Read the cones and compute their corresponding vertex_descriptor in the underlying mesh 'sm'
-    // std::vector<SM_vertex_descriptor> cone_sm_vds;
-    // SMP::read_cones<SurfaceMesh>(sm, cone_filename, std::back_inserter(cone_sm_vds));
-
-    // std::cout << "type of cones: " << typeid(cone_sm_vds.begin()).name() << std::endl;
-    // std::cout << "begin of cones: " << *cone_sm_vds.begin() << std::endl;
-    // std::cout << "end of cones: " << *cone_sm_vds.end() << std::endl;
-
-    // std::list<SM_edge_descriptor> seam_edges;
-    // SMP::compute_shortest_paths_between_cones(sm, cone_sm_vds.begin(), cone_sm_vds.end(), seam_edges);
-    // for(SM_edge_descriptor e : seam_edges) {
-    //   mesh.add_seam(source(e, sm), target(e, sm));
-    // }
-    // Mark the cones in the seam mesh
-    // std::unordered_map<vertex_descriptor, SMP::Cone_type> cmap;
-    // SMP::locate_cones(mesh, cone_sm_vds.begin(), cone_sm_vds.end(), cmap);
-
     // Print the number of seam edges in the input
     std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
-
-
-
 
     // Create an index map for the seam mesh
     typedef std::unordered_map<vertex_descriptor, int> Indices;
@@ -321,12 +293,23 @@ int create_uv_surface(std::string mesh_3D)
     typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
     Parameterizer parameterizer(border_parameterizer);
 
+    // Other parameterization algorithms:
+    // typedef SMP::Discrete_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
+    // typedef SMP::Mean_value_coordinates_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
+
     // Choose a halfedge on the (possibly virtual) border
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
     // Perform the parameterization
     const unsigned int iterations = 9;
+
+    /*
+    computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
+    The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
+    ! A one-to-one mapping may be guaranteed or not, depending on the chosen Parameterizer algorithm
+    */
     SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, iterations);
+    // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 
     if(err != SMP::OK){
         std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
@@ -347,6 +330,11 @@ int create_uv_surface(std::string mesh_3D)
     else
     {
         mesh_3D_name = mesh_3D;
+    }
+
+    // get the mapping of vertices between the 3D mesh and the uvmap
+    for(vertex_descriptor vd : vertices(mesh)) {
+        std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << '\n';
     }
 
     auto path_uv = str(boost::format("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/%s_uv.off") % mesh_3D_name);
