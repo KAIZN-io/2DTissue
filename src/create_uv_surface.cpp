@@ -37,6 +37,7 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <boost/format.hpp>
 
+#include <filesystem>
 #include <unordered_map>
 #include <fstream>
 #include <sstream>
@@ -97,6 +98,12 @@ typedef boost::graph_traits<Mesh>::vertex_iterator                      vertex_i
 typedef SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>      UV_pmap;
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
+namespace fs = std::filesystem;
+
+// __FILE__ is a Standard Predefined Macro
+const fs::path SCRIPT_PATH = __FILE__;
+const fs::path PROJECT_FOLDER = SCRIPT_PATH.parent_path().parent_path();
+const fs::path MESH_FOLDER = PROJECT_FOLDER / "meshes";
 
 
 /*
@@ -128,17 +135,17 @@ std::ifstream get_mesh_obj(std::string mesh_3D)
 {
     if (mesh_3D == "Ellipsoid")
     {
-        std::ifstream in(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+        std::ifstream in(CGAL::data_file_path(MESH_FOLDER / "ellipsoid_x4.off"));
         return in;
     }
     else if (mesh_3D == "Sphere")
     {
-        std::ifstream in(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/sphere.off"));
+        std::ifstream in(CGAL::data_file_path(MESH_FOLDER / "sphere.off"));
         return in;
     }
     else if (mesh_3D == "Bear")
     {
-        std::ifstream in(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/bear.off"));
+        std::ifstream in(CGAL::data_file_path(MESH_FOLDER / "bear.off"));
         return in;
     }
     else
@@ -233,7 +240,7 @@ int create_uv_surface(std::string mesh_3D)
     filename >> sm;
 
     // save the STL file as an OFF file
-    // std::ofstream out_OFF("git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
+    // std::ofstream out_OFF(MESH_FOLDER / "ellipsoid_x4.off");
     // CGAL::IO::write_OFF(out_OFF, sm);
     // out_OFF.close();
 
@@ -324,7 +331,7 @@ int create_uv_surface(std::string mesh_3D)
 
     auto mesh_3D_name = get_mesh_name(mesh_3D);
 
-    auto path_uv = str(boost::format("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/%s_uv.off") % mesh_3D_name);
+    auto path_uv = str(boost::format(MESH_FOLDER / "%s_uv.off") % mesh_3D_name);
     std::cout << "The UV mesh is saved to the following path: " << path_uv << "\n" << std::endl;
     std::ofstream out(path_uv);
     SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);

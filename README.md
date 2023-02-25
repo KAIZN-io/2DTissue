@@ -52,10 +52,12 @@ Execute the following command in the project folder inside your shell: `julia -t
 ---
 
 ## Trouble shooting:  
-If you can't use CxxWrap, please delete all the artifacts inside .julia/artifacts.  
-Print out the Prefix_path using `CxxWrap.prefix_path()` inside the Julia REPL.  
-If this works, you can run `make build` inside your shell.
-
+1. If you can't use CxxWrap
+- please delete all the artifacts inside `.julia/artifacts.`
+- Print out the Prefix_path using `CxxWrap.prefix_path()` inside the Julia REPL.
+- If this works, you can run `make build` inside your shell.
+2. If you are on a Mac and get the warning: `dylib (/usr/local/Cellar/julia/{Version}/lib/libjulia.{Version}.dylib) was built for newer macOS version (X.Y) than being linked (X.Z)`
+- reinstall xcode-select by running: `sudo rm -rf /Library/Developer/CommandLineTools && xcode-select --install`
 
 ---
 
