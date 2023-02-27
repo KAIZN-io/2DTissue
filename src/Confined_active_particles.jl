@@ -1,5 +1,27 @@
 # ! TODO: link 2D mesh simulation with the 3D mesh in GLMakie over chaining the Observable with 'lift'
 #    -> see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
+# ? maybe use https://juliaimages.org/stable/function_reference/#ImageFiltering.padarray for perodic boundary conditions
+
+"""
+Bedingung: Partikel darf sich auf jeden PUnkt des 3D und des 2D Meshes befinden.
+
+1. 3D Mesh laden und 2D Mesh erzeugen
+
+Erzeugung 2D Mesh mit GeomEigenschaften von 3D:
+2. 3D Mesh Face neighbours für 2D nehmen (= Einführung einer "periodischen Grenze")
+3. 2D halfedges to 3D vertice mapping
+    3.1. Face reconstruction des 2D anhand der haldegdges und Nachbarn von Punkt (1.) herausfinden
+4. aus r[] den darunterliegenden Face nehmen und den nearest haldedge/vertice 2D find_face_neighbors
+    4.1. Wegstrecke anhand 3D basierendde distance matrix, da in 2D die Krümmung und Nähe der Partikel als Information verloren geht
+
+Physikberechnung:
+5. Physik in 2D berechnen und mit der verlinkten 3D mesh Version updaten
+
+Erfolg gegenüber 3D Simulation:
+- wir müssen nicht mehr die z-Achse für 3D berechnen (-> kein "Herunterprojizieren" des Partikels)
+- Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
+"""
+
 
 using Makie
 using GLMakie
@@ -23,6 +45,16 @@ module HeatMethod
   end
 end
 
+module UVSurface
+  using CxxWrap
+
+  @wrapmodule(joinpath(@__DIR__, "build", "create_uv_surface"))
+
+  function __init__()
+    @initcxx
+  end
+end
+
 
 GLMakie.activate!()
 GLMakie.set_window_config!(
@@ -34,7 +66,6 @@ GLMakie.set_window_config!(
 UpFolder = pwd();
 namestructure = "ellipsoid_x4"
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
-mesh_loaded_uv = FileIO.load("meshes/ellipsoid_uv.off")  # planar equiareal parametrization
 
 # Define folder structure and pre-process meshes:
 # -----------------------------------------------
@@ -120,7 +151,7 @@ function active_particles_simulation(
 
 
     ########################################################################################
-    # Step 1.: Initialize the Observables for the visualization
+    # Step 0.: Initialize the Observables for the visualization
     ########################################################################################
 
     observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))  # position of particles
@@ -132,50 +163,40 @@ function active_particles_simulation(
 
 
     ########################################################################################
-    # Step 2.: Get the geometric data from the mesh
+    # Step 1.: 3D Mesh laden und 2D Mesh erzeugen
+    # Get the geometric data from the mesh
+    # Generate the 2D mesh and return a vector which indicates the mapping between halfedges and 3D vertices
     ########################################################################################
 
-    # ! TODO: check if both 'vertices' and 'vertices_uv' have the same lenght of vertices after you fixed the script 'flatten_closed_mesh.cpp'
+    # ! BUG: storing the vertices is buggy
+    halfedge_vertices_mapping = UVSurface.create_uv_surface("Ellipsoid")
+    mesh_loaded_uv = FileIO.load(joinpath(@__DIR__, "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
+
     vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
-    vertices_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
+    halfedges_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
+    @info "vertices in 3D: " size(vertices_3D)[1]
+    num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
+    @info "mapped " num_vertices_mapped "vertices to 2D mesh"
 
     faces_3D = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
     faces_uv = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_uv) |> vec_of_vec_to_array  # return the faces of the mesh
     @info "faces in 3D: " length(faces_3D)
     @info "faces in 2D: " length(faces_uv)
 
-    # mesh_loaded_stl = FileIO.load("meshes/ellipsoid_x4.stl")  # 3D mesh
-    # N_stl = mesh_loaded_stl.normals
-    # vertices_stl = GeometryBasics.coordinates(mesh_loaded_stl) |> vec_of_vec_to_array
-    # faces_stl = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_stl) |> vec_of_vec_to_array  # return the faces of the mesh
-
-    # create empty vector for the normal vectors
-    N = zeros(size(faces_uv))
-    # calculate normal vectors for each face
-    for i in 1:size(faces_uv)[1]
-        # overgive N the normal vector of the face
-        N[i,:] = calculate_vertex_normals(faces_uv, vertices_uv, i)
-    end
-
-    # a = length(vertices)/3
-    # faces = Int.(reshape(1:a, 3, :)')  # this is faster: return the faces of the mesh
-
 
     ########################################################################################
-    # Step 3.: Analyse the geometry of the mesh surface
-    #
-    # When we plot surfaces, we are interested only in some part of the
-    # geometry, so we select the faces which have at least one vertex in the
-    # area of interest
+    # Step 2.: 3D Mesh Face neighbours für 2D nehmen (= Einführung einer "periodischen Grenze")
     ########################################################################################
 
-    # HINWEIS: wir verwenden hier das 3D mesh für die Findung der Nachbarn
-    # Test: kann ich die Daten von Faces auch für die Berechnung der Nachbarn benutzen und dass dann auch für die UV-Plot?
     Faces_coord = cat(dim_data(vertices_3D, faces_3D, 1), dim_data(vertices_3D, faces_3D, 2), dim_data(vertices_3D, faces_3D, 3), dims=3)
     face_neighbors = find_face_neighbors(faces_3D, Faces_coord)
 
-    Faces_coord_uv = cat(dim_data(vertices_uv, faces_uv, 1), dim_data(vertices_uv, faces_uv, 2), dim_data(vertices_uv, faces_uv, 3), dims=3)
-    face_neighbors_uv = find_face_neighbors(faces_uv, Faces_coord_uv)  # TODO: fix this function for the uv plot case
+
+    ########################################################################################
+    # Step 3.: Spread the particles on the UV mesh faces
+    # get their nearest halfedges and map them to the 3D vertices
+    ########################################################################################
+
 
 
     # ########################################################################################
@@ -192,7 +213,7 @@ function active_particles_simulation(
     # for-loop where particle are randomly positioned and orientated in a 3D
     # box, then projected on the closest face. The normal vector of that face
     # is then also saved
-   
+
     # Julia supports parallel loops using the Threads.@threads macro. 
     # This macro is affixed in front of a for loop to indicate to Julia that the loop is a multi-threaded region
     # the order of assigning the values to the particles isn't important, so we can use parallel loops
@@ -202,6 +223,14 @@ function active_particles_simulation(
     # Sparse arrays are arrays that contain enough zeros that storing them in a special data structure leads to savings in space and execution time, compared to dense arrays.
     distance_matrix = sparse(zeros(vertices_length, vertices_length))  # initialize the distance matrix
 
+    # create empty vector for the normal vectors
+    N = zeros(size(faces_uv))
+    # calculate normal vectors for each face
+    for i in 1:size(faces_uv)[1]
+        # overgive N the normal vector of the face
+        N[i,:] = calculate_vertex_normals(faces_uv, halfedges_uv, i)
+    end
+
     faces_length = length(faces_uv[:,1])
     faces_list = range(1, faces_length, step=1)
     @threads for i=1:num_part
@@ -209,13 +238,11 @@ function active_particles_simulation(
         random_face = rand(faces_list)  # choose a random vertice from the vertice list
         faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
 
-        r_face_uv = Int.(faces_uv[random_face, :])  # get the random face
-        r_face = faces_3D[random_face, :]
+        r_face_uv = faces_uv[random_face, :]  # get the random face
 
-        test_vertice_x_coord = get_face_center_coord(vertices_3D, r_face)[1]  # get particle position
-        vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
-        min_value, closest_vertice = findmin(x->abs(x-test_vertice_x_coord), vertices_x_coord)  # find the closest vertice to the particle position
-        distance_matrix = fill_distance_matrix(distance_matrix, closest_vertice)
+        # vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
+        # min_value, closest_vertice = findmin(x->abs(x-particle_face_center), vertices_x_coord)  # find the closest vertice to the particle position
+        # distance_matrix = fill_distance_matrix(distance_matrix, closest_vertice)
 
 
         """ project the random particle into the center of the random face
@@ -223,8 +250,7 @@ function active_particles_simulation(
         We don't project the particle directly on a vertice, because we increased the number of vertices in the UV mesh, by transforming
         the 3D mesh into a 3D seam mesh before cutting it along the now "virtual" border edges.
         """
-        r_3D[i,:] = get_face_center_coord(vertices_3D, r_face)
-        r[i,:] = get_face_center_coord(vertices_uv, r_face_uv)
+        r[i,:] = get_face_center_coord(halfedges_uv, r_face_uv)
 
         # random particle orientation
         n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
@@ -237,6 +263,12 @@ function active_particles_simulation(
     end
 
     r[:,3] .= 0  # set the third column to 0, because we are only interested in the 2D plot
+
+    # get closest halfedge for r
+    # find the row where the distance of each column to zero is minimal
+    halfedges_id = get_nearest_halfedges(r, halfedges_uv, num_part)
+    r_3D = map_halfedges_to_3D_vertices(halfedges_id, r_3D, vertices_3D, num_part)
+
     observe_r[] = array_to_vec_of_vec(r)
     observe_r_3D[] = array_to_vec_of_vec(r_3D)   # TODO: 'lift' this observable with observe_r
     observe_n[] = array_to_vec_of_vec(n)
@@ -286,31 +318,31 @@ function active_particles_simulation(
     # cam = cameracontrols(scene)
     # update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
     # update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
-    # record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
-    #     simulate_next_step(
-    #         tt,
-    #         observe_r,
-    #         face_neighbors,
-    #         Faces_coord,
-    #         N,
-    #         num_face,
-    #         num_part,
-    #         observe_n,
-    #         observe_nr_dot,
-    #         observe_nr_dot_cross,
-    #         observe_order,
-    #         Norm_vect;
-    #         v0,
-    #         v0_next,
-    #         k,
-    #         k_next,
-    #         σ,
-    #         μ,
-    #         τ,
-    #         r_adh,
-    #         k_adh,
-    #     )
-    # end
+    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
+        simulate_next_step(
+            tt,
+            observe_r,
+            face_neighbors,
+            Faces_coord,
+            N,
+            num_face,
+            num_part,
+            observe_n,
+            observe_nr_dot,
+            observe_nr_dot_cross,
+            observe_order,
+            Norm_vect;
+            v0,
+            v0_next,
+            k,
+            k_next,
+            σ,
+            μ,
+            τ,
+            r_adh,
+            k_adh,
+        )
+    end
 
 end
 
@@ -389,11 +421,56 @@ end
 # SIMULATION SPECIFIC FUNCTIONS
 ########################################################################################
 
+"""
+    get_face_center_coord(_vertices, _r_face)
+
+(-> r[]) initialization
+calculate the center of gravity of the face
+"""
+function get_face_center_coord(_vertices, _r_face)
+    center_face = [0,0,0]
+    for j=1:3
+        center_face += _vertices[_r_face[j],:]
+    end
+    return center_face/3
+end
+
+
+"""
+    get_nearest_halfedges(r, halfedges_uv, num_part)
+
+(r[] -> halfedges) mapping
+"""
+function get_nearest_halfedges(r, halfedges_uv, num_part)
+    halfedge_vec = zeros(Int32, size(r)[1])
+    for i in 1:num_part
+        distances = vec(mapslices(norm, halfedges_uv .- r[i,:]', dims=2))
+        halfedge_vec[i] = argmin(distances)
+    end
+    return halfedge_vec
+end
+
+
+"""
+    map_halfedges_to_3D_vertices(halfedges_id, r_3D, vertices_3D, num_part)
+
+(halfedges -> r_3D[]) mapping
+"""
+function map_halfedges_to_3D_vertices(halfedges_id, r_3D, vertices_3D, num_part)
+    for i=1:num_part
+        vertice_id = halfedge_vertices_mapping[halfedges_id[i],:]
+        r_3D[i,:] = vertices_3D[vertice_id, :]
+    end
+    return r_3D
+end
+
 
 """
     fill_distance_matrix(distance_matrix, closest_vertice)
 
-closest vertice to particle x
+(r_3D[] -> distance_matrix)
+
+closest 3D vertice to particle x
     particle 1 -> vertice 1
     particle 2 -> vertice 3
     particle 3 -> vertice 5
@@ -413,20 +490,6 @@ function fill_distance_matrix(distance_matrix, closest_vertice::Int64)
         distance_matrix[:,closest_vertice] = vertices_3D_distance_map  # fill the distance matrix
     end
     return distance_matrix
-end
-
-
-"""
-    get_face_center_coord(_vertices, _r_face)
-
-calculate the center of gravity of the face
-"""
-function get_face_center_coord(_vertices, _r_face)
-    center_face = [0,0,0]
-    for j=1:3
-        center_face += _vertices[_r_face[j],:]
-    end
-    return center_face/3
 end
 
 
@@ -501,6 +564,8 @@ function calc_heat_distance(vertices=rand(1:100, 100, 3), faces=rand(1:100, 100,
 end
 
 
+# ! TODO
+# find_face_neighbors(faces_3D, Faces_coord)
 """
     find_face_neighbors(Faces, Faces_coord)
 
@@ -867,6 +932,7 @@ function simulate_next_step(
         r[:,3]*ones(1,num_part)-ones(num_part,1)*r[:,3]'
         )
 
+    # TODO: get the distances from the distance matrix
     dist_length = sqrt.(sum(dist_vect.^2,dims=3))[:,:,1]  # distance of each point with the others
 
     F_track = calculate_forces_between_particles(

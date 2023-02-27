@@ -310,22 +310,26 @@ JuliaArray create_uv_surface(std::string mesh_3D)
             -> thats why we only need to go half the way around the seam edges
     */
     // iterate over all halfedges of the seam mesh
-    std::vector<int32_t> halfedge_vertex_map;
-    for(halfedge_descriptor hd : halfedges(mesh)) {
-        // std::cout << "opposite = " << opposite(hd, mesh) << " has source " << source(opposite(hd, mesh), sm) << std::endl;
-        int32_t target_vertice = target(hd, sm);  // transform the type to int32_t
-        halfedge_vertex_map.push_back(target_vertice);
-    }
+    // for(halfedge_descriptor hd : halfedges(mesh)) {
+    //     // std::cout << "opposite = " << opposite(hd, mesh) << " has source " << source(opposite(hd, mesh), sm) << std::endl;
+    //     int32_t target_vertice = target(hd, sm);  // transform the type to int32_t
+    //     halfedge_vertex_map.push_back(target_vertice);
+    // }
     // number of halfedges in the seam mesh
     std::cout << "Number of halfedges in the seam mesh: " << num_halfedges(mesh) << std::endl;
 
+
+    // get the mapping of vertices between the 3D mesh and the uvmap
+    std::vector<int32_t> halfedge_vertex_map;
+    for(vertex_descriptor vd : vertices(mesh)) {
+        // std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << " and to the 3D coordinate " << target(vd, sm) << std::endl;
+        int32_t target_vertice = target(vd, sm);  // transform the type to int32_t
+        halfedge_vertex_map.push_back(target_vertice);
+    }
+    // ! halfedge_vertex_map list muss eine Länge von 4714 haben
     // size of halfedge_vertex_map
     std::cout << "size of halfedge_vertex_map = " << halfedge_vertex_map.size() << std::endl;
 
-    // // get the mapping of vertices between the 3D mesh and the uvmap
-    // for(vertex_descriptor vd : vertices(mesh)) {
-    //     std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << std::endl;
-    // }
     auto mesh_3D_name = get_mesh_name(mesh_3D);
 
     auto path_uv = str(boost::format(MESH_FOLDER / "%s_uv.off") % mesh_3D_name);
