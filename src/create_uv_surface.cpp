@@ -96,6 +96,7 @@ typedef boost::graph_traits<Mesh>::halfedge_descriptor                  halfedge
 typedef boost::graph_traits<Mesh>::vertex_iterator                      vertex_iterator;
 
 typedef SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>      UV_pmap;
+typedef jlcxx::ArrayRef<int32_t, 1>                                      JuliaArray;
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = std::filesystem;
@@ -228,7 +229,7 @@ std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D)
 }
 
 
-int create_uv_surface(std::string mesh_3D)
+JuliaArray create_uv_surface(std::string mesh_3D)
 {
     // Start a timer
     CGAL::Timer task_timer;
@@ -299,14 +300,6 @@ int create_uv_surface(std::string mesh_3D)
     SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, ITERATIONS);
     // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 
-    if(err != SMP::OK){
-        // std::cerr << "Error: " << SMP::get_error_message(err) << std::endl;
-        return EXIT_FAILURE;
-    }
-    std::cout << "\n";
-
-
-
     // TODO: try to build a mapping between the 2D and 3D mesh based on the following logic
     /*
     Logic:
@@ -316,19 +309,23 @@ int create_uv_surface(std::string mesh_3D)
         3. for a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
             -> thats why we only need to go half the way around the seam edges
     */
-    // iterate over the bhd of mesh
-    for(halfedge_descriptor hd : halfedges_around_face(bhd, mesh)) {
-        std::cout << "hd = " << hd << " (pointing to vertex: " << target(hd, sm) << ")" << std::endl;
-        std::cout << "opposite = " << opposite(hd, mesh) << " has source " << source(opposite(hd, mesh), sm) << std::endl;
+    // iterate over all halfedges of the seam mesh
+    std::vector<int32_t> halfedge_vertex_map;
+    for(halfedge_descriptor hd : halfedges(mesh)) {
+        // std::cout << "opposite = " << opposite(hd, mesh) << " has source " << source(opposite(hd, mesh), sm) << std::endl;
+        int32_t target_vertice = target(hd, sm);  // transform the type to int32_t
+        halfedge_vertex_map.push_back(target_vertice);
     }
+    // number of halfedges in the seam mesh
+    std::cout << "Number of halfedges in the seam mesh: " << num_halfedges(mesh) << std::endl;
 
-    // get the mapping of vertices between the 3D mesh and the uvmap
+    // size of halfedge_vertex_map
+    std::cout << "size of halfedge_vertex_map = " << halfedge_vertex_map.size() << std::endl;
+
+    // // get the mapping of vertices between the 3D mesh and the uvmap
     // for(vertex_descriptor vd : vertices(mesh)) {
     //     std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << std::endl;
     // }
-
-
-
     auto mesh_3D_name = get_mesh_name(mesh_3D);
 
     auto path_uv = str(boost::format(MESH_FOLDER / "%s_uv.off") % mesh_3D_name);
@@ -336,8 +333,11 @@ int create_uv_surface(std::string mesh_3D)
     std::ofstream out(path_uv);
     SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
 
+    // The ArrayRef type is provided to work conveniently with array data from Julia.
+    auto distances = JuliaArray(halfedge_vertex_map.data(), halfedge_vertex_map.size());
+
     std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;
-    return 0;
+    return distances;
 }
 
 
