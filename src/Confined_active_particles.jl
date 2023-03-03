@@ -1,6 +1,7 @@
 # ! TODO: link 2D mesh simulation with the 3D mesh in GLMakie over chaining the Observable with 'lift'
 #    -> see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
 # ? maybe use https://juliaimages.org/stable/function_reference/#ImageFiltering.padarray for perodic boundary conditions
+# TODO: periodische Grenzen einbauen 
 
 """
 Bedingung: Partikel darf sich auf jeden PUnkt des 3D und des 2D Meshes befinden.
@@ -40,7 +41,7 @@ module HeatMethod
 
   # ! TODO: resolve the import issue: sometimes you execute the script via main.jl and sometimes via the REPL
 #   @wrapmodule(joinpath(../@__DIR__, "build", "geodesic_distance"))
-  @wrapmodule(joinpath(@__DIR__, "build", "geodesic_distance"))
+  @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "build", "geodesic_distance"))
 
   function __init__()
     @initcxx
@@ -50,7 +51,7 @@ end
 module UVSurface
   using CxxWrap
 
-  @wrapmodule(joinpath(@__DIR__, "build", "create_uv_surface"))
+  @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "build", "create_uv_surface"))
 
   function __init__()
     @initcxx
@@ -180,7 +181,7 @@ function active_particles_simulation(
     num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
     @info "mapped " num_vertices_mapped "vertices to 2D mesh"
 
-    mesh_loaded_uv = FileIO.load(joinpath(@__DIR__, "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
+    mesh_loaded_uv = FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
 
     vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
     halfedges_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
@@ -269,7 +270,7 @@ function active_particles_simulation(
     # get closest halfedge for r
     # find the row where the distance of each column to zero is minimal
     halfedges_id = get_nearest_halfedges(r, halfedges_uv, num_part)
-    r_3D, r_3D_vertice = map_halfedges_to_3D(halfedges_id, r_3D, vertices_3D, num_part)
+    r_3D, r_3D_vertice = map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
 
     # vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
     # min_value, closest_vertice = findmin(x->abs(x-particle_face_center), vertices_x_coord)  # find the closest vertice to the particle position
@@ -336,6 +337,7 @@ function active_particles_simulation(
             observe_r,
             observe_r_3D,
             vertices_3D,
+            halfedge_vertices_mapping,
             distance_matrix,
             halfedges_uv,
             num_part,
@@ -468,14 +470,14 @@ end
 
 (halfedges -> r_3D[]) mapping
 """
-function map_halfedges_to_3D(halfedges_id, r_3D, vertices_3D, num_part)
+function map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
     r_3D_vertice = zeros(Int, num_part)
     for i=1:num_part
         vertice_id = halfedge_vertices_mapping[halfedges_id[i],:]
         r_3D_vertice[i] = vertice_id[1]
-        # TODO: improve this: get the face from the vertice_id 
-        face_ids = findall(x->x==vertice_id[1], faces_3D)
-        face_id_choosen = face_ids[1][1]
+        # # TODO: improve this: get the face from the vertice_id 
+        # face_ids = findall(x->x==vertice_id[1], faces_3D)
+        # face_id_choosen = face_ids[1][1]
         r_3D[i,:] = vertices_3D[vertice_id, :]
     end
     return r_3D, r_3D_vertice
@@ -824,6 +826,7 @@ function simulate_next_step(
     observe_r,
     observe_r_3D,
     vertices_3D,
+    halfedge_vertices_mapping,
     distance_matrix,
     halfedges_uv,
     num_part,
@@ -852,7 +855,7 @@ function simulate_next_step(
 
     # ! TODO: map the new 2D position to the 3D mesh
     halfedges_id = get_nearest_halfedges(r, halfedges_uv, num_part)
-    r_3D, r_3D_vertice = map_halfedges_to_3D(halfedges_id, r_3D, vertices_3D, num_part)
+    r_3D, r_3D_vertice = map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
 
     # vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
     # min_value, closest_vertice = findmin(x->abs(x-particle_face_center), vertices_x_coord)  # find the closest vertice to the particle position
