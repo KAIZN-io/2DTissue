@@ -53,8 +53,6 @@
 
 #include "jlcxx/jlcxx.hpp"
 #include "jlcxx/array.hpp"
-#include "jlcxx/const_array.hpp"
-
 #include "jlcxx/functions.hpp"
 
 

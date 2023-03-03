@@ -229,8 +229,6 @@ function active_particles_simulation(
     vertices_length = length(vertices_3D[:,1])
     vertices_list = range(1, vertices_length, step=1)
 
-    # Sparse arrays are arrays that contain enough zeros that storing them in a special data structure leads to savings in space and execution time, compared to dense arrays.
-    distance_matrix = sparse(zeros(vertices_length, vertices_length))  # initialize the distance matrix
 
     # create empty vector for the normal vectors
     N = zeros(size(faces_uv))
@@ -248,11 +246,6 @@ function active_particles_simulation(
         faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
 
         r_face_uv = faces_uv[random_face, :]  # get the random face
-
-        # vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
-        # min_value, closest_vertice = findmin(x->abs(x-particle_face_center), vertices_x_coord)  # find the closest vertice to the particle position
-        # distance_matrix = fill_distance_matrix(distance_matrix, closest_vertice)
-
 
         """ project the random particle into the center of the random face
 
@@ -276,7 +269,17 @@ function active_particles_simulation(
     # get closest halfedge for r
     # find the row where the distance of each column to zero is minimal
     halfedges_id = get_nearest_halfedges(r, halfedges_uv, num_part)
-    r_3D = map_halfedges_to_3D_vertices(halfedges_id, r_3D, vertices_3D, num_part)
+    r_3D, r_3D_vertice = map_halfedges_to_3D(halfedges_id, r_3D, vertices_3D, num_part)
+
+    # vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
+    # min_value, closest_vertice = findmin(x->abs(x-particle_face_center), vertices_x_coord)  # find the closest vertice to the particle position
+
+    # Sparse arrays are arrays that contain enough zeros that storing them in a special data structure leads to savings in space and execution time, compared to dense arrays.
+    distance_matrix = sparse(zeros(vertices_length, vertices_length))  # initialize the distance matrix
+
+    for i in 1:num_part
+        distance_matrix = fill_distance_matrix(distance_matrix, r_3D_vertice[i])
+    end
 
     observe_r[] = array_to_vec_of_vec(r)
     observe_r_3D[] = array_to_vec_of_vec(r_3D)   # TODO: 'lift' this observable with observe_r
@@ -331,10 +334,10 @@ function active_particles_simulation(
         simulate_next_step(
             tt,
             observe_r,
-            face_neighbors,
-            Faces_coord,
-            N,
-            num_face,
+            observe_r_3D,
+            vertices_3D,
+            distance_matrix,
+            halfedges_uv,
             num_part,
             observe_n,
             observe_nr_dot,
@@ -461,120 +464,24 @@ end
 
 
 """
-    map_halfedges_to_3D_vertices(halfedges_id, r_3D, vertices_3D, num_part)
+    map_halfedges_to_3D(halfedges_id, r_3D, vertices_3D, num_part)
 
 (halfedges -> r_3D[]) mapping
 """
-function map_halfedges_to_3D_vertices(halfedges_id, r_3D, vertices_3D, num_part)
+function map_halfedges_to_3D(halfedges_id, r_3D, vertices_3D, num_part)
+    r_3D_vertice = zeros(Int, num_part)
     for i=1:num_part
         vertice_id = halfedge_vertices_mapping[halfedges_id[i],:]
+        r_3D_vertice[i] = vertice_id[1]
+        # TODO: improve this: get the face from the vertice_id 
+        face_ids = findall(x->x==vertice_id[1], faces_3D)
+        face_id_choosen = face_ids[1][1]
         r_3D[i,:] = vertices_3D[vertice_id, :]
     end
-    return r_3D
+    return r_3D, r_3D_vertice
 end
 
 
-"""
-    fill_distance_matrix(distance_matrix, closest_vertice)
-
-(r_3D[] -> distance_matrix)
-
-closest 3D vertice to particle x
-    particle 1 -> vertice 1
-    particle 2 -> vertice 3
-    particle 3 -> vertice 5
-    ...
-
-fill the distance matrix in-time
-that means that we solve the Heat Method from vertice X to all other vertices if a particle is on vertice X
-if a particle already was on vertice X, we don't need to solve the Heat Method again, because we already have the distance matrix
-after some time we complete the holes in the distance matrix
-with this approach we also get an indication which node where never visited by a particle.
-
-we only need to check the sum of two rows, because for each row only 1 value is allowed to be zero
-"""
-function fill_distance_matrix(distance_matrix, closest_vertice::Int64)
-    if sum(distance_matrix[1:2,closest_vertice]) == 0
-        vertices_3D_distance_map = HeatMethod.geo_distance(closest_vertice)  # get the distance of all vertices to all other vertices
-        distance_matrix[:,closest_vertice] = vertices_3D_distance_map  # fill the distance matrix
-    end
-    return distance_matrix
-end
-
-
-# TODO: implement this: https://docs.makie.org/v0.19.1/documentation/nodes/index.html#the_observable_structure
-"""
-    simulate_on_mesh(mesh_surf, particle_form, particle_n)
-
-The goal is to create a package where I can overgive a mesh surface and the particle form and 
-then simply simulate the particle behaviour on the mesh surface.
-"""
-function simulate_on_mesh(mesh_surf, particle_form, particle_n)
-
-end
-
-
-"""
-    calc_heat_distance()
-
-NOTE: This function is not working yet.
-The source and target points should be given as the vertex indices in the mesh.
-"""
-function calc_heat_distance(vertices=rand(1:100, 100, 3), faces=rand(1:100, 100, 3), source=4)
-    # Compute adjacency matrix
-    n_vertices = size(vertices, 1)
-    Vs = faces[:, [2,3,1]] |> vec  # = np.roll(faces, 1, axis=1).ravel()
-    Js = faces |> vec
-    Is = ones(Int, size(faces, 1),3) |> vec
-
-    # Compute the adjacency matrix A of the mesh, where A[i, j] = 1 if vertices i and j are connected by
-    # an edge, and A[i, j] = 0 otherwise.
-    adjacency = sparse(Js, Vs, Is)
-
-    # Compute the diagonal matrix D of vertex degrees, where D[i, i] is the sum of the weights of the 
-    # edges connected to vertex i
-    degree = sparse(1:n_vertices, 1:n_vertices, vec(sum(adjacency, dims=1)))
-
-    # Compute Laplacian matrix
-    laplacian = degree - adjacency
-
-    # turn the laplacian into an array
-    laplacian = Array(laplacian)  # NOTE: because there is a dummy bug in the paket
-
-    """
-        heat_kernel(t)
-
-    Compute heat kernel
-    """
-    function heat_kernel(t)
-        return exp(-t * laplacian)
-    end
-
-    # Compute initial heat distribution
-    u_0 = zeros(n_vertices)
-    u_0[source] = 1
-
-    # Compute heat distribution at time t
-    t = 0.1
-    u_t = heat_kernel(t) * u_0
-
-    distance_max = 0
-    target_max = 0
-    for target=1:n_vertices
-        # Compute geodesic distance
-        distance = sqrt(abs(u_t[target]))
-        if distance_max < distance
-            distance_max = distance
-            target_max = target
-        end
-    end
-
-    return distance_max, target_max
-end
-
-
-# ! TODO
-# find_face_neighbors(faces_3D, Faces_coord)
 """
     find_face_neighbors(Faces, Faces_coord)
 
@@ -663,7 +570,7 @@ end
 
 
 """
-next_face_for_the_particle(_Faces_coord, _N, _r, _i)
+    next_face_for_the_particle(_Faces_coord, _N, _r, _i)
 
 """
 function next_face_for_the_particle(_Faces_coord, _N, _r, _i)
@@ -780,24 +687,55 @@ end
 
 
 """
+    fill_distance_matrix(distance_matrix::SparseMatrixCSC, closest_vertice::Int64)
+
+Heat Method developed by Keenan Crane (http://doi.acm.org/10.1145/3131280)
+
+(r_3D[] -> distance_matrix)
+
+closest 3D vertice to particle x
+particle 1 -> vertice 1
+particle 2 -> vertice 3
+particle 3 -> vertice 5
+...
+
+fill the distance matrix in-time
+that means that we solve the Heat Method from vertice X to all other vertices if a particle is on vertice X
+if a particle already was on vertice X, we don't need to solve the Heat Method again, because we already have the distance matrix
+after some time we complete the holes in the distance matrix
+with this approach we also get an indication which node where never visited by a particle.
+
+we only need to check the sum of two rows, because for each row only 1 value is allowed to be zero
+
+"""
+function fill_distance_matrix(distance_matrix::SparseMatrixCSC, closest_vertice::Int64)
+    if sum(distance_matrix[closest_vertice, 1:2]) == 0
+        vertices_3D_distance_map = HeatMethod.geo_distance(closest_vertice)  # get the distance of all vertices to all other vertices
+        distance_matrix[closest_vertice, :] = vertices_3D_distance_map  # fill the distance matrix
+    end
+    return distance_matrix
+end
+
+
+"""
     calculate_forces_between_particles(
-    Vect,
-    dist_length,
-    k,
-    σ,
-    r_adh,
-    k_adh
-)
+        dist_vect,
+        dist_length,
+        k,
+        σ,
+        r_adh,
+        k_adh
+    )
 
 """
 function calculate_forces_between_particles(
-    dist_vect,
-    dist_length,
-    k,
-    σ,
-    r_adh,
-    k_adh
-)
+        dist_vect,
+        dist_length,
+        k,
+        σ,
+        r_adh,
+        k_adh
+    )
     Fij_rep = (-k*(2*σ.-dist_length))./(2*σ)
     Fij_adh = (k_adh*(2*σ.-dist_length))./(2*σ-r_adh)
 
@@ -884,10 +822,10 @@ we sometimes plot the position and orientation of the cells
 function simulate_next_step(
     tt,
     observe_r,
-    face_neighbors,
-    Faces_coord,
-    N,
-    num_face,
+    observe_r_3D,
+    vertices_3D,
+    distance_matrix,
+    halfedges_uv,
     num_part,
     observe_n,
     observe_nr_dot,
@@ -906,11 +844,22 @@ function simulate_next_step(
 )
 
     r = observe_r[] |> vec_of_vec_to_array
+    r_3D = observe_r_3D[] |> vec_of_vec_to_array
     n = observe_n[] |> vec_of_vec_to_array
     nr_dot = observe_nr_dot[] |> vec_of_vec_to_array
     nr_dot_cross = observe_nr_dot_cross[] |> vec_of_vec_to_array
     v_order = observe_order[] |> vec_of_vec_to_array
 
+    # ! TODO: map the new 2D position to the 3D mesh
+    halfedges_id = get_nearest_halfedges(r, halfedges_uv, num_part)
+    r_3D, r_3D_vertice = map_halfedges_to_3D(halfedges_id, r_3D, vertices_3D, num_part)
+
+    # vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
+    # min_value, closest_vertice = findmin(x->abs(x-particle_face_center), vertices_x_coord)  # find the closest vertice to the particle position
+
+    for i in 1:num_part
+        distance_matrix = fill_distance_matrix(distance_matrix, r_3D_vertice[i])
+    end
 
     dt = 0.01*τ; # Step size
     plotstep = 0.1/dt; # Number of calculation between plot
@@ -923,16 +872,6 @@ function simulate_next_step(
         k = k_next;
     end
 
-    # ! TODO: diese Berechnung ist falsch im 2D Fall, da die mesh face unterschiedlich groß sind
-    # ! Daraus resultiert eine unnatürlich große Kraft, die die Zellen weg vom Mesh schleudert
-    # Dummy Code wie es eigentlich aussehen könnte:
-    # 1. Partikel wissen, auf welchen Face sie sich befinden
-    # 2. Es gibt eine bereinigte dist_length matrix mapping die die wahre Weglänge der einzelnen Vertice Face zueinander beinhaltet
-    #     2.1 diese Mapping Matrix ist eine Konstante
-    # 3. Für die Berechnung der Kraft schaut man, mit welchen Faktor die Weglänge multipliziert werden muss
-    # TODO: calc_geodesic_distance() on an UV plane
-    # ! Heat Method developed by Keenan Crane (http://doi.acm.org/10.1145/3131280)
-
     # % Vector between all particles (1->2; 1->3; 1->4;... 641->1; 641->2;
     # % 641->3; 641->4;...641->640...)
     dist_vect = cat(dims=3,
@@ -941,8 +880,16 @@ function simulate_next_step(
         r[:,3]*ones(1,num_part)-ones(num_part,1)*r[:,3]'
         )
 
-    # TODO: get the distances from the distance matrix
-    dist_length = sqrt.(sum(dist_vect.^2,dims=3))[:,:,1]  # distance of each point with the others
+    # get the distances from the distance matrix
+    dist_length = zeros(num_part, num_part)
+
+    # ! BUG: it is interesting that using the heat method the distance from a -> b is not the same as b -> a
+    for i in 1:num_part
+        for j in 1:num_part
+            dist_length[i, j] = distance_matrix[r_3D_vertice[i], r_3D_vertice[j]]
+        end
+    end
+    dist_length[diagind(dist_length)] .= 0.0
 
     F_track = calculate_forces_between_particles(
         dist_vect,
@@ -952,64 +899,15 @@ function simulate_next_step(
         r_adh,
         k_adh
     )  # calculate the force between particles
+    
     r_dot = P_perp(Norm_vect, v0.*n+μ.*F_track)  # velocity of each particle
-    r = r+r_dot*dt  # calculate next position
+
+    # calculate next position
+    r = r+r_dot*dt  
+    r[:,3] .= 0.0
 
     n = correct_n(r_dot, n, τ, dt)  # make a small correct for n according to Vicsek
 
-    # Norm_vect = ones(num_part,3);  # TODO: remove this line if it is not useful
-
-    for i = 1:num_part
-        number_faces = replace!(num_face[i,:], NaN=>0)'
-        number_faces = Int.(number_faces)
-        number_faces = number_faces[number_faces .!= 0]
-
-        if length(number_faces) == 1
-            Faces_numbers1 = face_neighbors[number_faces,:]
-            Faces_numbers1 = replace!(Faces_numbers1, NaN=>0)
-            full_number_faces = Faces_numbers1[Faces_numbers1 .!= 0]'  # remove the 0 values
-        else
-            full_number_faces = number_faces'
-            for num_face_i = 1:length(number_faces)
-                Faces_numbers1 = face_neighbors[Int(number_faces[num_face_i]),:]'
-                Faces_numbers1 = replace!(Faces_numbers1, NaN=>0)
-                Faces_numbers1 = Int.(Faces_numbers1)
-                Faces_numbers1 = Faces_numbers1[Faces_numbers1 .!= 0]'  # remove the 0 values
-                full_number_faces = cat(dims=2,full_number_faces,Faces_numbers1)
-             end
-        end
-        full_number_faces = unique(full_number_faces)
-
-        # Faces coordinates
-        Faces_coord_temp = Faces_coord[full_number_faces,:,:]
-        # % Normal vectors of faces
-        NV = N[full_number_faces,:]
-
-        p0s, N_temp, index_binary, index_face_in, index_face_out = next_face_for_the_particle(Faces_coord_temp, NV, r, i)
-
-        # % If the projections are in no face, take the average projection and
-        # % normal vectors. Save the faces number used
-        if isempty(index_face_in) == 1
-            Norm_vect[i,:] = mean(N_temp[index_face_out,:],dims=1)
-            r[i,:] = mean(p0s[index_face_out,:],dims=1)
-            num_face[i,1:length(index_face_out)] = full_number_faces[index_binary[index_face_out]]'
-
-        # % If the projections are in a face, save its number, normal vector and
-        # % projected point
-        else
-            if length(index_face_in) > 1
-                Norm_vect[i,:] = mean(N_temp[index_face_in,:],dims=1)
-                r[i,:] = mean(p0s[index_face_in,:],dims=1)
-                num_face[i,1:length(index_face_in)] = full_number_faces[index_binary[index_face_in]]'
-            else
-                Norm_vect[i,:] = N_temp[index_face_in,:]
-                num_face[i,1] = full_number_faces[index_binary[index_face_in]][1]
-                r[i,:] = p0s[index_face_in,:]
-            end
-        end
-    end
-
-    # % find faces closer to each points and associated normal vector
     # %%%%%%%%%%%%
     # %Project the orientation of the corresponding faces using normal vectors
     n = P_perp(Norm_vect,n)
@@ -1032,10 +930,6 @@ function simulate_next_step(
 
         v_order = calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep)
 
-        # #Calculate angles for equirectangular map projection
-        # phi1 = asin(r[:,3]/sqrt.(sum(r.^2,dims=2)));   # elevation angle
-        # thet1 = atan2(r[:,2],r[:,1]); # azimuth
-
         observe_order[] = v_order
         observe_r[] = array_to_vec_of_vec(r)
         observe_n[] = array_to_vec_of_vec(n)
@@ -1053,16 +947,4 @@ P_perp does a normal projection of the vector b on the plane normal to a
 """
 function P_perp(a, b)
     return (b-(sum(b.*a,dims=2)./(sqrt.(sum(a.^2,dims=2)).^2)*ones(1,3)).*a)
-end
-
-
-"""
-    P_plan(a,b,a1)
-
-P_plan does a projection of the vector b on vector normal to a1 in the plane normal to a
-"""
-function P_plan(a,b,a1)
-    return ((sum(b.*a,dims=2)./(sqrt.(sum(a.^2,dims=2)))*ones(1,3)).*[
-    a[:,2].*a1[:,3]-a[:,3].*a1[:,2],-a[:,1].*a1[:,3]+a[:,3].*a1[:,1],a[:,1].*a1[:,2]-a[:,2].*a1[:,1]
-    ])
 end
