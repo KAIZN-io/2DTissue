@@ -53,6 +53,8 @@
 
 #include "jlcxx/jlcxx.hpp"
 #include "jlcxx/array.hpp"
+#include "jlcxx/const_array.hpp"
+
 #include "jlcxx/functions.hpp"
 
 
@@ -96,7 +98,7 @@ typedef boost::graph_traits<Mesh>::halfedge_descriptor                  halfedge
 typedef boost::graph_traits<Mesh>::vertex_iterator                      vertex_iterator;
 
 typedef SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>      UV_pmap;
-typedef jlcxx::ArrayRef<int32_t, 1>                                      JuliaArray;
+typedef jlcxx::ArrayRef<int64_t, 1>                                      JuliaArray;
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = std::filesystem;
@@ -312,7 +314,7 @@ JuliaArray create_uv_surface(std::string mesh_3D)
     // iterate over all halfedges of the seam mesh
     // for(halfedge_descriptor hd : halfedges(mesh)) {
     //     // std::cout << "opposite = " << opposite(hd, mesh) << " has source " << source(opposite(hd, mesh), sm) << std::endl;
-    //     int32_t target_vertice = target(hd, sm);  // transform the type to int32_t
+    //     int64_t target_vertice = target(hd, sm);  // transform the type to int64_t
     //     halfedge_vertex_map.push_back(target_vertice);
     // }
     // number of halfedges in the seam mesh
@@ -320,10 +322,10 @@ JuliaArray create_uv_surface(std::string mesh_3D)
 
 
     // get the mapping of vertices between the 3D mesh and the uvmap
-    std::vector<int32_t> halfedge_vertex_map;
+    std::vector<int64_t> halfedge_vertex_map;
     for(vertex_descriptor vd : vertices(mesh)) {
         // std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << " and to the 3D coordinate " << target(vd, sm) << std::endl;
-        int32_t target_vertice = target(vd, sm);  // transform the type to int32_t
+        int64_t target_vertice = target(vd, sm);  // transform the type to int64_t
         halfedge_vertex_map.push_back(target_vertice);
     }
     // ! halfedge_vertex_map list muss eine Länge von 4714 haben
@@ -336,12 +338,9 @@ JuliaArray create_uv_surface(std::string mesh_3D)
     std::cout << "The UV mesh is saved to the following path: " << path_uv << "\n" << std::endl;
     std::ofstream out(path_uv);
     SMP::IO::output_uvmap_to_off(mesh, bhd, uvmap, out);
-
     // The ArrayRef type is provided to work conveniently with array data from Julia.
-    auto distances = JuliaArray(halfedge_vertex_map.data(), halfedge_vertex_map.size());
-
-    std::cout << "Finished in " << task_timer.time() << " seconds" << std::endl;
-    return distances;
+    const auto h_v_map = JuliaArray(halfedge_vertex_map.data(), halfedge_vertex_map.size());
+    return h_v_map;
 }
 
 

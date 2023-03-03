@@ -38,6 +38,8 @@ using LinearAlgebra, SparseArrays
 module HeatMethod
   using CxxWrap
 
+  # ! TODO: resolve the import issue: sometimes you execute the script via main.jl and sometimes via the REPL
+#   @wrapmodule(joinpath(../@__DIR__, "build", "geodesic_distance"))
   @wrapmodule(joinpath(@__DIR__, "build", "geodesic_distance"))
 
   function __init__()
@@ -168,15 +170,22 @@ function active_particles_simulation(
     # Generate the 2D mesh and return a vector which indicates the mapping between halfedges and 3D vertices
     ########################################################################################
 
-    # ! BUG: storing the vertices is buggy
-    halfedge_vertices_mapping = UVSurface.create_uv_surface("Ellipsoid")
+    h_v_mapping = UVSurface.create_uv_surface("Ellipsoid")
+
+    # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
+    halfedge_vertices_mapping = Vector{Int64}()
+    append!(halfedge_vertices_mapping, h_v_mapping)
+    h_v_mapping = nothing
+
+    num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
+    @info "mapped " num_vertices_mapped "vertices to 2D mesh"
+
     mesh_loaded_uv = FileIO.load(joinpath(@__DIR__, "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
 
     vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
     halfedges_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
     @info "vertices in 3D: " size(vertices_3D)[1]
-    num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
-    @info "mapped " num_vertices_mapped "vertices to 2D mesh"
+
 
     faces_3D = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
     faces_uv = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_uv) |> vec_of_vec_to_array  # return the faces of the mesh
