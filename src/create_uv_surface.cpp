@@ -112,8 +112,9 @@ const unsigned int PARAMETERIZATION_ITERATIONS = 9;
 /*
 Get the mesh name from its path
 */
-std::string get_mesh_name(std::string mesh_3D)
-{
+std::string get_mesh_name(
+    std::string mesh_3D
+){
     if (mesh_3D.find('.') < mesh_3D.length())
     {
         size_t pos = mesh_3D.find_last_of(".");
@@ -134,8 +135,9 @@ std::string get_mesh_name(std::string mesh_3D)
 Get the mesh from the file.
 Add new meshes with there path in this function
 */
-std::ifstream get_mesh_obj(std::string mesh_3D)
-{
+std::ifstream get_mesh_obj(
+    std::string mesh_3D
+){
     if (mesh_3D == "Ellipsoid")
     {
         std::ifstream in(CGAL::data_file_path(MESH_FOLDER / "ellipsoid_x4.off"));
@@ -162,7 +164,9 @@ std::ifstream get_mesh_obj(std::string mesh_3D)
 /*
 save the STL file as an OFF file
 */
-int save_stl_as_off(SurfaceMesh sm){
+int save_stl_as_off(
+    SurfaceMesh sm
+){
     std::ofstream out_OFF(MESH_FOLDER / "ellipsoid_x4.off");
     CGAL::IO::write_OFF(out_OFF, sm);
     out_OFF.close();
@@ -171,7 +175,13 @@ int save_stl_as_off(SurfaceMesh sm){
 }
 
 
-int save_uv_mesh(Mesh _mesh, halfedge_descriptor _bhd, UV_pmap _uvmap, std::string mesh_3D, int uv_mesh_number){
+int save_uv_mesh(
+    Mesh _mesh,
+    halfedge_descriptor _bhd,
+    UV_pmap _uvmap,
+    std::string mesh_3D,
+    int uv_mesh_number
+){
     auto mesh_3D_name = get_mesh_name(mesh_3D);
 
     if (uv_mesh_number == 0)
@@ -199,8 +209,10 @@ Logic:
     3. for a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
         -> thats why we only need to go half the way around the seam edges
 */
-JuliaArray get_halfedge_vertice_map(Mesh mesh, SurfaceMesh sm){
-
+JuliaArray get_halfedge_vertice_map(
+    Mesh mesh,
+    SurfaceMesh sm
+){
     std::vector<int64_t> halfedge_vertex_map;
     for(vertex_descriptor vd : vertices(mesh)) {
         // std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << " and to the 3D coordinate " << target(vd, sm) << std::endl;
@@ -222,8 +234,10 @@ Calculate the virtual border of the mesh
 
 NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
 */
-std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D, my_vertex_descriptor start_node)
-{
+std::vector<my_edge_descriptor> calc_virtual_border(
+    std::string mesh_3D,
+    my_vertex_descriptor start_node
+){
     My::Mesh mesh;
     auto in = get_mesh_obj(mesh_3D);
     in >> mesh;
@@ -285,10 +299,11 @@ std::vector<my_edge_descriptor> calc_virtual_border(std::string mesh_3D, my_vert
 }
 
 
-my_vertex_descriptor new_start_vertice(my_vertex_descriptor start_node, SurfaceMesh sm, std::string mesh_3D){
-    // print the start node
-    std::cout << "start node: " << start_node << std::endl;
-
+my_vertex_descriptor new_start_vertice(
+    my_vertex_descriptor start_node,
+    SurfaceMesh sm,
+    std::string mesh_3D
+){
     auto calc_edges = calc_virtual_border(mesh_3D, start_node);
 
     // get the edge in the middle of the path
@@ -299,7 +314,11 @@ my_vertex_descriptor new_start_vertice(my_vertex_descriptor start_node, SurfaceM
 }
 
 
-JuliaArray calculate_uv_surface(std::string mesh_3D, my_vertex_descriptor start_node, int uv_mesh_number){
+JuliaArray calculate_uv_surface(
+    std::string mesh_3D,
+    my_vertex_descriptor start_node,
+    int uv_mesh_number
+){
     // Load the 3D mesh
     SurfaceMesh sm;
     auto filename = get_mesh_obj(mesh_3D);
@@ -358,8 +377,10 @@ JuliaArray calculate_uv_surface(std::string mesh_3D, my_vertex_descriptor start_
     return _h_v_map;
 }
 
-JuliaArray create_uv_surface(std::string mesh_3D = "Ellipsoid", int32_t start_node_int = 0)
-{
+JuliaArray create_uv_surface(
+    std::string mesh_3D = "Ellipsoid",
+    int32_t start_node_int = 0
+){
     // Start a timer
     // CGAL::Timer task_timer;
     // task_timer.start();
@@ -389,7 +410,7 @@ JuliaArray create_uv_surface(std::string mesh_3D = "Ellipsoid", int32_t start_no
     calculate_uv_surface(mesh_3D, start_node_2, 2);
     calculate_uv_surface(mesh_3D, start_node_3, 3);
     calculate_uv_surface(mesh_3D, start_node_4, 4);
-    const auto h_v_map = calculate_uv_surface(mesh_3D, start_node_0, uv_mesh_number);
+    const auto h_v_map = calculate_uv_surface(mesh_3D, start_node_0, uv_mesh_number);  // momentan muss dass hier am Ende stehen, denn sonst gibt es memory leaks hinzu Julia
 
     return h_v_map;
 }
