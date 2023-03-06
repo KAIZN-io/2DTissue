@@ -46,6 +46,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <tuple>
 #include <format>
 
 #include <algorithm>
@@ -317,6 +318,32 @@ std::tuple<Mesh, halfedge_descriptor, UV_pmap> create_uv_mesh(SurfaceMesh sm, my
 }
 
 
+/*
+Logic:
+    1. each halfedge h is pointing to a target vertex v and has a soure vertex s
+    2. each vertex v on a seam edge has at least 2 halfedges h (due to the cutting along the seam edge we will create these vertices v twice)
+        => "A vertex of the underlying mesh may correspond to multiple vertices in the seam mesh."
+    3. for a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
+        -> thats why we only need to go half the way around the seam edges
+*/
+JuliaArray get_halfedge_vertice_map(Mesh mesh, SurfaceMesh sm){
+
+    std::vector<int64_t> halfedge_vertex_map;
+    for(vertex_descriptor vd : vertices(mesh)) {
+        // std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << " and to the 3D coordinate " << target(vd, sm) << std::endl;
+        int64_t target_vertice = target(vd, sm);  // transform the type to int64_t
+        halfedge_vertex_map.push_back(target_vertice);
+    }
+
+    std::cout << "size of halfedge_vertex_map = " << halfedge_vertex_map.size() << std::endl;
+
+    // The ArrayRef type is provided to work conveniently with array data from Julia.
+    const auto h_v_map = JuliaArray(halfedge_vertex_map.data(), halfedge_vertex_map.size());
+
+    return h_v_map;
+}
+
+
 JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
 {
     // Start a timer
@@ -342,7 +369,10 @@ JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
     std::cout << "start node 3: " << start_node_3 << std::endl;
     std::cout << "start node 4: " << start_node_4 << std::endl;
 
-    // create_uv_mesh(sm, start_node_0, mesh_3D);
+    // auto [mesh, bhd, uvmap] = create_uv_mesh(sm, start_node_0, mesh_3D);
+
+
+
 
     // Create property maps to store seam edges and vertices
     Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;  // if not false -> we can't add seam edges
@@ -394,28 +424,13 @@ JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
     */
     SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, ITERATIONS);
 
+
+
+
     // Save the uv mesh
     save_uv_mesh(mesh, bhd, uvmap, mesh_3D);
 
-    /*
-    Logic:
-        1. each halfedge h is pointing to a target vertex v and has a soure vertex s
-        2. each vertex v on a seam edge has at least 2 halfedges h (due to the cutting along the seam edge we will create these vertices v twice)
-            => "A vertex of the underlying mesh may correspond to multiple vertices in the seam mesh."
-        3. for a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
-            -> thats why we only need to go half the way around the seam edges
-    */
-    std::vector<int64_t> halfedge_vertex_map;
-    for(vertex_descriptor vd : vertices(mesh)) {
-        // std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << " and to the 3D coordinate " << target(vd, sm) << std::endl;
-        int64_t target_vertice = target(vd, sm);  // transform the type to int64_t
-        halfedge_vertex_map.push_back(target_vertice);
-    }
-
-    std::cout << "size of halfedge_vertex_map = " << halfedge_vertex_map.size() << std::endl;
-
-    // The ArrayRef type is provided to work conveniently with array data from Julia.
-    const auto h_v_map = JuliaArray(halfedge_vertex_map.data(), halfedge_vertex_map.size());
+    const auto h_v_map = get_halfedge_vertice_map(mesh, sm);
 
     return h_v_map;
 }
