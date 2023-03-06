@@ -160,6 +160,64 @@ std::ifstream get_mesh_obj(std::string mesh_3D)
 
 
 /*
+save the STL file as an OFF file
+*/
+int save_stl_as_off(SurfaceMesh sm){
+    std::ofstream out_OFF(MESH_FOLDER / "ellipsoid_x4.off");
+    CGAL::IO::write_OFF(out_OFF, sm);
+    out_OFF.close();
+
+    return 0;
+}
+
+
+int save_uv_mesh(Mesh _mesh, halfedge_descriptor _bhd, UV_pmap _uvmap, std::string mesh_3D, int uv_mesh_number){
+    auto mesh_3D_name = get_mesh_name(mesh_3D);
+
+    if (uv_mesh_number == 0)
+    {
+        auto path_uv = str(boost::format(MESH_FOLDER / "%1%_uv.off") % mesh_3D_name);
+        std::ofstream out(path_uv);
+        SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
+    }
+    else
+    {
+        auto path_uv = str(boost::format(MESH_FOLDER / "%1%_uv_%2%.off") % mesh_3D_name % uv_mesh_number);
+        std::ofstream out(path_uv);
+        SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
+    }
+
+    return 0;
+}
+
+
+/*
+Logic:
+    1. each halfedge h is pointing to a target vertex v and has a soure vertex s
+    2. each vertex v on a seam edge has at least 2 halfedges h (due to the cutting along the seam edge we will create these vertices v twice)
+        => "A vertex of the underlying mesh may correspond to multiple vertices in the seam mesh."
+    3. for a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
+        -> thats why we only need to go half the way around the seam edges
+*/
+JuliaArray get_halfedge_vertice_map(Mesh mesh, SurfaceMesh sm){
+
+    std::vector<int64_t> halfedge_vertex_map;
+    for(vertex_descriptor vd : vertices(mesh)) {
+        // std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << " and to the 3D coordinate " << target(vd, sm) << std::endl;
+        int64_t target_vertice = target(vd, sm);  // transform the type to int64_t
+        halfedge_vertex_map.push_back(target_vertice);
+    }
+
+    std::cout << "size of halfedge_vertex_map = " << halfedge_vertex_map.size() << std::endl;
+
+    // The ArrayRef type is provided to work conveniently with array data from Julia.
+    const auto _h_v_map = JuliaArray(halfedge_vertex_map.data(), halfedge_vertex_map.size());
+
+    return _h_v_map;
+}
+
+
+/*
 Calculate the virtual border of the mesh
 
 NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
@@ -241,136 +299,11 @@ my_vertex_descriptor new_start_vertice(my_vertex_descriptor start_node, SurfaceM
 }
 
 
-/*
-save the STL file as an OFF file
-*/
-int save_stl_as_off(SurfaceMesh sm){
-    std::ofstream out_OFF(MESH_FOLDER / "ellipsoid_x4.off");
-    CGAL::IO::write_OFF(out_OFF, sm);
-    out_OFF.close();
-
-    return 0;
-}
-
-
-int save_uv_mesh(Mesh _mesh, halfedge_descriptor _bhd, UV_pmap _uvmap, std::string mesh_3D){
-    auto mesh_3D_name = get_mesh_name(mesh_3D);
-
-    auto path_uv = str(boost::format(MESH_FOLDER / "%s_uv.off") % mesh_3D_name);
-    std::ofstream out(path_uv);
-    SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
-
-    return 0;
-}
-
-
-std::tuple<Mesh, halfedge_descriptor, UV_pmap> create_uv_mesh(my_vertex_descriptor start_node_0, std::string mesh_3D){
+JuliaArray calculate_uv_surface(std::string mesh_3D, my_vertex_descriptor start_node, int uv_mesh_number){
     // Load the 3D mesh
     SurfaceMesh sm;
     auto filename = get_mesh_obj(mesh_3D);
     filename >> sm;
-
-    // Create property maps to store seam edges and vertices
-    Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;  // if not false -> we can't add seam edges
-    Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
-
-    // Create the seam mesh
-    Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
-
-    // Calculate the virtual border
-    auto calc_edges = calc_virtual_border(mesh_3D, start_node_0);
-
-    for(SM_edge_descriptor e : calc_edges) {
-        mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
-    }
-
-    std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
-
-    // Choose the border of the uv parametrisation
-    // typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
-    typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
-    Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
-
-    // Iterative Authalic Parameterization:
-    // from https://doi.org/10.1109/ICCVW.2019.00508
-    // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
-    // meaning that it aims to minimize area distortion between the input surface mesh and the parameterized output.
-    typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
-    Parameterizer parameterizer(border_parameterizer);
-
-    // Other parameterization algorithms:
-    // typedef SMP::Discrete_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
-    // typedef SMP::Mean_value_coordinates_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
-
-    // Choose a halfedge on the (possibly virtual) border
-    halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
-
-    // The 2D points of the uv parametrisation will be written into this map
-    // NOTE that this is a halfedge property map, and that uv values are only stored for the canonical Halfedges Representing a Vertex
-    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
-
-    /*
-    computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
-    The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
-    ! A one-to-one mapping may be guaranteed or not, depending on the chosen Parameterizer algorithm
-    */
-    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
-    // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
-
-    return {mesh, bhd, uvmap};
-}
-
-
-/*
-Logic:
-    1. each halfedge h is pointing to a target vertex v and has a soure vertex s
-    2. each vertex v on a seam edge has at least 2 halfedges h (due to the cutting along the seam edge we will create these vertices v twice)
-        => "A vertex of the underlying mesh may correspond to multiple vertices in the seam mesh."
-    3. for a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
-        -> thats why we only need to go half the way around the seam edges
-*/
-JuliaArray get_halfedge_vertice_map(Mesh mesh, SurfaceMesh sm){
-
-    std::vector<int64_t> halfedge_vertex_map;
-    for(vertex_descriptor vd : vertices(mesh)) {
-        // std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << " and to the 3D coordinate " << target(vd, sm) << std::endl;
-        int64_t target_vertice = target(vd, sm);  // transform the type to int64_t
-        halfedge_vertex_map.push_back(target_vertice);
-    }
-
-    std::cout << "size of halfedge_vertex_map = " << halfedge_vertex_map.size() << std::endl;
-
-    // The ArrayRef type is provided to work conveniently with array data from Julia.
-    const auto h_v_map = JuliaArray(halfedge_vertex_map.data(), halfedge_vertex_map.size());
-
-    return h_v_map;
-}
-
-
-JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
-{
-    // Start a timer
-    CGAL::Timer task_timer;
-    task_timer.start();
-
-    // Load the 3D mesh
-    SurfaceMesh sm;
-    auto filename = get_mesh_obj(mesh_3D);
-    filename >> sm;
-
-    // todo: for loop bauen, der die start nodes durchgeht
-    my_vertex_descriptor start_node_0 = *(vertices(sm).first + start_node_int);
-    my_vertex_descriptor start_node_1 = new_start_vertice(start_node_0, sm, mesh_3D);
-    my_vertex_descriptor start_node_2 = new_start_vertice(start_node_1, sm, mesh_3D);
-    my_vertex_descriptor start_node_3 = new_start_vertice(start_node_2, sm, mesh_3D);
-    my_vertex_descriptor start_node_4 = new_start_vertice(start_node_3, sm, mesh_3D);
-
-    // print out the start nodes
-    std::cout << "start node 0: " << start_node_0 << std::endl;
-    std::cout << "start node 1: " << start_node_1 << std::endl;
-    std::cout << "start node 2: " << start_node_2 << std::endl;
-    std::cout << "start node 3: " << start_node_3 << std::endl;
-    std::cout << "start node 4: " << start_node_4 << std::endl;
 
     // Create property maps to store seam edges and vertices
     Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;  // if not false -> we can't add seam edges
@@ -380,9 +313,8 @@ JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
     // Create the seam mesh
     Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
 
-    // auto [seam_mesh, bhd, uvmap] = create_uv_mesh(sm, mesh, start_node_0, mesh_3D);
     // Calculate the virtual border
-    auto calc_edges = calc_virtual_border(mesh_3D, start_node_0);
+    auto calc_edges = calc_virtual_border(mesh_3D, start_node);
 
     for(SM_edge_descriptor e : calc_edges) {
         mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
@@ -418,12 +350,46 @@ JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
     SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
     // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 
-    // auto [mesh, bhd, uvmap] = create_uv_mesh(sm, start_node_0, mesh_3D);
-
     // Save the uv mesh
-    save_uv_mesh(mesh, bhd, uvmap, mesh_3D);
+    save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
 
-    const auto h_v_map = get_halfedge_vertice_map(mesh, sm);
+    const auto _h_v_map = get_halfedge_vertice_map(mesh, sm);
+
+    return _h_v_map;
+}
+
+JuliaArray create_uv_surface(std::string mesh_3D = "Ellipsoid", int32_t start_node_int = 0)
+{
+    // Start a timer
+    // CGAL::Timer task_timer;
+    // task_timer.start();
+
+    // Load the 3D mesh
+    SurfaceMesh sm;
+    auto filename = get_mesh_obj(mesh_3D);
+    filename >> sm;
+
+    int uv_mesh_number = 0;
+
+    // todo: for loop bauen, der die start nodes durchgeht
+    my_vertex_descriptor start_node_0 = *(vertices(sm).first + start_node_int);
+    my_vertex_descriptor start_node_1 = new_start_vertice(start_node_0, sm, mesh_3D);
+    my_vertex_descriptor start_node_2 = new_start_vertice(start_node_1, sm, mesh_3D);
+    my_vertex_descriptor start_node_3 = new_start_vertice(start_node_2, sm, mesh_3D);
+    my_vertex_descriptor start_node_4 = new_start_vertice(start_node_3, sm, mesh_3D);
+
+    // print out the start nodes
+    std::cout << "start node 0: " << start_node_0 << std::endl;
+    std::cout << "start node 1: " << start_node_1 << std::endl;
+    std::cout << "start node 2: " << start_node_2 << std::endl;
+    std::cout << "start node 3: " << start_node_3 << std::endl;
+    std::cout << "start node 4: " << start_node_4 << std::endl;
+
+    calculate_uv_surface(mesh_3D, start_node_1, 1);
+    calculate_uv_surface(mesh_3D, start_node_2, 2);
+    calculate_uv_surface(mesh_3D, start_node_3, 3);
+    calculate_uv_surface(mesh_3D, start_node_4, 4);
+    const auto h_v_map = calculate_uv_surface(mesh_3D, start_node_0, uv_mesh_number);
 
     return h_v_map;
 }
@@ -431,9 +397,7 @@ JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
 
 int main()
 {
-    int32_t start_node = 0;
-    std::string mesh_3D = "Ellipsoid";
-    create_uv_surface(mesh_3D, start_node);
+    create_uv_surface();
 
     return 0;
 }

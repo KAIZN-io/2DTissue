@@ -1,7 +1,8 @@
 # ! TODO: link 2D mesh simulation with the 3D mesh in GLMakie over chaining the Observable with 'lift'
 #    -> see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
 # ? maybe use https://juliaimages.org/stable/function_reference/#ImageFiltering.padarray for perodic boundary conditions
-# TODO: periodische Grenzen einbauen 
+# TODO: 2 überlappende Koordinatensystem vlt verwenden
+
 
 """
 Bedingung: Partikel darf sich auf jeden PUnkt des 3D und des 2D Meshes befinden.
@@ -171,7 +172,8 @@ function active_particles_simulation(
     # Generate the 2D mesh and return a vector which indicates the mapping between halfedges and 3D vertices
     ########################################################################################
 
-    h_v_mapping = UVSurface.create_uv_surface("Ellipsoid")
+    # ? TODO: 2 überlappende Koordinatensystem vlt verwenden, um die periodische Grenze zu berücksichtigen
+    h_v_mapping = UVSurface.create_uv_surface("Ellipsoid", 0)
 
     # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
     halfedge_vertices_mapping = Vector{Int64}()
@@ -749,7 +751,7 @@ function calculate_forces_between_particles(
     Fij = Fij_rep .+ Fij_adh
     Fij = cat(dims=3,Fij,Fij,Fij).*(dist_vect./(cat(dims=3,dist_length,dist_length,dist_length)))
 
-    # % Actual force felt by each particle
+    # Actual force felt by each particle
     return reshape(sum(replace!(Fij, NaN=>0), dims=1),: ,size(Fij,3))
 end
 
