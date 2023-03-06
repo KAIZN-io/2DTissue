@@ -106,6 +106,7 @@ namespace fs = std::filesystem;
 const fs::path SCRIPT_PATH = __FILE__;
 const fs::path PROJECT_FOLDER = SCRIPT_PATH.parent_path().parent_path();
 const fs::path MESH_FOLDER = PROJECT_FOLDER / "meshes";
+const unsigned int PARAMETERIZATION_ITERATIONS = 9;
 
 
 /*
@@ -263,7 +264,12 @@ int save_uv_mesh(Mesh _mesh, halfedge_descriptor _bhd, UV_pmap _uvmap, std::stri
 }
 
 
-std::tuple<Mesh, halfedge_descriptor, UV_pmap> create_uv_mesh(SurfaceMesh sm, my_vertex_descriptor start_node_0, std::string mesh_3D){
+std::tuple<Mesh, halfedge_descriptor, UV_pmap> create_uv_mesh(my_vertex_descriptor start_node_0, std::string mesh_3D){
+    // Load the 3D mesh
+    SurfaceMesh sm;
+    auto filename = get_mesh_obj(mesh_3D);
+    filename >> sm;
+
     // Create property maps to store seam edges and vertices
     Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;  // if not false -> we can't add seam edges
     Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
@@ -299,9 +305,6 @@ std::tuple<Mesh, halfedge_descriptor, UV_pmap> create_uv_mesh(SurfaceMesh sm, my
     // Choose a halfedge on the (possibly virtual) border
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
-    // Perform the parameterization
-    const unsigned int ITERATIONS = 9;
-
     // The 2D points of the uv parametrisation will be written into this map
     // NOTE that this is a halfedge property map, and that uv values are only stored for the canonical Halfedges Representing a Vertex
     UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
@@ -311,7 +314,7 @@ std::tuple<Mesh, halfedge_descriptor, UV_pmap> create_uv_mesh(SurfaceMesh sm, my
     The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
     ! A one-to-one mapping may be guaranteed or not, depending on the chosen Parameterizer algorithm
     */
-    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, ITERATIONS);
+    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
     // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 
     return {mesh, bhd, uvmap};
@@ -369,14 +372,10 @@ JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
     std::cout << "start node 3: " << start_node_3 << std::endl;
     std::cout << "start node 4: " << start_node_4 << std::endl;
 
-    // auto [mesh, bhd, uvmap] = create_uv_mesh(sm, start_node_0, mesh_3D);
-
-
-
-
     // Create property maps to store seam edges and vertices
     Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;  // if not false -> we can't add seam edges
     Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
+    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;  // The 2D points of the uv parametrisation will be written into this map; canonical Halfedges Representing a Vertex
 
     // Create the seam mesh
     Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
@@ -391,15 +390,16 @@ JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
 
     std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
 
-    // Choose the border of the uv parametrisation
+    // Choose the border type of the uv parametrisation: Circular or Square
     // typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
     typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
+
     Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
 
     // Iterative Authalic Parameterization:
     // from https://doi.org/10.1109/ICCVW.2019.00508
     // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
-    // meaning that it aims to minimize area distortion between the input surface mesh and the parameterized output.
+    // meaning that it aims to Minimize Area Distortion between the input surface mesh and the parameterized output.
     typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
     Parameterizer parameterizer(border_parameterizer);
 
@@ -410,22 +410,15 @@ JuliaArray create_uv_surface(std::string mesh_3D, int32_t start_node_int)
     // Choose a halfedge on the (possibly virtual) border
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
-    // Perform the parameterization
-    const unsigned int ITERATIONS = 9;
-
-    // The 2D points of the uv parametrisation will be written into this map
-    // NOTE that this is a halfedge property map, and that uv values are only stored for the canonical Halfedges Representing a Vertex
-    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
-
     /*
     computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
     The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
     ! A one-to-one mapping may be guaranteed or not, depending on the chosen Parameterizer algorithm
     */
-    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, ITERATIONS);
+    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
+    // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 
-
-
+    // auto [mesh, bhd, uvmap] = create_uv_mesh(sm, start_node_0, mesh_3D);
 
     // Save the uv mesh
     save_uv_mesh(mesh, bhd, uvmap, mesh_3D);
