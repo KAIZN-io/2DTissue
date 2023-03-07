@@ -36,6 +36,7 @@
 #include <boost/property_map/property_map.hpp>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <boost/format.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <filesystem>
 #include <unordered_map>
@@ -158,6 +159,46 @@ std::ifstream get_mesh_obj(
         std::ifstream in(CGAL::data_file_path(mesh_3D));
         return in;
     }
+}
+
+
+/*
+we have to create multiple versions of the UV mesh because we need different coordination system for the particle simulation
+in order to simulate them on top of the 2D mesh
+*/
+int find_latest_mesh_creation_number(
+    std::string mesh_3D = "Ellipsoid"
+){
+    int highest_number = -1;
+
+    for (auto const& dir_entry : fs::directory_iterator{MESH_FOLDER})
+    {
+        if (dir_entry.is_regular_file())
+        {
+            std::string filename = dir_entry.path();
+            std::string mesh_name = filename.substr(filename.find_last_of('/') + 1, filename.find_last_of('.') - filename.find_last_of('/') - 1);
+            std::string mesh_uv = boost::str(boost::format("%1%_uv_") % mesh_3D);
+
+            if ((mesh_name.find_last_of('_') != std::string::npos) && (boost::find_first(mesh_name, mesh_uv)))
+            {
+                int number_start = mesh_name.find_last_of('_') + 1;
+                int number_length = mesh_name.length() - number_start;
+
+                if (number_length > 0)
+                {
+                    std::string number_string = mesh_name.substr(number_start, number_length);
+                    int number = std::stoi(number_string);
+
+                    if (number > highest_number)
+                    {
+                        highest_number = number;
+                    }
+                }
+            }
+        }
+    }
+
+    return highest_number;
 }
 
 
@@ -377,9 +418,11 @@ JuliaArray calculate_uv_surface(
     return _h_v_map;
 }
 
+
 JuliaArray create_uv_surface(
     std::string mesh_3D = "Ellipsoid",
-    int32_t start_node_int = 0
+    int32_t start_node_int = 0,
+    int uv_mesh_number = 0
 ){
     // Start a timer
     // CGAL::Timer task_timer;
@@ -389,8 +432,6 @@ JuliaArray create_uv_surface(
     SurfaceMesh sm;
     auto filename = get_mesh_obj(mesh_3D);
     filename >> sm;
-
-    int uv_mesh_number = 0;
 
     // todo: for loop bauen, der die start nodes durchgeht
     my_vertex_descriptor start_node_0 = *(vertices(sm).first + start_node_int);
@@ -418,6 +459,9 @@ JuliaArray create_uv_surface(
 
 int main()
 {
+    int highest_mesh_creation = find_latest_mesh_creation_number();
+    std::cout << "highest mesh creation number: " << highest_mesh_creation << std::endl;
+
     create_uv_surface();
 
     return 0;
@@ -430,3 +474,4 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
     // register a standard C++ function
     mod.method("create_uv_surface", create_uv_surface);
 }
+
