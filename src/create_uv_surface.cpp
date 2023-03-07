@@ -182,7 +182,10 @@ int find_latest_mesh_creation_number(
 
             if (boost::find_first(mesh_name, mesh_uv_base))
             {
-                highest_number = 0;
+                if (highest_number < 0)
+                {
+                    highest_number = 0;
+                }
             }
             else if ((mesh_name.find_last_of('_') != std::string::npos) && (boost::find_first(mesh_name, mesh_uv)))
             {
@@ -428,39 +431,24 @@ JuliaArray create_uv_surface(
     std::string mesh_3D = "Ellipsoid",
     int32_t start_node_int = 0
 ){
-    // Start a timer
-    // CGAL::Timer task_timer;
-    // task_timer.start();
-
     // Load the 3D mesh
     SurfaceMesh sm;
     auto filename = get_mesh_obj(mesh_3D);
     filename >> sm;
 
     int highest_mesh_creation = find_latest_mesh_creation_number(mesh_3D);
-    std::cout << "highest mesh creation number: " << highest_mesh_creation << std::endl;
+    my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
+    // my_vertex_descriptor start_node_1 = new_start_vertice(start_node, sm, mesh_3D);
 
-    // todo: for loop bauen, der die start nodes durchgeht
-    my_vertex_descriptor start_node_0 = *(vertices(sm).first + start_node_int);
-    my_vertex_descriptor start_node_1 = new_start_vertice(start_node_0, sm, mesh_3D);
-    my_vertex_descriptor start_node_2 = new_start_vertice(start_node_1, sm, mesh_3D);
-    my_vertex_descriptor start_node_3 = new_start_vertice(start_node_2, sm, mesh_3D);
-    my_vertex_descriptor start_node_4 = new_start_vertice(start_node_3, sm, mesh_3D);
-
-    // print out the start nodes
-    std::cout << "start node 0: " << start_node_0 << std::endl;
-    std::cout << "start node 1: " << start_node_1 << std::endl;
-    std::cout << "start node 2: " << start_node_2 << std::endl;
-    std::cout << "start node 3: " << start_node_3 << std::endl;
-    std::cout << "start node 4: " << start_node_4 << std::endl;
-
-    calculate_uv_surface(mesh_3D, start_node_1, 1);
-    calculate_uv_surface(mesh_3D, start_node_2, 2);
-    calculate_uv_surface(mesh_3D, start_node_3, 3);
-    calculate_uv_surface(mesh_3D, start_node_4, 4);
-    const auto h_v_map = calculate_uv_surface(mesh_3D, start_node_0, 0);  // momentan muss dass hier am Ende stehen, denn sonst gibt es memory leaks hinzu Julia
-
-    return h_v_map;
+    std::cout << "highest mesh creation number " << highest_mesh_creation << "\n";
+    if (start_node_int == 0){
+        const auto h_v_map = calculate_uv_surface(mesh_3D, start_node, 0);  // momentan muss dass hier am Ende stehen, denn sonst gibt es memory leaks hinzu Julia
+        return h_v_map;
+    }
+    else {
+        const auto h_v_map = calculate_uv_surface(mesh_3D, start_node, highest_mesh_creation + 1);
+        return h_v_map;
+    }
 }
 
 
