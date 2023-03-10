@@ -5,7 +5,7 @@
 
 
 """
-Bedingung: Partikel darf sich auf jeden PUnkt des 3D und des 2D Meshes befinden.
+Bedingung: Partikel darf sich auf jeden Punkt des 3D und des 2D Meshes befinden.
 
 1. 3D Mesh laden und 2D Mesh erzeugen
 
@@ -24,7 +24,7 @@ Erfolg gegenüber 3D Simulation:
 - Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
 """
 
-
+using Test
 using Makie
 using GLMakie
 using MeshIO
@@ -58,6 +58,26 @@ module UVSurface
     @initcxx
   end
 end
+# result = UVSurface.create_uv_surface("Ellipsoid", 0)
+
+# module CppTypes
+#     using CxxWrap
+
+#     @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "build", "create_uv_surface"))
+
+#     function __init__()
+#         @initcxx
+#     end
+# end
+
+# foovec = Any[UVSurface.Foo(String("a"), [1.0, 2.0, 3.0]), UVSurface.Foo(String("b"), [11.0, 12.0, 13.0])] # Must be Any because of the boxing
+
+# # unit testing
+# @test UVSurface.name(foovec[1]) == "a"
+# @test UVSurface.data(foovec[1]) == [1.0, 2.0, 3.0]
+# @test UVSurface.name(foovec[2]) == "b"
+# @test UVSurface.data(foovec[2]) == [11.0, 12.0, 13.0]
+# UVSurface.print_foo_array(foovec)
 
 
 GLMakie.activate!()
@@ -172,18 +192,7 @@ function active_particles_simulation(
     # Generate the 2D mesh and return a vector which indicates the mapping between halfedges and 3D vertices
     ########################################################################################
 
-    # ? TODO: 2 überlappende Koordinatensystem vlt verwenden, um die periodische Grenze zu berücksichtigen
-    h_v_mapping = UVSurface.create_uv_surface("Ellipsoid", 0)
-
-    # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
-    halfedge_vertices_mapping = Vector{Int64}()
-    append!(halfedge_vertices_mapping, h_v_mapping)
-    h_v_mapping = nothing
-
-    num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
-    @info "mapped " num_vertices_mapped "vertices to 2D mesh"
-
-    mesh_loaded_uv = FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
+    mesh_loaded_uv, halfedge_vertices_mapping = init_uv_mesh("Ellipsoid", 0)
 
     vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
     halfedges_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
@@ -192,8 +201,10 @@ function active_particles_simulation(
 
     faces_3D = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
     faces_uv = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_uv) |> vec_of_vec_to_array  # return the faces of the mesh
-    @info "faces in 3D: " length(faces_3D)
-    @info "faces in 2D: " length(faces_uv)
+
+    @info "running mesh analysis tests: "
+    @test length(faces_3D) == length(faces_uv)
+    @test size(halfedges_uv)[1] >= size(vertices_3D)[1]
 
 
     ########################################################################################
@@ -272,7 +283,7 @@ function active_particles_simulation(
     # get closest halfedge for r
     # find the row where the distance of each column to zero is minimal
     halfedges_id = get_nearest_halfedges(r, halfedges_uv, num_part)
-    r_3D, r_3D_vertice = map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
+    r_3D, vertice_3D_id = map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
 
     # vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
     # min_value, closest_vertice = findmin(x->abs(x-particle_face_center), vertices_x_coord)  # find the closest vertice to the particle position
@@ -281,7 +292,7 @@ function active_particles_simulation(
     distance_matrix = sparse(zeros(vertices_length, vertices_length))  # initialize the distance matrix
 
     for i in 1:num_part
-        distance_matrix = fill_distance_matrix(distance_matrix, r_3D_vertice[i])
+        distance_matrix = fill_distance_matrix(distance_matrix, vertice_3D_id[i])
     end
 
     observe_r[] = array_to_vec_of_vec(r)
@@ -438,6 +449,34 @@ end
 ########################################################################################
 
 """
+    init_uv_mesh(
+        mesh_name::String="Ellipsoid",
+        start_vertice::Int=0
+    )
+
+Creates a specific uv mesh based on the selected starting vertice
+"""
+function init_uv_mesh(
+    mesh_name::String="Ellipsoid",
+    start_vertice::Int=0
+)
+    h_v_mapping, path_uv = UVSurface.create_uv_surface("Ellipsoid", 0)
+
+    # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
+    halfedge_vertices_mapping = Vector{Int64}()
+    append!(halfedge_vertices_mapping, h_v_mapping)
+    h_v_mapping = nothing
+
+    num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
+    @info "mapped " num_vertices_mapped "vertices to 2D mesh"
+
+    mesh_loaded_uv = FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
+
+    return mesh_loaded_uv, halfedge_vertices_mapping
+end
+
+
+"""
     get_face_center_coord(_vertices, _r_face)
 
 (-> r[]) initialization
@@ -473,16 +512,37 @@ end
 (halfedges -> r_3D[]) mapping
 """
 function map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
-    r_3D_vertice = zeros(Int, num_part)
+    vertice_3D_id = zeros(Int, num_part)
     for i=1:num_part
         vertice_id = halfedge_vertices_mapping[halfedges_id[i],:]
-        r_3D_vertice[i] = vertice_id[1]
+        vertice_3D_id[i] = vertice_id[1]
         # # TODO: improve this: get the face from the vertice_id 
         # face_ids = findall(x->x==vertice_id[1], faces_3D)
         # face_id_choosen = face_ids[1][1]
         r_3D[i,:] = vertices_3D[vertice_id, :]
     end
-    return r_3D, r_3D_vertice
+    return r_3D, vertice_3D_id
+end
+
+
+"""
+    get_first_halfedge_from_3D_vertice_id(
+    _vertice_3D_id,
+    _halfedge_vertices_mapping
+)
+
+(vertice_3D_id -> halfedges) mapping
+"""
+function get_first_halfedge_from_3D_vertice_id(
+    _vertice_3D_id,
+    _halfedge_vertices_mapping
+)
+    halfedge_id = zeros(Int, length(_vertice_3D_id))
+
+    for i in 1:length(_vertice_3D_id)
+        halfedge_id[i] = findfirst(_halfedge_vertices_mapping .== _vertice_3D_id[i])
+    end
+    return halfedge_id
 end
 
 
@@ -594,6 +654,23 @@ function next_face_for_the_particle(_Faces_coord, _N, _r, _i)
     p0s = get_particle_position(face_coord_temp, N_temp, _r, _i)
     index_face_in, index_face_out = get_face_in_and_out(p0s, face_coord_temp) 
     return p0s, N_temp, index_binary, index_face_in, index_face_out
+end
+
+
+"""
+    find_outside_uv_vertices_id(r)
+
+Find all rows in the r array where one value is bigger than 1
+"""
+function find_outside_uv_vertices_id(r)
+
+    outside_u = findall(r[:, 1] .> 1)
+    outside_v = findall(r[:, 2] .> 1)
+
+    # create unique vector of adding outside_u and outside_v
+    outside_id = unique(vcat(outside_u, outside_v))
+
+    return outside_id
 end
 
 
@@ -857,13 +934,20 @@ function simulate_next_step(
 
     # ! TODO: map the new 2D position to the 3D mesh
     halfedges_id = get_nearest_halfedges(r, halfedges_uv, num_part)
-    r_3D, r_3D_vertice = map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
+    r_3D, vertice_3D_id = map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
+
+    # ? Wie kann ich herausfinden, wo die Partikel landen (egal auf welchem der (ggf. virtuellen) Meshes)
+    # ! Todo: wenn ein Partikel außerhalb des Meshes fliegen würde, berechne den Flug jenes Meshes auf einen der virtuellen Meshes solange,
+    # bis es auf dem Mesh landet und entnehme von dort dann die vertice_3D_id
+
+
+
 
     # vertices_x_coord = vertices_3D[:,1]  # take the x-coordinates of the vertices
     # min_value, closest_vertice = findmin(x->abs(x-particle_face_center), vertices_x_coord)  # find the closest vertice to the particle position
 
     for i in 1:num_part
-        distance_matrix = fill_distance_matrix(distance_matrix, r_3D_vertice[i])
+        distance_matrix = fill_distance_matrix(distance_matrix, vertice_3D_id[i])
     end
 
     dt = 0.01*τ; # Step size
@@ -891,7 +975,7 @@ function simulate_next_step(
     # ! BUG: it is interesting that using the heat method the distance from a -> b is not the same as b -> a
     for i in 1:num_part
         for j in 1:num_part
-            dist_length[i, j] = distance_matrix[r_3D_vertice[i], r_3D_vertice[j]]
+            dist_length[i, j] = distance_matrix[vertice_3D_id[i], vertice_3D_id[j]]
         end
     end
     dist_length[diagind(dist_length)] .= 0.0
@@ -906,10 +990,42 @@ function simulate_next_step(
     )  # calculate the force between particles
     
     r_dot = P_perp(Norm_vect, v0.*n+μ.*F_track)  # velocity of each particle
+    r_dot[:,3] .= 0.0
 
     # calculate next position
-    r = r+r_dot*dt  
-    r[:,3] .= 0.0
+
+    # ! NUR für test Zwecke
+    r_dot *= 10
+    r_new = r+r_dot*dt  
+    r_new[:,3] .= 0.0
+
+    
+
+
+    outside_uv = find_outside_uv_vertices_id(r_new)
+
+    if length(outside_uv) > 0
+        # TODO: the following two lines are unnessary long, because we only need to check the outside_uv vertices
+        halfedges_id = get_nearest_halfedges(r, halfedges_uv, num_part)
+        r_3D, vertice_3D_id = map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
+
+        for i in outside_uv
+            @info "generate a new mesh for the vertice " vertice_3D_id[i]
+            virtual_h_v_mapping = UVSurface.create_uv_surface("Ellipsoid", vertice_3D_id[i])
+
+            virtual_halfedge_vertices_mapping = Vector{Int64}()
+            append!(virtual_halfedge_vertices_mapping, virtual_h_v_mapping)
+            virtual_h_v_mapping = nothing
+        end
+
+    end
+
+    # TODO: wenn das Partikel Betrag(r) > 1 ist, dann nehme ich das Partikel als Startpunkt für ein neues UV mesh
+    # -> ich sage somit: "ok, betrachten wir das Mesh aus deiner Perspektive"
+
+
+
+
 
     n = correct_n(r_dot, n, τ, dt)  # make a small correct for n according to Vicsek
 
@@ -933,10 +1049,10 @@ function simulate_next_step(
             append!(N_color, Int.(number_neighbours[i,:]))
         end
 
-        v_order = calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep)
+        v_order = calculate_order_parameter(v_order, r_new, r_dot, num_part, tt, plotstep)
 
         observe_order[] = v_order
-        observe_r[] = array_to_vec_of_vec(r)
+        observe_r[] = array_to_vec_of_vec(r_new)
         observe_n[] = array_to_vec_of_vec(n)
         observe_nr_dot[] = array_to_vec_of_vec(nr_dot)
         observe_nr_dot_cross[] = array_to_vec_of_vec(nr_dot_cross)
