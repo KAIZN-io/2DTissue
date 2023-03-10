@@ -105,7 +105,7 @@ namespace fs = std::filesystem;
 
 // __FILE__ is a Standard Predefined Macro
 const fs::path SCRIPT_PATH = __FILE__;
-const fs::path PROJECT_FOLDER = SCRIPT_PATH.parent_path().parent_path();
+const fs::path PROJECT_FOLDER = SCRIPT_PATH.parent_path().parent_path().parent_path();
 const fs::path MESH_FOLDER = PROJECT_FOLDER / "meshes";
 const unsigned int PARAMETERIZATION_ITERATIONS = 9;
 

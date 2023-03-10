@@ -59,9 +59,9 @@ include_directories(BEFORE include)
 # ##########################################################
 
 # ADD YOUR C++ SCRIPT HERE BY ADDING TWO NEW LINES LIKE THE FOLLOWING ONES
-create_single_source_cgal_program("src/geodesic_distance.cpp")
+create_single_source_cgal_program("src/GeomProcessing/geodesic_distance.cpp")
 target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
-create_single_source_cgal_program("src/create_uv_surface.cpp")
+create_single_source_cgal_program("src/GeomProcessing/create_uv_surface.cpp")
 target_link_libraries(create_uv_surface PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 
 # Compile
