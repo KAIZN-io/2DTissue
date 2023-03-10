@@ -1,3 +1,4 @@
+# CMake, our favorite Build System Generator
 # PLEASE SCROLL TO THE BOTTOM OF THIS FILE FOR READING THE INSTRUCTIONS ON HOW TO ADD YOUR C++ SCRIPT TO THE PROJECT
 
 project(CppHello)
@@ -59,9 +60,9 @@ include_directories(BEFORE include)
 
 # ADD YOUR C++ SCRIPT HERE BY ADDING TWO NEW LINES LIKE THE FOLLOWING ONES
 create_single_source_cgal_program("src/geodesic_distance.cpp")
-target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia)
+target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 create_single_source_cgal_program("src/create_uv_surface.cpp")
-target_link_libraries(create_uv_surface PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia)
+target_link_libraries(create_uv_surface PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 
 # Compile
 install(TARGETS geodesic_distance create_uv_surface

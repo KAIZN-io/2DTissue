@@ -35,11 +35,11 @@ endif
 build:
 	# -S: path to the source repository which contains CMakeLists.txt; -B: path to the build directory
 	cmake -S ${HOME}/git_repos/Confined_active_particles \
-		  -B ${HOME}/git_repos/Confined_active_particles/build \
+		  -B ${HOME}/git_repos/Confined_active_particles/src/build \
 		  -DCMAKE_BUILD_TYPE=Release \
 		  -DCMAKE_CXX_FLAGS="-O2" \
 		  -DCMAKE_PREFIX_PATH=`julia --project=@. -e 'using CxxWrap; CxxWrap.prefix_path() |> print'`
-	cmake --build ${HOME}/git_repos/Confined_active_particles/build --config Release -j 1
+	cmake --build ${HOME}/git_repos/Confined_active_particles/src/build --config Release -j 1
 	@echo "Build finished. The binaries are in build/lib"
 
 
@@ -51,5 +51,5 @@ build:
 .PHONY: clean
 clean:
 	rm -rf $(REPOSITORY)
-	rm -rf build
+	rm -rf src/build
 	rm -rf $(REPOSITORY)-build
