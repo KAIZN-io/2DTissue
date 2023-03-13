@@ -1,55 +1,60 @@
-# Important for the development process
-# ============================================================
-# SHELL := /bin/bash
+# Makefile for building C++ libraries with CxxWrap and Julia
 
+SHELL := /bin/bash
 
-REPOSITORY=libcxxwrap-julia
+# Path to project directory
+PROJECT_DIR := $(HOME)/git_repos/Confined_active_particles
+
+# CMake flags
+CMAKE_FLAGS := -DCMAKE_BUILD_TYPE=Release \
+               -DCMAKE_CXX_FLAGS="-O2" \
+               -DCMAKE_PREFIX_PATH=`julia --project=@. -e 'using CxxWrap; CxxWrap.prefix_path() |> print'`
+
+# Extern repository name
+REPOSITORY := libcxxwrap-julia
 
 .PHONY: all
 all: build
 
 
 ########################################################################################################################
-# DEPENDENCIES                                                                                                         #
+# Dependencies                                                                                                         #
 ########################################################################################################################
 
-# Init Cxxwrap
 .PHONY: init
 init: clone
 	cd $(REPOSITORY)-build && \
-	cmake -DJulia_EXECUTABLE=${shell which julia} ../$(REPOSITORY)
-	cmake --build $(REPOSITORY)-build --config Release
+	cmake -DJulia_EXECUTABLE=$(shell which julia) ../$(REPOSITORY)
+	$(MAKE) -C $(REPOSITORY)-build -j $(shell nproc)
 
-# Clone the repository
 .PHONY: clone
 clone:
 ifeq ($(wildcard ./$(REPOSITORY)/.),)
 	git clone https://github.com/JuliaInterop/$(REPOSITORY).git
 	mkdir $(REPOSITORY)-build
 else
-	@echo "already exists"
+	@echo "Repository already exists"
 endif
 
-# Build your own C++ library
 .PHONY: build
 build:
-	# -S: path to the source repository which contains CMakeLists.txt; -B: path to the build directory
-	cmake -S ${HOME}/git_repos/Confined_active_particles \
-		  -B ${HOME}/git_repos/Confined_active_particles/src/build \
-		  -DCMAKE_BUILD_TYPE=Release \
-		  -DCMAKE_CXX_FLAGS="-O2" \
-		  -DCMAKE_PREFIX_PATH=`julia --project=@. -e 'using CxxWrap; CxxWrap.prefix_path() |> print'`
-	cmake --build ${HOME}/git_repos/Confined_active_particles/src/build --config Release -j 1
-	@echo "Build finished. The binaries are in build/lib"
+	cmake -S $(PROJECT_DIR) \
+		  -B $(PROJECT_DIR)/src/build \
+		  $(CMAKE_FLAGS)
+	$(MAKE) -C $(PROJECT_DIR)/src/build -j $(shell nproc)
+	@echo "Build finished. The binaries are in $(PROJECT_DIR)/src/build/lib"
 
 
 ########################################################################################################################
-# SETUP                                                                                                                #
+# Setup                                                                                                                #
 ########################################################################################################################
 
-# Remove everything
 .PHONY: clean
 clean:
 	rm -rf $(REPOSITORY)
-	rm -rf src/build
+	rm -rf $(PROJECT_DIR)/src/build
 	rm -rf $(REPOSITORY)-build
+
+.PHONY: distclean
+distclean: clean
+	rm -rf $(PROJECT_DIR)/src/build/*
