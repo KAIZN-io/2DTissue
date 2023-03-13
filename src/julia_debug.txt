@@ -1,4 +1,4 @@
-num_part = 200
+num_part = 40
 v0 = 0.1
 v0_next = 0.1
 num_step = 300
