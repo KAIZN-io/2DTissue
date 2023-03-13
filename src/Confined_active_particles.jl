@@ -1,7 +1,6 @@
 # ? maybe use https://juliaimages.org/stable/function_reference/#ImageFiltering.padarray for perodic boundary conditions
 # TODO: 2 überlappende Koordinatensystem vlt verwenden
 
-å
 """
 Bedingung: Partikel darf sich auf jeden Punkt des 3D und des 2D Meshes befinden.
 
@@ -22,12 +21,12 @@ Erfolg gegenüber 3D Simulation:
 - Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
 """
 
-# include("Packages.jl")
-# include("Basic.jl")
-# include("GeomProcessing.jl")
-include("src/Packages.jl")
-include("src/Basic.jl")
-include("src/GeomProcessing.jl")
+include("Packages.jl")
+include("Basic.jl")
+include("GeomProcessing.jl")
+# include("src/Packages.jl")
+# include("src/Basic.jl")
+# include("src/GeomProcessing.jl")
 
 
 UpFolder = pwd();
@@ -202,7 +201,7 @@ function active_particles_simulation(
     n = observe_n[] |> vec_of_vec_to_array
 
     # initialize the particle position and orientation
-    r, n, Norm_vect, num_face = init_particle_position(faces_uv, halfedges_uv, num_part, r, n, Norm_vect, num_face)
+    r, n, Norm_vect, num_face = init_particle_position(faces_uv, Faces_coord, halfedges_uv, num_part, r, n, Norm_vect, N, num_face)
 
     observe_r[] = array_to_vec_of_vec(r)
     observe_n[] = array_to_vec_of_vec(n)
@@ -262,7 +261,7 @@ function active_particles_simulation(
         simulate_next_step(
             tt,
             observe_r,
-            observe_r_3D,
+            observe_vertice_3D,
             vertices_3D,
             halfedge_vertices_mapping,
             distance_matrix,
@@ -296,6 +295,7 @@ end
 """
     init_particle_position(
     faces_uv::Array{Int,2},
+    Faces_coord,
     halfedges_uv::Array{Float32,2},
     num_part::Int,
     r,
@@ -310,11 +310,13 @@ the order of assigning the values to the particles isn't important, so we can us
 """
 function init_particle_position(
     faces_uv::Array{Int,2},
+    Faces_coord,
     halfedges_uv::Array{Float32,2},
     num_part::Int,
     r,
     n,
     Norm_vect,
+    N,
     num_face
 )
     faces_length = length(faces_uv[:,1])
@@ -756,7 +758,7 @@ we sometimes plot the position and orientation of the cells
 function simulate_next_step(
     tt,
     observe_r,
-    observe_r_3D,
+    observe_vertice_3D,
     vertices_3D,
     halfedge_vertices_mapping,
     distance_matrix,
@@ -779,18 +781,15 @@ function simulate_next_step(
 )
 
     r = observe_r[] |> vec_of_vec_to_array
-    r_3D = observe_r_3D[] |> vec_of_vec_to_array
     n = observe_n[] |> vec_of_vec_to_array
     nr_dot = observe_nr_dot[] |> vec_of_vec_to_array
     nr_dot_cross = observe_nr_dot_cross[] |> vec_of_vec_to_array
     v_order = observe_order[] |> vec_of_vec_to_array
 
-    # ! TODO: map the new 2D position to the 3D mesh
-    halfedges_id = get_nearest_uv_halfedges(r, halfedges_uv, num_part)
-    r_3D, vertice_3D_id = map_uv_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
+    vertices_3D_active = observe_vertice_3D[] |> vec_of_vec_to_array
 
     for i in 1:num_part
-        distance_matrix = fill_distance_matrix(distance_matrix, vertice_3D_id[i])
+        distance_matrix = fill_distance_matrix(distance_matrix, vertices_3D_active[i])
     end
 
     dt = 0.01*τ;  # Step size
@@ -805,7 +804,7 @@ function simulate_next_step(
     end
 
     # calculate the distance between particles
-    dist_vect, dist_length = get_distances_between_particles(r, distance_matrix, vertice_3D_id, num_part)
+    dist_vect, dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active, num_part)
 
     # calculate the next position and velocity of each particle based on the distances
     r_new, r_dot = calculate_next_position(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
