@@ -21,12 +21,12 @@ Erfolg gegenüber 3D Simulation:
 - Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
 """
 
-include("Packages.jl")
-include("Basic.jl")
-include("GeomProcessing.jl")
-# include("src/Packages.jl")
-# include("src/Basic.jl")
-# include("src/GeomProcessing.jl")
+# include("Packages.jl")
+# include("Basic.jl")
+# include("GeomProcessing.jl")
+include("src/Packages.jl")
+include("src/Basic.jl")
+include("src/GeomProcessing.jl")
 
 
 UpFolder = pwd();
@@ -165,16 +165,7 @@ function active_particles_simulation(
 
 
     ########################################################################################
-    # Step 2.: 3D Mesh Face Geometry für 2D nehmen (= Einführung einer "periodischen Grenze")
-    ########################################################################################
-
-    Faces_coord = cat(dim_data(vertices_3D, faces_3D, 1), dim_data(vertices_3D, faces_3D, 2), dim_data(vertices_3D, faces_3D, 3), dims=3)
-    face_neighbors = find_face_neighbors(faces_3D, Faces_coord)
-    num_face = fill(NaN, num_part, length(face_neighbors[1,:])^2)   # Initialisation of face on which is the particle
-
-
-    ########################################################################################
-    # Step 3.: Link the 2D mesh to the 3D mesh
+    # Step 2.: Link the 2D mesh to the 3D mesh
     # see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
     ########################################################################################
 
@@ -185,16 +176,23 @@ function active_particles_simulation(
 
         # @threads for i in 1:num_part
         for i in 1:num_part
-            distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i,:]', dims=2))  # distance to next halfedge
-            halfedges_id = argmin(distances_to_h)  # get the index of the closest halfedge
-            vertice_3D_id[i]  = halfedge_vertices_mapping[halfedges_id,:][1]  # get the corresponding 3D vertex id
+            distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i,:]', dims=2))
+            halfedges_id = argmin(distances_to_h)
+            vertice_3D_id[i]  = halfedge_vertices_mapping[halfedges_id,:][1]
         end
         vertice_3D_id
     end
 
-    observe_r_3D = @lift begin
-        vertices_3D[$observe_vertice_3D, :]  # get the Coordinates of the 3D vertex
-    end
+    observe_r_3D = @lift vertices_3D[$observe_vertice_3D, :]
+
+
+    ########################################################################################
+    # Step 3.: 3D Mesh Face Geometry für 2D nehmen (= Einführung einer "periodischen Grenze")
+    ########################################################################################
+
+    Faces_coord = cat(dim_data(vertices_3D, faces_3D, 1), dim_data(vertices_3D, faces_3D, 2), dim_data(vertices_3D, faces_3D, 3), dims=3)
+    face_neighbors = find_face_neighbors(faces_3D, Faces_coord)
+    num_face = fill(NaN, num_part, length(face_neighbors[1,:])^2)   # Initialisation of face on which is the particle
 
 
     ########################################################################################
@@ -337,7 +335,7 @@ function init_particle_position(
         We don't project the particle directly on a vertice, because we increased the number of vertices in the UV mesh, by transforming
         the 3D mesh into a 3D seam mesh before cutting it along the now "virtual" border edges.
         """
-        r[i,:] = get_face_center_coord(halfedges_uv, r_face_uv)
+        r[i,:] = get_face_gravity_center_coord(halfedges_uv, r_face_uv)
 
         # random particle orientation
         n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]

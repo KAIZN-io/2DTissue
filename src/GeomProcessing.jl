@@ -87,12 +87,12 @@ end
 
 
 """
-    get_face_center_coord(_vertices, _r_face)
+    get_face_gravity_center_coord(_vertices, _r_face)
 
 (-> r[]) initialization
 calculate the center of gravity of the face
 """
-function get_face_center_coord(_vertices, _r_face)
+function get_face_gravity_center_coord(_vertices, _r_face)
     center_face = [0,0,0]
 
     for j=1:3
