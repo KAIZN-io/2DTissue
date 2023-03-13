@@ -104,11 +104,11 @@ end
 
 
 """
-    get_nearest_halfedges(r, halfedges_uv, num_part)
+    get_nearest_uv_halfedges(r, halfedges_uv, num_part)
 
 (r[] -> halfedges) mapping
 """
-function get_nearest_halfedges(r, halfedges_uv, num_part)
+function get_nearest_uv_halfedges(r, halfedges_uv, num_part)
     halfedge_vec = zeros(Int32, size(r)[1])
 
     for i in 1:num_part
@@ -121,11 +121,11 @@ end
 
 
 """
-    map_halfedges_to_3D(halfedges_id, r_3D, vertices_3D, num_part)
+    map_uv_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
 
 (halfedges -> r_3D[]) mapping
 """
-function map_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
+function map_uv_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
     vertice_3D_id = zeros(Int, num_part)
 
     for i=1:num_part
@@ -142,14 +142,14 @@ end
 
 
 """
-    get_first_halfedge_from_3D_vertice_id(
+    get_first_uv_halfedge_from_3D_vertice_id(
     _vertice_3D_id,
     _halfedge_vertices_mapping
 )
 
 (vertice_3D_id -> halfedges) mapping
 """
-function get_first_halfedge_from_3D_vertice_id(
+function get_first_uv_halfedge_from_3D_vertice_id(
     _vertice_3D_id,
     _halfedge_vertices_mapping
 )
