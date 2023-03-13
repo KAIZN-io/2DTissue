@@ -32,20 +32,21 @@ include("GeomProcessing.jl")
 UpFolder = pwd();
 namestructure = "ellipsoid_x4"
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
-
-# Define folder structure and pre-process meshes:
-# -----------------------------------------------
-folder_plots = joinpath(UpFolder, "images", namestructure)
-folder_particle_simula = joinpath(UpFolder, "simulation_structure")
+mesh_dict = Dict{Int64, Mesh_UV_Struct}()
 
 
 ########################################################################################
 # Create folder for plots
 ########################################################################################
 
+# Define folder structure and pre-process meshes:
+folder_plots = joinpath(UpFolder, "images", namestructure)
+folder_particle_simula = joinpath(UpFolder, "simulation_structure")
+
 if !isdir(folder_plots)
     mkdir(folder_plots)
 end
+
 # create folder for particle simulation
 if !isdir(folder_particle_simula)
     mkdir(folder_particle_simula)
@@ -136,6 +137,9 @@ function active_particles_simulation(
     ########################################################################################
 
     mesh_loaded_uv, halfedge_vertices_mapping = init_uv_mesh("Ellipsoid", 0)
+
+    # Store the mesh in a dictionary
+    mesh_dict[0] = Mesh_UV_Struct(0, mesh_loaded_uv, halfedge_vertices_mapping)
 
     vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
     halfedges_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
@@ -262,10 +266,7 @@ function active_particles_simulation(
             tt,
             observe_r,
             observe_vertice_3D,
-            vertices_3D,
-            halfedge_vertices_mapping,
             distance_matrix,
-            halfedges_uv,
             num_part,
             observe_n,
             observe_nr_dot,
@@ -729,11 +730,8 @@ end
     simulate_next_step(
     tt,
     observe_r,
-    observe_r_3D,
-    vertices_3D,
-    halfedge_vertices_mapping,
+    observe_vertice_3D,
     distance_matrix,
-    halfedges_uv,
     num_part,
     observe_n,
     observe_nr_dot,
@@ -759,10 +757,7 @@ function simulate_next_step(
     tt,
     observe_r,
     observe_vertice_3D,
-    vertices_3D,
-    halfedge_vertices_mapping,
     distance_matrix,
-    halfedges_uv,
     num_part,
     observe_n,
     observe_nr_dot,
@@ -779,28 +774,30 @@ function simulate_next_step(
     r_adh,
     k_adh
 )
-
     r = observe_r[] |> vec_of_vec_to_array
     n = observe_n[] |> vec_of_vec_to_array
     nr_dot = observe_nr_dot[] |> vec_of_vec_to_array
     nr_dot_cross = observe_nr_dot_cross[] |> vec_of_vec_to_array
     v_order = observe_order[] |> vec_of_vec_to_array
 
-    vertices_3D_active = observe_vertice_3D[] |> vec_of_vec_to_array
+    # Step size
+    dt = 0.01*τ
 
-    for i in 1:num_part
-        distance_matrix = fill_distance_matrix(distance_matrix, vertices_3D_active[i])
-    end
-
-    dt = 0.01*τ;  # Step size
-    plotstep = 0.1/dt;  # Number of calculation between plot
+    # Number of calculation between plot
+    plotstep = 0.1/dt
 
     # if loop to change forces and velocity after some time because in
     # first time steps, just repulsive force for homogeneisation of
     # particle repartition
     if tt > 500
-        v0 = v0_next;
-        k = k_next;
+        v0 = v0_next
+        k = k_next
+    end
+
+    vertices_3D_active = observe_vertice_3D[] |> vec_of_vec_to_array
+
+    for i in 1:num_part
+        distance_matrix = fill_distance_matrix(distance_matrix, vertices_3D_active[i])
     end
 
     # calculate the distance between particles
@@ -810,40 +807,25 @@ function simulate_next_step(
     r_new, r_dot = calculate_next_position(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
 
     # find out which particles are outside the mesh
-    outside_uv = find_outside_uv_vertices_id(r_new)
+    outside_uv_ids = find_outside_uv_vertices_id(r_new)
 
+    # if there are particles outside the mesh, we create a new mesh for each of them and simulate there the flight
+    if length(outside_uv_ids) > 0
 
+        # TODO: wenn das Partikel Betrag(r) > 1 ist, dann nehme ich das Partikel als Startpunkt für ein neues UV mesh
+        # -> ich sage somit: "ok, betrachten wir das Mesh aus deiner Perspektive"
 
-    # # if there are particles outside the mesh, we create a new mesh for each of them and simulate there the flight
-    # if length(outside_uv) > 0
-    #     # TODO: the following two lines are unnessary long, because we only need to check the outside_uv vertices
-    #     halfedges_id = get_nearest_uv_halfedges(r, halfedges_uv, num_part)
-    #     r_3D, vertice_3D_id = map_uv_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
+        for i in outside_uv_ids
+            @info "generate a new mesh for the vertice " vertices_3D_active[i]
+            virtual_h_v_mapping = UVSurface.create_uv_surface("Ellipsoid", vertices_3D_active[i])
 
-    #     mesh_dict = Dict{Int64, Mesh_UV_Struc}()
+            virtual_halfedge_vertices_mapping = Vector{Int64}()
+            append!(virtual_halfedge_vertices_mapping, virtual_h_v_mapping)
+            virtual_h_v_mapping = nothing
 
-    #     # TODO: wenn das Partikel Betrag(r) > 1 ist, dann nehme ich das Partikel als Startpunkt für ein neues UV mesh
-    #     # -> ich sage somit: "ok, betrachten wir das Mesh aus deiner Perspektive"
-
-    #     for i in outside_uv
-    #         @info "generate a new mesh for the vertice " vertice_3D_id[i]
-    #         virtual_h_v_mapping = UVSurface.create_uv_surface("Ellipsoid", vertice_3D_id[i])
-
-    #         virtual_halfedge_vertices_mapping = Vector{Int64}()
-    #         append!(virtual_halfedge_vertices_mapping, virtual_h_v_mapping)
-    #         virtual_h_v_mapping = nothing
-
-    #         mesh_loaded_uv_2 = FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv_2.off"))  # planar equiareal parametrization
-
-    #         mesh_dict[vertice_3D_id[i]] = Mesh_UV_Struc(vertice_3D_id[i], mesh_loaded_uv, virtual_halfedge_vertices_mapping)
-    #     end
-    # end
-
-
-
-    # mesh_dict[4365].start_vertice_id
-    # mesh_dict[4365].mesh_loaded_uv
-    # mesh_dict[4365].halfedge_vertices_mapping
+            mesh_dict[vertices_3D_active[i]] = Mesh_UV_Struct(vertices_3D_active[i], FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv_2.off")), virtual_halfedge_vertices_mapping)
+        end
+    end
 
     # Graphic output if plotstep is a multiple of tt
     if rem(tt,plotstep)==0
