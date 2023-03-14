@@ -391,8 +391,8 @@ JuliaArray calculate_uv_surface(
     std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
 
     // Choose the border type of the uv parametrisation: Circular or Square
-    // typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
-    typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
+    typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
+    // typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
 
     Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
 

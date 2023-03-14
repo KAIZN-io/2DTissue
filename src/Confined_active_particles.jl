@@ -165,6 +165,15 @@ function active_particles_simulation(
 
 
     ########################################################################################
+    # Step 1.5 : "Splay State"
+    ########################################################################################
+
+    splay_state_vertices = get_splay_state_vertices(mesh_loaded_uv, halfedges_uv)
+
+    meshscatter!(ax3, splay_state_vertices, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
+
+
+    ########################################################################################
     # Step 2.: Link the 2D mesh to the 3D mesh
     # see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
     ########################################################################################
@@ -604,10 +613,10 @@ end
 
 
 """
-    calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep)
+    calculate_order_parameter!(v_order, r, r_dot, num_part, tt, plotstep)
 
 """
-function calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep)
+function calculate_order_parameter!(v_order, r, r_dot, num_part, tt, plotstep)
     # Define a vector normal to position vector and velocity vector
     v_tp=[r[:,2].*r_dot[:,3]-r[:,3].*r_dot[:,2],-r[:,1].*r_dot[:,3]+r[:,3].*r_dot[:,1],r[:,1].*r_dot[:,2]-r[:,2].*r_dot[:,1]];
     v_tp = v_tp |> vec_of_vec_to_array |> transpose
@@ -650,11 +659,11 @@ end
 
 
 """
-    calculate_next_position(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
+    calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
 
 Calculate particle velocity r_dot and the next position r_new of each particle
 """
-function calculate_next_position(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
+function calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
 
     F_track = calculate_forces_between_particles(
         dist_vect,
@@ -699,11 +708,11 @@ end
 
 
 """
-    calculate_particle_vectors(r_dot, n, num_part, dt, τ, Norm_vect)
+    calculate_particle_vectors!(r_dot, n, num_part, dt, τ, Norm_vect)
 
 Calculates the particles vectors n, nr_dot and nr_dot_cross
 """
-function calculate_particle_vectors(r_dot, n, nr_dot, nr_dot_cross, num_part, dt, τ, Norm_vect)
+function calculate_particle_vectors!(r_dot, n, nr_dot, nr_dot_cross, num_part, dt, τ, Norm_vect)
     n = correct_n(r_dot, n, τ, dt)  # make a small correct for n according to Vicsek
 
     # Project the orientation of the corresponding faces using normal vectors
@@ -802,7 +811,7 @@ function simulate_next_step(
     dist_vect, dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active, num_part)
 
     # calculate the next position and velocity of each particle based on the distances
-    r_new, r_dot = calculate_next_position(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
+    r_new, r_dot = calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
 
     # find out which particles are outside the mesh
     outside_uv_ids = find_outside_uv_vertices_id(r_new)
@@ -829,8 +838,8 @@ function simulate_next_step(
     if rem(tt,plotstep)==0
 
         particles_color = dye_particles(dist_length, num_part, σ)
-        n, nr_dot, nr_dot_cross = calculate_particle_vectors(r_dot, n, nr_dot, nr_dot_cross, num_part, dt, τ, Norm_vect)
-        v_order = calculate_order_parameter(v_order, r_new, r_dot, num_part, tt, plotstep)
+        n, nr_dot, nr_dot_cross = calculate_particle_vectors!(r_dot, n, nr_dot, nr_dot_cross, num_part, dt, τ, Norm_vect)
+        v_order = calculate_order_parameter!(v_order, r_new, r_dot, num_part, tt, plotstep)
 
         observe_order[] = v_order
         observe_r[] = array_to_vec_of_vec(r_new)

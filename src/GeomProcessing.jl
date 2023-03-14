@@ -104,6 +104,79 @@ end
 
 
 """
+    find_border_edges(mesh)
+
+Assuming that you have a manifold mesh, then the border of the mesh are those edges which belong to only one polygon.
+Edges that are not on the border will belong to two polygons. The border vertices are the vertices that belong to the border edges.
+"""
+function find_border_edges(mesh)
+    boundary_edges = Set{Tuple{Int, Int}}()
+
+    for f in GeometryBasics.decompose(TriangleFace{Int}, mesh)
+        if (f[1], f[2]) in boundary_edges || (f[2], f[1]) in boundary_edges
+            delete!(boundary_edges, (f[2], f[1]))
+        else
+            push!(boundary_edges, (f[1], f[2]))
+        end
+        if (f[2], f[3]) in boundary_edges || (f[3], f[2]) in boundary_edges
+            delete!(boundary_edges, (f[3], f[2]))
+        else
+            push!(boundary_edges, (f[2], f[3]))
+        end
+        if (f[3], f[1]) in boundary_edges || (f[1], f[3]) in boundary_edges
+            delete!(boundary_edges, (f[1], f[3]))
+        else
+            push!(boundary_edges, (f[3], f[1]))
+        end
+    end
+
+    return boundary_edges
+end
+
+
+"""
+    order_of_edges_vertices(border_edges_array)
+
+"""
+function order_of_edges_vertices(border_edges_array)
+    border_edges_vec = zeros(Int, length(border_edges_array[:,1]))
+    start = border_edges_array[i,2]
+
+    for i in 1:length(border_edges_array[:,1])# border_edges_array[1,2]ß
+        next = findfirst(x -> x == start, border_edges_array[:,1])
+        start = border_edges_array[next,2]
+        border_edges_vec[i] = border_edges_array[next,1]
+    end
+
+    return border_edges_vec
+end
+
+
+function get_splay_state_vertices(mesh_loaded_uv, halfedges_uv, modula_mode=10)
+
+    # Find evenly distributed points on the border of the circular UV mesh
+    # and use them as initial positions for the particles
+    border_edges = find_border_edges(mesh_loaded_uv)
+
+    # transform the border edges into a array of the unique vertices
+    border_edges_array = hcat(first.(border_edges), last.(border_edges)) #  |> unique
+
+    # find value in the array
+    # empty vector for the border edges
+    border_edges_order = order_of_edges_vertices(border_edges_array)
+
+    # modula of 10 to get the border edges
+    border_edges_vec = border_edges_order[mod.(1:length(border_edges_order), modula_mode) .== 0]
+
+    # get our selected border vertices
+    splay_state_vertices = [halfedges_uv[i,:] for i in border_edges_vec]
+    splay_state_vertices = hcat(splay_state_vertices...)'
+
+    return splay_state_vertices
+end
+
+
+"""
     get_nearest_uv_halfedges(r, halfedges_uv, num_part)
 
 (r[] -> halfedges) mapping
