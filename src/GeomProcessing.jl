@@ -152,6 +152,12 @@ function order_of_edges_vertices(border_edges_array)
 end
 
 
+"""
+    get_splay_state_vertices(mesh_loaded_uv, halfedges_uv, modula_mode=10)
+
+By using the modula approach we ensure that we sample more vertices in the area, where the faces are more dense.
+This accounts to the fact that the planarization algorithm isn't perfect in Area preserving
+"""
 function get_splay_state_vertices(mesh_loaded_uv, halfedges_uv, modula_mode=10)
 
     # Find evenly distributed points on the border of the circular UV mesh
@@ -166,13 +172,13 @@ function get_splay_state_vertices(mesh_loaded_uv, halfedges_uv, modula_mode=10)
     border_edges_order = order_of_edges_vertices(border_edges_array)
 
     # modula of 10 to get the border edges
-    border_edges_vec = border_edges_order[mod.(1:length(border_edges_order), modula_mode) .== 0]
+    border_vertices = border_edges_order[mod.(1:length(border_edges_order), modula_mode) .== 0]
 
     # get our selected border vertices
-    splay_state_vertices = [halfedges_uv[i,:] for i in border_edges_vec]
+    splay_state_vertices = [halfedges_uv[i,:] for i in border_vertices]
     splay_state_vertices = hcat(splay_state_vertices...)'
 
-    return splay_state_vertices
+    return splay_state_vertices, border_vertices
 end
 
 

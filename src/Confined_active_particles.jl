@@ -168,9 +168,24 @@ function active_particles_simulation(
     # Step 1.5 : "Splay State"
     ########################################################################################
 
-    splay_state_vertices = get_splay_state_vertices(mesh_loaded_uv, halfedges_uv)
+    splay_state_coord, splay_state_vertices = get_splay_state_vertices(mesh_loaded_uv, halfedges_uv)
 
-    meshscatter!(ax3, splay_state_vertices, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
+    h_v_mapping_test = UVSurface.create_uv_surface("Ellipsoid", splay_state_vertices[4])
+
+    # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
+    halfedge_vertices_mapping_test = Vector{Int64}()
+    append!(halfedge_vertices_mapping_test, h_v_mapping_test)
+    h_v_mapping_test = nothing
+
+    mesh_loaded_uv_test = FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv_4.off"))  # planar equiareal parametrization
+
+    # TODO: plot the splay_state_vertices[4] on the mesh_loaded_uv_test
+    # get the coordinates of the vertices
+    halfedges_uv_test = GeometryBasics.coordinates(mesh_loaded_uv_test) |> vec_of_vec_to_array  # return the vertices of the mesh    
+
+    # TODO: baue eine Funktion, mit der man von den 3D vertices auf die 2D halfedge kommt, denn nur die 3D sind konserviert
+    # mesh!(ax3, mesh_loaded_uv_test)
+    # meshscatter!(ax3, splay_state_coord, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
 
 
     ########################################################################################
