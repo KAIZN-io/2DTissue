@@ -28,29 +28,8 @@ include("src/Packages.jl")
 include("src/Basic.jl")
 include("src/GeomProcessing.jl")
 
-
-UpFolder = pwd();
-namestructure = "ellipsoid_x4"
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_dict = Dict{Int64, Mesh_UV_Struct}()
-
-
-########################################################################################
-# Create folder for plots
-########################################################################################
-
-# Define folder structure and pre-process meshes:
-folder_plots = joinpath(UpFolder, "images", namestructure)
-folder_particle_simula = joinpath(UpFolder, "simulation_structure")
-
-if !isdir(folder_plots)
-    mkdir(folder_plots)
-end
-
-# create folder for particle simulation
-if !isdir(folder_particle_simula)
-    mkdir(folder_particle_simula)
-end
 
 
 ########################################################################################
@@ -177,7 +156,7 @@ function active_particles_simulation(
     append!(halfedge_vertices_mapping_test, h_v_mapping_test)
     h_v_mapping_test = nothing
 
-    mesh_loaded_uv_test = FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv_4.off"))  # planar equiareal parametrization
+    mesh_loaded_uv_test = FileIO.load(joinpath(pwd(), "meshes", "Ellipsoid_uv_4.off"))  # planar equiareal parametrization
 
     # TODO: plot the splay_state_vertices[4] on the mesh_loaded_uv_test
     # get the coordinates of the vertices
@@ -590,19 +569,51 @@ function calculate_forces_between_particles(
         r_adh,
         k_adh
     )
-    Fij_rep = (-k*(2*σ.-dist_length))./(2*σ)
-    Fij_adh = (k_adh*(2*σ.-dist_length))./(2*σ-r_adh)
+    Fij_rep = (-k * (2 * σ .- dist_length)) ./ (2 * σ)
+    Fij_adh = (k_adh * (2 *σ .- dist_length)) ./ (2 *σ -r_adh)
 
     # No force if particles too far from each other or if particle itself
-    Fij_rep[(dist_length .>= 2*σ) .| (dist_length .== 0)] .= 0
-    Fij_adh[(dist_length .< 2*σ) .| (dist_length .> r_adh) .| (dist_length .== 0)] .= 0
+    no_force_condition = (dist_length .>= 2 * σ) .| (dist_length .== 0)
+    Fij_rep[no_force_condition] .= 0
+
+    adhesion_force_condition = (dist_length .< 2 * σ) .| (dist_length .> r_adh) .| (dist_length .== 0)
+    Fij_adh[adhesion_force_condition] .= 0
 
     # Fij is the force between particles
     Fij = Fij_rep .+ Fij_adh
-    Fij = cat(dims=3,Fij,Fij,Fij).*(dist_vect./(cat(dims=3,dist_length,dist_length,dist_length)))
+    # Fij = cat(dims=3,Fij,Fij,Fij).*(dist_vect./(cat(dims=3,dist_length,dist_length,dist_length)))
+    Fij = Fij .* (dist_vect ./ repeat(dist_length, outer=(1, 1, 3)))
 
     # Actual force felt by each particle
-    return reshape(sum(replace!(Fij, NaN=>0), dims=1),: ,size(Fij,3))
+    return reshape(sum(replace!(Fij, NaN => 0), dims=1), : ,size(Fij, 3))
+end
+
+
+"""
+    calculate_3D_cross_product(A, B)
+
+Column based cross product of two 3D matrices A and B
+"""
+function calculate_3D_cross_product(A, B)
+    num_rows = size(A, 1)
+    new_A = similar(A)  # Preallocate output matrix with the same size and type as A
+
+    # Compute cross product for each row and directly assign the result to the output matrix
+    for i in 1:num_rows
+        new_A[i, :] = cross(A[i, :], B[i, :])
+    end
+
+    return new_A
+end
+
+
+"""
+    denormalize_3D_matrix(A)
+
+Denormalize a 3D matrix A by dividing each row by its norm
+"""
+function denormalize_3D_matrix(A)
+    return sqrt.(sum(A .^ 2, dims=2)) * ones(1, 3)
 end
 
 
@@ -612,18 +623,14 @@ end
 Visceck-type n correction adapted from "Phys. Rev. E 74, 061908"
 """
 function correct_n(r_dot, n, τ, dt)
-    ncross = cat(dims=2,n[:,2].*r_dot[:,3]-n[:,3].*r_dot[:,2],
-        -(n[:,1].*r_dot[:,3]-n[:,3].*r_dot[:,1]),
-        n[:,1].*r_dot[:,2]-n[:,2].*r_dot[:,1]) ./
-        (sqrt.(sum(r_dot.^2,dims=2))*ones(1,3))
+    # cross product of n and r_dot
+    ncross = calculate_3D_cross_product(n, r_dot)  ./ denormalize_3D_matrix(r_dot)
 
-    n_cross_correction = (1/τ)*ncross*dt
+    n_cross_correction = (1 / τ) * ncross * dt
 
-    new_n = n-cat(dims=2,n[:,2].*n_cross_correction[:,3]-n[:,3].*n_cross_correction[:,2],
-        -(n[:,1].*n_cross_correction[:,3]-n[:,3].*n_cross_correction[:,1]),
-        n[:,1].*n_cross_correction[:,2]-n[:,2].*n_cross_correction[:,1])
+    new_n = n - calculate_3D_cross_product(n, n_cross_correction)
 
-    return new_n./(sqrt.(sum(new_n.^2,dims=2))*ones(1,3))
+    return new_n ./ denormalize_3D_matrix(new_n)
 end
 
 
@@ -732,8 +739,8 @@ function calculate_particle_vectors!(r_dot, n, nr_dot, nr_dot_cross, num_part, d
 
     # Project the orientation of the corresponding faces using normal vectors
     n = P_perp(Norm_vect,n)
-    n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
-    
+    n = n ./ denormalize_3D_matrix(n)
+
     for i=1:num_part
         nr_dot[i,:] = r_dot[i,:]/norm(r_dot[i,:]);
 
@@ -845,7 +852,7 @@ function simulate_next_step(
             append!(virtual_halfedge_vertices_mapping, virtual_h_v_mapping)
             virtual_h_v_mapping = nothing
 
-            mesh_dict[vertices_3D_active[i]] = Mesh_UV_Struct(vertices_3D_active[i], FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv_2.off")), virtual_halfedge_vertices_mapping)
+            mesh_dict[vertices_3D_active[i]] = Mesh_UV_Struct(vertices_3D_active[i], FileIO.load(joinpath(pwd(), "meshes", "Ellipsoid_uv_2.off")), virtual_halfedge_vertices_mapping)
         end
     end
 
