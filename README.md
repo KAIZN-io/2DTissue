@@ -36,9 +36,15 @@ With Julia we can handle these data dynamically. This allows us easy adjustments
 
 ---
 
+## Init the Project
+
+run `make init` to initialize the project. With this the required packages for C++ and Julia will be installed.
+
+---
+
+
 ## Compile the C++ code for accessing it in Julia
 
-0. only once: run `make init` to initialize the project
 1. register your C++ script in the CMakeLists.txt file
 2. open a terminal in the root of the project
 3. run `make build` to compile the C++ code
@@ -56,7 +62,6 @@ This is how you manage packages with it:
 - Run `julia -t 8` for parallel computing -> use at least 8 cores
 - type `]` (closing square bracket)
 - run `activate .`
-- use `instantiate` to install all packages
 - use `add <PackageName>` to add a new package
 - use `rm <PackageName>` to remove a package
 - use `up <PackageName>` to update a package to a newer version

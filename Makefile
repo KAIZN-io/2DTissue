@@ -3,12 +3,15 @@
 SHELL := /bin/bash
 
 # Path to project directory
-PROJECT_DIR := $(HOME)/git_repos/Confined_active_particles
+PROJECT_DIR := $(shell pwd)
+
+# Get JlCxx path
+JLCXX_PATH := $(shell julia --project=@. -e 'using Pkg; Pkg.instantiate(); using CxxWrap; println(CxxWrap.prefix_path())')
 
 # CMake flags
 CMAKE_FLAGS := -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_CXX_FLAGS="-O2" \
-               -DCMAKE_PREFIX_PATH=`julia --project=@. -e 'using CxxWrap; CxxWrap.prefix_path() |> print'`
+               -DCMAKE_PREFIX_PATH=$(JLCXX_PATH)
 
 # Extern repository name
 REPOSITORY := libcxxwrap-julia
@@ -39,10 +42,10 @@ endif
 .PHONY: build
 build:
 	cmake -S $(PROJECT_DIR) \
-		  -B $(PROJECT_DIR)/src/build \
+		  -B $(PROJECT_DIR)/build \
 		  $(CMAKE_FLAGS)
-	$(MAKE) -C $(PROJECT_DIR)/src/build -j $(shell nproc)
-	@echo "Build finished. The binaries are in $(PROJECT_DIR)/src/build/lib"
+	$(MAKE) -C $(PROJECT_DIR)/build -j $(shell nproc)
+	@echo "Build finished. The binaries are in $(PROJECT_DIR)/build/lib"
 
 
 ########################################################################################################################
@@ -53,8 +56,12 @@ build:
 clean:
 	rm -rf $(REPOSITORY)
 	rm -rf $(PROJECT_DIR)/src/build
-	rm -rf $(REPOSITORY)-build
+	rm -rf $(REPOSITORY)-Build
+
+.PHONY: clean_env
+clean_env:
+	julia --project=@. -e 'using Pkg; for pkg in keys(Pkg.project().dependencies) Pkg.rm(pkg) end'
 
 .PHONY: distclean
 distclean: clean
-	rm -rf $(PROJECT_DIR)/src/build/*
+	rm -rf $(PROJECT_DIR)/build/*

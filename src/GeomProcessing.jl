@@ -19,7 +19,7 @@ module HeatMethod
 
   # ! TODO: resolve the import issue: sometimes you execute the script via main.jl and sometimes via the REPL
 #   @wrapmodule(joinpath(../@__DIR__, "build", "geodesic_distance"))
-    @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles/src", "build", "geodesic_distance"))
+    @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "build", "geodesic_distance"))
 
     function __init__()
         @initcxx
@@ -30,7 +30,7 @@ end
 module UVSurface
     using CxxWrap
 
-    @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles/src", "build", "create_uv_surface"))
+    @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "build", "create_uv_surface"))
 
     function __init__()
         @initcxx
