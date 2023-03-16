@@ -55,7 +55,7 @@ build:
 .PHONY: clean
 clean:
 	rm -rf $(REPOSITORY)
-	rm -rf $(PROJECT_DIR)/src/build
+	rm -rf $(PROJECT_DIR)/build
 	rm -rf $(REPOSITORY)-Build
 
 .PHONY: clean_env
