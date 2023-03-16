@@ -257,7 +257,7 @@ function active_particles_simulation(
 
     # Project the orientation of the corresponding faces using normal vectors
     n = P_perp(Norm_vect,n)
-    n = n./(sqrt.(sum(n.^2,dims=2))*ones(1,3)) # And normalise orientation vector
+    n = n ./ normalize_3D_matrix(n)
 
     # cam = cameracontrols(scene)
     # update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
@@ -413,14 +413,17 @@ end
     find_outside_uv_vertices_id(r)
 
 Find all rows in the r array where one value is bigger than 1
+Optimized for performance on 16 MAR 2023, JNP
 """
 function find_outside_uv_vertices_id(r)
+    nrows = size(r, 1)
+    outside_id = Int[]
 
-    outside_u = findall(r[:, 1] .> 1)
-    outside_v = findall(r[:, 2] .> 1)
-
-    # create unique vector of adding outside_u and outside_v
-    outside_id = unique(vcat(outside_u, outside_v))
+    for i in 1:nrows
+        if r[i, 1] > 1 || r[i, 2] > 1
+            push!(outside_id, i)
+        end
+    end
 
     return outside_id
 end
@@ -608,11 +611,11 @@ end
 
 
 """
-    denormalize_3D_matrix(A)
+    normalize_3D_matrix(A)
 
 Denormalize a 3D matrix A by dividing each row by its norm
 """
-function denormalize_3D_matrix(A)
+function normalize_3D_matrix(A)
     return sqrt.(sum(A .^ 2, dims=2)) * ones(1, 3)
 end
 
@@ -624,29 +627,31 @@ Visceck-type n correction adapted from "Phys. Rev. E 74, 061908"
 """
 function correct_n(r_dot, n, τ, dt)
     # cross product of n and r_dot
-    ncross = calculate_3D_cross_product(n, r_dot)  ./ denormalize_3D_matrix(r_dot)
+    ncross = calculate_3D_cross_product(n, r_dot)  ./ normalize_3D_matrix(r_dot)
 
     n_cross_correction = (1 / τ) * ncross * dt
 
     new_n = n - calculate_3D_cross_product(n, n_cross_correction)
 
-    return new_n ./ denormalize_3D_matrix(new_n)
+    return new_n ./ normalize_3D_matrix(new_n)
 end
 
 
 """
     calculate_order_parameter!(v_order, r, r_dot, num_part, tt, plotstep)
 
+Tested time (16 MAR 2023): 0.041690 seconds (35.46 k allocations: 1.676 MiB, 99.86% compilation time)
 """
 function calculate_order_parameter!(v_order, r, r_dot, num_part, tt, plotstep)
     # Define a vector normal to position vector and velocity vector
-    v_tp=[r[:,2].*r_dot[:,3]-r[:,3].*r_dot[:,2],-r[:,1].*r_dot[:,3]+r[:,3].*r_dot[:,1],r[:,1].*r_dot[:,2]-r[:,2].*r_dot[:,1]];
-    v_tp = v_tp |> vec_of_vec_to_array |> transpose
+    v_tp = calculate_3D_cross_product(r, r_dot)
+
     # Normalize v_tp
-    v_norm=v_tp./(sqrt.(sum(v_tp.^2,dims=2))*ones(1,3));
+    v_norm = v_tp ./ normalize_3D_matrix(v_tp)
+
     # Sum v_tp vectors and devide by number of particle to obtain order
     # parameter of collective motion for spheroids
-    v_order[Int(tt/plotstep)]=(1/num_part)*norm(sum(v_norm,dims=1))
+    v_order[Int(tt / plotstep)] = (1 / num_part) * norm(sum(v_norm, dims=1))
 
     return v_order
 end
@@ -695,14 +700,14 @@ function calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r
         r_adh,
         k_adh
     )  # calculate the force between particles
-    
-    r_dot = P_perp(Norm_vect, v0.*n+μ.*F_track)  # velocity of each particle
-    r_dot[:,3] .= 0.0
+
+    r_dot = P_perp(Norm_vect, v0 .* n + μ .* F_track)  # velocity of each particle
+    r_dot[:, 3] .= 0.0
 
     # ! NUR für test Zwecke
     # r_dot *= 10
-    r_new = r+r_dot*dt
-    r_new[:,3] .= 0.0
+    r_new = r + r_dot * dt
+    r_new[:, 3] .= 0.0
 
     return r_new, r_dot
 end
@@ -730,23 +735,21 @@ end
 
 
 """
-    calculate_particle_vectors!(r_dot, n, num_part, dt, τ, Norm_vect)
+    calculate_particle_vectors!(r_dot, n, dt, τ, Norm_vect)
 
 Calculates the particles vectors n, nr_dot and nr_dot_cross
 """
-function calculate_particle_vectors!(r_dot, n, nr_dot, nr_dot_cross, num_part, dt, τ, Norm_vect)
-    n = correct_n(r_dot, n, τ, dt)  # make a small correct for n according to Vicsek
+function calculate_particle_vectors!(r_dot, n, dt, τ, Norm_vect)
+    # make a small correct for n according to Vicsek
+    n = correct_n(r_dot, n, τ, dt)
 
     # Project the orientation of the corresponding faces using normal vectors
-    n = P_perp(Norm_vect,n)
-    n = n ./ denormalize_3D_matrix(n)
+    n = P_perp(Norm_vect, n)
+    n = n ./ normalize_3D_matrix(n)
+    nr_dot = r_dot ./ normalize_3D_matrix(r_dot)
 
-    for i=1:num_part
-        nr_dot[i,:] = r_dot[i,:]/norm(r_dot[i,:]);
-
-        cross_Nrdot=cross(n[i,:], Norm_vect[i,:])
-        nr_dot_cross[i,:] = cross_Nrdot./norm(cross_Nrdot)
-    end
+    cross_Nrdot = calculate_3D_cross_product(n, Norm_vect)
+    nr_dot_cross = cross_Nrdot ./ normalize_3D_matrix(cross_Nrdot)
 
     return n, nr_dot, nr_dot_cross
 end
@@ -860,7 +863,7 @@ function simulate_next_step(
     if rem(tt,plotstep)==0
 
         particles_color = dye_particles(dist_length, num_part, σ)
-        n, nr_dot, nr_dot_cross = calculate_particle_vectors!(r_dot, n, nr_dot, nr_dot_cross, num_part, dt, τ, Norm_vect)
+        n, nr_dot, nr_dot_cross = calculate_particle_vectors!(r_dot, n, dt, τ, Norm_vect)
         v_order = calculate_order_parameter!(v_order, r_new, r_dot, num_part, tt, plotstep)
 
         observe_order[] = v_order
