@@ -19,7 +19,7 @@ module HeatMethod
 
   # ! TODO: resolve the import issue: sometimes you execute the script via main.jl and sometimes via the REPL
 #   @wrapmodule(joinpath(../@__DIR__, "build", "geodesic_distance"))
-    @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "build", "geodesic_distance"))
+    @wrapmodule(joinpath(pwd(), "build", "geodesic_distance"))
 
     function __init__()
         @initcxx
@@ -30,7 +30,7 @@ end
 module UVSurface
     using CxxWrap
 
-    @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "build", "create_uv_surface"))
+    @wrapmodule(joinpath(pwd(), "build", "create_uv_surface"))
 
     function __init__()
         @initcxx
@@ -41,7 +41,7 @@ end
 # module CppTypes
 #     using CxxWrap
 
-#     @wrapmodule(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "build", "create_uv_surface"))
+#     @wrapmodule(joinpath(pwd(), "build", "create_uv_surface"))
 
 #     function __init__()
 #         @initcxx
@@ -80,7 +80,7 @@ function init_uv_mesh(
     num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
     @info "mapped " num_vertices_mapped "vertices to 2D mesh"
 
-    mesh_loaded_uv = FileIO.load(joinpath("/Users/jan-piotraschke/git_repos/Confined_active_particles", "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
+    mesh_loaded_uv = FileIO.load(joinpath(pwd(), "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
 
     return mesh_loaded_uv, halfedge_vertices_mapping
 end
@@ -140,7 +140,7 @@ end
 """
 function order_of_edges_vertices(border_edges_array)
     border_edges_vec = zeros(Int, length(border_edges_array[:,1]))
-    start = border_edges_array[i,2]
+    start = border_edges_array[1,2]
 
     for i in 1:length(border_edges_array[:,1])# border_edges_array[1,2]ß
         next = findfirst(x -> x == start, border_edges_array[:,1])
