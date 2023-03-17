@@ -103,6 +103,15 @@ const fs::path MESH_FOLDER = PROJECT_FOLDER / "meshes";
 const unsigned int PARAMETERIZATION_ITERATIONS = 9;
 
 
+struct HVMapAndPath {
+    JuliaArray h_v_map;
+    std::string uv_mesh_path;
+
+    HVMapAndPath(JuliaArray h_v_map, std::string uv_mesh_path)
+        : h_v_map(h_v_map), uv_mesh_path(uv_mesh_path) {}
+};
+
+
 /*
 Function to extract the mesh name (without extension) from its file path
 */
@@ -200,7 +209,7 @@ int save_stl_as_off(
 }
 
 
-int save_uv_mesh(
+std::string save_uv_mesh(
     Mesh _mesh,
     halfedge_descriptor _bhd,
     UV_pmap _uvmap,
@@ -225,7 +234,7 @@ int save_uv_mesh(
     // Write the UV map to the output file
     SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
 
-    return 0;
+    return output_file_path.string();
 }
 
 
@@ -447,7 +456,7 @@ JuliaArray calculate_uv_surface(
     SMP::Error_code err = perform_parameterization(mesh, bhd, uvmap);
 
     // Save the uv mesh
-    save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
+    auto mesh_file_path = save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
 
     const auto _h_v_map = create_halfedge_vertex_map(mesh, sm);
 
