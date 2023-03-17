@@ -5,100 +5,94 @@
 
 // known Issue: https://github.com/CGAL/cgal/issues/2994
 
+// Standard Library
+#include <algorithm>
+#include <cstddef>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <map>
+#include <sstream>
+#include <string>
+#include <tuple>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
+// Boost
+#include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graph_traits.hpp>
+#include <boost/property_map/property_map.hpp>
+
+// CGAL
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Timer.h>
-
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
-
-// borders
+#include <CGAL/boost/graph/properties.h>
+#include <CGAL/boost/graph/breadth_first_search.h>
+#include <CGAL/boost/graph/dijkstra_shortest_paths.h>
+#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
+#include <CGAL/Polygon_mesh_processing/connected_components.h>
+#include <CGAL/Polygon_mesh_processing/measure.h>
 #include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
-
-// surface parameterization methods
+// Surface Parameterization Methods:
 #include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_authalic_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
-#include <CGAL/Polygon_mesh_processing/connected_components.h>
-#include <CGAL/Polygon_mesh_processing/measure.h>
-
-// boost graph
-#include <CGAL/boost/graph/properties.h>
-#include <CGAL/boost/graph/breadth_first_search.h>
-#include <CGAL/boost/graph/dijkstra_shortest_paths.h>
-#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graph_traits.hpp>
-
-#include <boost/property_map/property_map.hpp>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include <filesystem>
-#include <unordered_map>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <list>
-#include <string>
-#include <utility>
-#include <vector>
-#include <tuple>
-#include <format>
-
-#include <algorithm>
-#include <cstddef>
-
+// JLCxx
 #include "jlcxx/jlcxx.hpp"
 #include "jlcxx/array.hpp"
 #include "jlcxx/functions.hpp"
 
 
-typedef CGAL::Simple_cartesian<double>            Kernel;
-typedef Kernel::Point_2                           Point_2;
-typedef Kernel::Point_3                           Point_3;
-typedef CGAL::Surface_mesh<Point_3>               SurfaceMesh;
+using Kernel = CGAL::Simple_cartesian<double>;
+using Point_2 = Kernel::Point_2;
+using Point_3 = Kernel::Point_3;
+using SurfaceMesh = CGAL::Surface_mesh<Point_3>;
 
 namespace My {
-  struct Mesh: public CGAL::Surface_mesh<Point_3> {
-    typedef CGAL::Surface_mesh<Point_3> Base;
-    std::string name;
-  };
+    struct Mesh: public CGAL::Surface_mesh<Point_3> {
+        using Base = CGAL::Surface_mesh<Point_3>;
+        std::string name;
+    };
 } // namespace My
+
 
 #define CGAL_GRAPH_TRAITS_INHERITANCE_CLASS_NAME My::Mesh
 #define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Point_3>
 #include <CGAL/boost/graph/graph_traits_inheritance_macros.h>
 
-typedef boost::graph_traits<My::Mesh>::vertex_descriptor          my_vertex_descriptor;
-typedef boost::graph_traits<My::Mesh>::edge_descriptor          my_edge_descriptor;
-// We use a std::map to store the index
-typedef std::map<my_vertex_descriptor, int>                              VertexIndexMap;
+using my_vertex_descriptor = boost::graph_traits<My::Mesh>::vertex_descriptor;
+using my_edge_descriptor = boost::graph_traits<My::Mesh>::edge_descriptor;
+using VertexIndexMap = std::map<my_vertex_descriptor, int>;
 VertexIndexMap my_vertex_id_map;
-// A std::map is not a property map, because it is not lightweight
-typedef boost::associative_property_map<VertexIndexMap>               VertexIdPropertyMap;
+using VertexIdPropertyMap = boost::associative_property_map<VertexIndexMap>;
 VertexIdPropertyMap my_vertex_index_pmap(my_vertex_id_map);
 
-typedef boost::graph_traits<SurfaceMesh>::vertex_descriptor     SM_vertex_descriptor;
-typedef boost::graph_traits<SurfaceMesh>::halfedge_descriptor   SM_halfedge_descriptor;
-typedef boost::graph_traits<SurfaceMesh>::edge_descriptor       SM_edge_descriptor;
-typedef boost::graph_traits<SurfaceMesh>::edge_iterator                      SM_edge_iterator;
-typedef boost::graph_traits<SurfaceMesh>::halfedge_iterator                      SM_halfedge_iterator;
+using SM_vertex_descriptor = boost::graph_traits<SurfaceMesh>::vertex_descriptor;
+using SM_halfedge_descriptor = boost::graph_traits<SurfaceMesh>::halfedge_descriptor;
+using SM_edge_descriptor = boost::graph_traits<SurfaceMesh>::edge_descriptor;
+using SM_edge_iterator = boost::graph_traits<SurfaceMesh>::edge_iterator;
+using SM_halfedge_iterator = boost::graph_traits<SurfaceMesh>::halfedge_iterator;
 
-typedef SurfaceMesh::Property_map<SM_edge_descriptor, bool>           Seam_edge_pmap;
-typedef SurfaceMesh::Property_map<SM_vertex_descriptor, bool>         Seam_vertex_pmap;
+using Seam_edge_pmap = SurfaceMesh::Property_map<SM_edge_descriptor, bool>;
+using Seam_vertex_pmap = SurfaceMesh::Property_map<SM_vertex_descriptor, bool>;
 
-typedef CGAL::Seam_mesh<SurfaceMesh, Seam_edge_pmap, Seam_vertex_pmap>  Mesh;
-typedef boost::graph_traits<Mesh>::vertex_descriptor                    vertex_descriptor;
-typedef boost::graph_traits<Mesh>::halfedge_descriptor                  halfedge_descriptor;
-typedef boost::graph_traits<Mesh>::vertex_iterator                      vertex_iterator;
+using Mesh = CGAL::Seam_mesh<SurfaceMesh, Seam_edge_pmap, Seam_vertex_pmap>;
+using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
+using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
+using vertex_iterator = boost::graph_traits<Mesh>::vertex_iterator;
 
-typedef SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>      UV_pmap;
-typedef jlcxx::ArrayRef<int64_t, 1>                                      JuliaArray;
+using UV_pmap = SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>;
+using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = std::filesystem;
@@ -111,24 +105,19 @@ const unsigned int PARAMETERIZATION_ITERATIONS = 9;
 
 
 /*
-Get the mesh name from its path
+Function to extract the mesh name (without extension) from its file path
 */
 std::string get_mesh_name(
-    std::string mesh_3D
+   const std::string& mesh_3D_path
 ){
-    if (mesh_3D.find('.') < mesh_3D.length())
-    {
-        size_t pos = mesh_3D.find_last_of(".");
-        size_t pos_slash = mesh_3D.find_last_of("/");
-        std::string mesh_3D_name = mesh_3D.substr(pos_slash+1, pos-pos_slash-1);
-        std::cout << "We extract the mesh name from the path string: " << mesh_3D_name << std::endl;
-        return mesh_3D_name;
-    }
-    else
-    {
-        std::string mesh_3D_name = mesh_3D;
-        return mesh_3D_name;
-    }
+    // Create a filesystem path object from the input string
+    fs::path path(mesh_3D_path);
+
+    // Use the stem() function to get the mesh name without the extension
+    std::string mesh_name = path.stem().string();
+
+    std::cout << "We extract the mesh name from the path string: " << mesh_name << std::endl;
+    return mesh_name;
 }
 
 
@@ -137,28 +126,31 @@ Get the mesh from the file.
 Add new meshes with there path in this function
 */
 std::ifstream get_mesh_obj(
-    std::string mesh_3D
+    const std::string& mesh_name
 ){
-    if (mesh_3D == "Ellipsoid")
-    {
-        std::ifstream in(CGAL::data_file_path(MESH_FOLDER / "ellipsoid_x4.off"));
-        return in;
+    // Define a map to store the available meshes and their corresponding paths
+    const std::map<std::string, std::string> mesh_paths{
+        {"Ellipsoid", "ellipsoid_x4.off"},
+        {"Sphere", "sphere.off"},
+        {"Bear", "bear.off"}
+    };
+
+    // Initialize the file path variable
+    fs::path mesh_file_path;
+
+    // Check if the mesh_name exists in the map and set the file path accordingly
+    auto it = mesh_paths.find(mesh_name);
+
+    if (it != mesh_paths.end()) {
+        mesh_file_path = MESH_FOLDER / it->second;
+    } else {
+        mesh_file_path = MESH_FOLDER / mesh_name;
     }
-    else if (mesh_3D == "Sphere")
-    {
-        std::ifstream in(CGAL::data_file_path(MESH_FOLDER / "sphere.off"));
-        return in;
-    }
-    else if (mesh_3D == "Bear")
-    {
-        std::ifstream in(CGAL::data_file_path(MESH_FOLDER / "bear.off"));
-        return in;
-    }
-    else
-    {
-        std::ifstream in(CGAL::data_file_path(mesh_3D));
-        return in;
-    }
+
+    // Open the file using the CGAL::data_file_path() function
+    std::ifstream in(CGAL::data_file_path(mesh_file_path));
+
+    return in;
 }
 
 
@@ -167,45 +159,30 @@ we have to create multiple versions of the UV mesh because we need different coo
 in order to simulate them on top of the 2D mesh
 */
 int find_latest_mesh_creation_number(
-    std::string mesh_3D = "Ellipsoid"
+    const std::string& mesh_3D = "Ellipsoid"
 ){
     int highest_number = -1;
+    std::string mesh_uv_base = mesh_3D + "_uv";
+    std::string mesh_uv = mesh_uv_base + "_";
 
-    for (auto const& dir_entry : fs::directory_iterator{MESH_FOLDER})
-    {
-        if (dir_entry.is_regular_file())
-        {
-            std::string filename = dir_entry.path();
-            std::string mesh_name = filename.substr(filename.find_last_of('/') + 1, filename.find_last_of('.'));
-            std::string mesh_uv_base = boost::str(boost::format("%1%_uv.") % mesh_3D);
-            std::string mesh_uv = boost::str(boost::format("%1%_uv_") % mesh_3D);
+    for (const auto& dir_entry : fs::directory_iterator{MESH_FOLDER}) {
+        if (dir_entry.is_regular_file()) {
+            std::string file_stem = dir_entry.path().stem().string();
 
-            if (boost::find_first(mesh_name, mesh_uv_base))
-            {
-                if (highest_number < 0)
-                {
+            if (file_stem == mesh_uv_base) {
+                if (highest_number < 0) {
                     highest_number = 0;
                 }
-            }
-            else if ((mesh_name.find_last_of('_') != std::string::npos) && (boost::find_first(mesh_name, mesh_uv)))
-            {
-                int number_start = mesh_name.find_last_of('_') + 1;
-                int number_length = mesh_name.length() - number_start;
+            } else if (file_stem.rfind(mesh_uv, 0) == 0) {
+                std::string number_string = file_stem.substr(mesh_uv.size());
+                int number = std::stoi(number_string);
 
-                if (number_length > 0)
-                {
-                    std::string number_string = mesh_name.substr(number_start, number_length);
-                    int number = std::stoi(number_string);
-
-                    if (number > highest_number)
-                    {
-                        highest_number = number;
-                    }
+                if (number > highest_number) {
+                    highest_number = number;
                 }
             }
         }
     }
-
     return highest_number;
 }
 
@@ -228,23 +205,26 @@ int save_uv_mesh(
     Mesh _mesh,
     halfedge_descriptor _bhd,
     UV_pmap _uvmap,
-    std::string mesh_3D,
+    const std::string& mesh_3D,
     int uv_mesh_number
 ){
+    // Get the mesh name without the extension
     auto mesh_3D_name = get_mesh_name(mesh_3D);
 
-    if (uv_mesh_number == 0)
-    {
-        auto path_uv = str(boost::format(MESH_FOLDER / "%1%_uv.off") % mesh_3D_name);
-        std::ofstream out(path_uv);
-        SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
+    // Create the output file path based on uv_mesh_number
+    fs::path output_file_path;
+
+    if (uv_mesh_number == 0) {
+        output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv.off");
+    } else {
+        output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv_" + std::to_string(uv_mesh_number) + ".off");
     }
-    else
-    {
-        auto path_uv = str(boost::format(MESH_FOLDER / "%1%_uv_%2%.off") % mesh_3D_name % uv_mesh_number);
-        std::ofstream out(path_uv);
-        SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
-    }
+
+    // Create the output file stream
+    std::ofstream out(output_file_path);
+
+    // Write the UV map to the output file
+    SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
 
     return 0;
 }
