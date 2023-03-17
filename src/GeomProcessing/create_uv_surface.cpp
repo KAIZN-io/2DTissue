@@ -41,7 +41,7 @@
 #include <CGAL/Polygon_mesh_processing/measure.h>
 #include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
-// Surface Parameterization Methods:
+// Surface Parameterization Methods
 #include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_authalic_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
@@ -64,7 +64,6 @@ namespace My {
         std::string name;
     };
 } // namespace My
-
 
 #define CGAL_GRAPH_TRAITS_INHERITANCE_CLASS_NAME My::Mesh
 #define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Point_3>
@@ -191,7 +190,7 @@ int find_latest_mesh_creation_number(
 save the STL file as an OFF file
 */
 int save_stl_as_off(
-    SurfaceMesh sm
+    const SurfaceMesh& sm
 ){
     std::ofstream out_OFF(MESH_FOLDER / "ellipsoid_x4.off");
     CGAL::IO::write_OFF(out_OFF, sm);
@@ -232,15 +231,15 @@ int save_uv_mesh(
 
 /*
 Logic:
-    1. each halfedge h is pointing to a target vertex v and has a soure vertex s
-    2. each vertex v on a seam edge has at least 2 halfedges h (due to the cutting along the seam edge we will create these vertices v twice)
+    1. Each halfedge h is pointing to a target vertex v and has a soure vertex s
+    2. Each vertex v on a seam edge has at least 2 halfedges h (due to the cutting along the seam edge we will create these vertices v twice)
         => "A vertex of the underlying mesh may correspond to multiple vertices in the seam mesh."
-    3. for a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
+    3. For a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
         -> thats why we only need to go half the way around the seam edges
 */
-JuliaArray get_halfedge_vertice_map(
-    Mesh mesh,
-    SurfaceMesh sm
+JuliaArray create_halfedge_vertex_map(
+    const Mesh& mesh,
+    const SurfaceMesh& sm
 ){
     std::vector<int64_t> halfedge_vertex_map;
     for(vertex_descriptor vd : vertices(mesh)) {
@@ -258,44 +257,16 @@ JuliaArray get_halfedge_vertice_map(
 }
 
 
-/*
-Calculate the virtual border of the mesh
-
-NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
-*/
-std::vector<my_edge_descriptor> calc_virtual_border(
-    std::string mesh_3D,
-    my_vertex_descriptor start_node
-){
-    My::Mesh mesh;
-    auto in = get_mesh_obj(mesh_3D);
-    in >> mesh;
-
-    std::cout << "number of vertices in the 3D mesh: " << mesh.number_of_vertices() << std::endl;
-
-    typedef boost::property_map<My::Mesh,CGAL::vertex_point_t>::type Point_property_map;
-    Point_property_map ppm = get(CGAL::vertex_point, mesh);
-
-    // Create vectors to store the predecessors (p) and the distances from the root (d)
-    std::vector<my_vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
-    auto indexmap = get(boost::vertex_index, mesh);
-    std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
-    auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
-
-    // to use two visitors, you need to put them in a pair (from https://theboostcpplibraries.com/boost.graph-algorithms)
-    auto vis = boost::make_bfs_visitor(
-        std::make_pair(
-            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
-            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
-        )
-    );
-
-    // Find the target node
-    boost::breadth_first_search(mesh, start_node, visitor(vis));
-
-    // Traverse all vertices and show at what distance they are
+// Helper function to find the farthest vertex from a given start vertex
+my_vertex_descriptor find_farthest_vertex(
+    const My::Mesh& mesh,
+    my_vertex_descriptor start_node,
+    std::vector<my_vertex_descriptor>& predecessor_pmap,
+    std::vector<int>& distance
+) {
     int max_distances = 0;
-    decltype(start_node) target_node;
+    my_vertex_descriptor target_node;
+
     for(my_vertex_descriptor vd : vertices(mesh)){
         if (vd != boost::graph_traits<My::Mesh>::null_vertex()){
             // std::cout << vd << " at " << get(ppm, vd) << " is " << distance[vd] << " hops away" << std::endl;
@@ -305,33 +276,87 @@ std::vector<my_edge_descriptor> calc_virtual_border(
             }
         }
     }
-    std::cout << "max distance: " << max_distances << std::endl;
-    std::cout << "got the following start point: " << start_node << " at " << get(ppm, start_node) << std::endl;
-    std::cout << "got the following target point: " << target_node << " at " << get(ppm, target_node) << std::endl;
 
-    // get the edges of the path between the start and the target node
+    return target_node;
+}
+
+
+// Helper function to create a path from the start node to the target node
+std::vector<my_edge_descriptor> create_path(
+    const My::Mesh& mesh,
+    my_vertex_descriptor start_node,
+    my_vertex_descriptor target_node,
+    const std::vector<my_vertex_descriptor>& predecessor_pmap
+) {
     std::vector<my_edge_descriptor> path_list;
     my_vertex_descriptor current = target_node;
+
     while (current != start_node) {
         my_vertex_descriptor predecessor = predecessor_pmap[current];
-        // std::cout << predecessor << " -> " << current << std::endl;
         std::pair<my_edge_descriptor, bool> edge_pair = edge(predecessor, current, mesh);
         my_edge_descriptor edge = edge_pair.first;
         path_list.push_back(edge);
         current = predecessor;
     }
 
-    // overgive the path_list to the vector b because handling vectors is easier for me
+    return path_list;
+}
+
+
+/*
+Calculate the virtual border of the mesh
+
+NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
+*/
+std::vector<my_edge_descriptor> calc_virtual_border(
+    const std::string& mesh_3D,
+    my_vertex_descriptor start_node
+){
+    My::Mesh mesh;
+    auto in = get_mesh_obj(mesh_3D);
+    in >> mesh;
+
+    std::cout << "number of vertices in the 3D mesh: " << mesh.number_of_vertices() << std::endl;
+
+    using Point_property_map = boost::property_map<My::Mesh,CGAL::vertex_point_t>::type;
+    Point_property_map ppm = get(CGAL::vertex_point, mesh);
+
+    // Create vectors to store the predecessors (p) and the distances from the root (d)
+    std::vector<my_vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
+    auto indexmap = get(boost::vertex_index, mesh);
+    std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
+    auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
+
+    // BFS with visitors for recording distances and predecessors
+    auto vis = boost::make_bfs_visitor(
+        std::make_pair(
+            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
+            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
+        )
+    );
+
+    boost::breadth_first_search(mesh, start_node, visitor(vis));
+
+    // Find the target node (farthest from the start node)
+    my_vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, predecessor_pmap, distance);
+
+    std::cout << "got the following start point: " << start_node << " at " << get(ppm, start_node) << std::endl;
+    std::cout << "got the following target point: " << target_node << " at " << get(ppm, target_node) << std::endl;
+
+    // Get the edges of the path between the start and the target node
+    std::vector<my_edge_descriptor> path_list = create_path(mesh, start_node, target_node, predecessor_pmap);
+
+    // Overgive the path_list to the vector b because handling vectors is easier for me
     std::vector<my_edge_descriptor> b(path_list.begin(), path_list.end());
 
     return b;
 }
 
 
-my_vertex_descriptor new_start_vertice(
+my_vertex_descriptor get_new_start_vertice(
     my_vertex_descriptor start_node,
     SurfaceMesh sm,
-    std::string mesh_3D
+    const std::string& mesh_3D
 ){
     auto calc_edges = calc_virtual_border(mesh_3D, start_node);
 
@@ -343,8 +368,59 @@ my_vertex_descriptor new_start_vertice(
 }
 
 
+// Helper function to create the seam mesh
+Mesh create_seam_mesh(
+    SurfaceMesh& sm,
+    const std::vector<SM_edge_descriptor>& calc_edges
+){
+    // Create property maps to store seam edges and vertices
+    Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;   // if not false -> we can't add seam edges
+    Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
+
+    Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
+
+    for(SM_edge_descriptor e : calc_edges) {
+        mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
+    }
+
+    return mesh;
+}
+
+
+/*
+Helper function to perform parameterization
+
+computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
+The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
+! A one-to-one mapping may be guaranteed or not, depending on the chosen Parameterizer algorithm
+*/
+SMP::Error_code perform_parameterization(
+    Mesh& mesh,
+    halfedge_descriptor bhd,
+    UV_pmap& uvmap
+){
+    // Choose the border type of the uv parametrisation: Circular or Square
+    using Border_parameterizer = SMP::Circular_border_arc_length_parameterizer_3<Mesh>;
+    // using Border_parameterizer = SMP::Square_border_uniform_parameterizer_3<Mesh>;
+    Border_parameterizer border_parameterizer;
+
+    // Iterative Authalic Parameterization:
+    // from https://doi.org/10.1109/ICCVW.2019.00508
+    // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
+    // meaning that it aims to Minimize Area Distortion between the input surface mesh and the parameterized output.
+    using Parameterizer = SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer>;
+    Parameterizer parameterizer(border_parameterizer);
+
+    // Other parameterization algorithms:
+    // using Parameterizer = SMP::Discrete_authalic_parameterizer_3<Mesh, Border_parameterizer>;
+    // using Parameterizer = SMP::Mean_value_coordinates_parameterizer_3<Mesh, Border_parameterizer>;
+
+    return parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
+}
+
+
 JuliaArray calculate_uv_surface(
-    std::string mesh_3D,
+    const std::string& mesh_3D,
     my_vertex_descriptor start_node,
     int uv_mesh_number
 ){
@@ -353,55 +429,27 @@ JuliaArray calculate_uv_surface(
     auto filename = get_mesh_obj(mesh_3D);
     filename >> sm;
 
-    // Create property maps to store seam edges and vertices
-    Seam_edge_pmap seam_edge_pm = sm.add_property_map<SM_edge_descriptor, bool>("e:on_seam", false).first;  // if not false -> we can't add seam edges
-    Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<SM_vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
-    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;  // The 2D points of the uv parametrisation will be written into this map; canonical Halfedges Representing a Vertex
-
-    // Create the seam mesh
-    Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
-
     // Calculate the virtual border
     auto calc_edges = calc_virtual_border(mesh_3D, start_node);
 
-    for(SM_edge_descriptor e : calc_edges) {
-        mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
-    }
+    // Canonical Halfedges Representing a Vertex
+    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
+
+    // Create the seam mesh
+    Mesh mesh = create_seam_mesh(sm, calc_edges);
 
     std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
-
-    // Choose the border type of the uv parametrisation: Circular or Square
-    typedef SMP::Circular_border_arc_length_parameterizer_3<Mesh> Border_parameterizer;
-    // typedef SMP::Square_border_uniform_parameterizer_3<Mesh> Border_parameterizer;
-
-    Border_parameterizer border_parameterizer; // the border parameterizer will automatically compute the corner vertices
-
-    // Iterative Authalic Parameterization:
-    // from https://doi.org/10.1109/ICCVW.2019.00508
-    // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
-    // meaning that it aims to Minimize Area Distortion between the input surface mesh and the parameterized output.
-    typedef SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
-    Parameterizer parameterizer(border_parameterizer);
-
-    // Other parameterization algorithms:
-    // typedef SMP::Discrete_authalic_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
-    // typedef SMP::Mean_value_coordinates_parameterizer_3<Mesh, Border_parameterizer> Parameterizer;
 
     // Choose a halfedge on the (possibly virtual) border
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
-    /*
-    computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
-    The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
-    ! A one-to-one mapping may be guaranteed or not, depending on the chosen Parameterizer algorithm
-    */
-    SMP::Error_code err = parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
-    // SMP::Error_code err = SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
+    // Perform parameterization
+    SMP::Error_code err = perform_parameterization(mesh, bhd, uvmap);
 
     // Save the uv mesh
     save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
 
-    const auto _h_v_map = get_halfedge_vertice_map(mesh, sm);
+    const auto _h_v_map = create_halfedge_vertex_map(mesh, sm);
 
     return _h_v_map;
 }
@@ -418,17 +466,16 @@ JuliaArray create_uv_surface(
 
     int highest_mesh_creation = find_latest_mesh_creation_number(mesh_3D);
     my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-    // my_vertex_descriptor start_node_1 = new_start_vertice(start_node, sm, mesh_3D);
+    // my_vertex_descriptor start_node_1 = get_new_start_vertice(start_node, sm, mesh_3D);
 
     std::cout << "highest mesh creation number " << highest_mesh_creation << "\n";
-    if (start_node_int == 0){
-        const auto h_v_map = calculate_uv_surface(mesh_3D, start_node, 0);  // momentan muss dass hier am Ende stehen, denn sonst gibt es memory leaks hinzu Julia
-        return h_v_map;
-    }
-    else {
-        const auto h_v_map = calculate_uv_surface(mesh_3D, start_node, highest_mesh_creation + 1);
-        return h_v_map;
-    }
+
+     // Calculate uv_mesh_number based on the value of start_node_int
+    int uv_mesh_number = (start_node_int == 0) ? 0 : (highest_mesh_creation + 1);
+
+    const auto h_v_map = calculate_uv_surface(mesh_3D, start_node, uv_mesh_number);
+
+    return h_v_map;
 }
 
 
