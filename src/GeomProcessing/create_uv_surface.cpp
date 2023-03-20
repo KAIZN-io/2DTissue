@@ -466,7 +466,7 @@ std::vector<int64_t> calculate_uv_surface(
 }
 
 
-std::vector<int64_t> create_uv_surface(
+std::vector<int64_t> create_uv_surface_intern(
     std::string mesh_3D = "Ellipsoid",
     int32_t start_node_int = 0
 ){
@@ -490,13 +490,13 @@ std::vector<int64_t> create_uv_surface(
 }
 
 
-void call_julia_function(
+void create_uv_surface(
     jl_function_t* f,
     std::string mesh_3D = "Ellipsoid",
     int32_t start_node_int = 0
 ){
     // Get the data
-    auto v = create_uv_surface(mesh_3D, start_node_int);
+    auto v = create_uv_surface_intern(mesh_3D, start_node_int);
 
     // Get the mesh file path from the global struct
     auto mesh_file_path = meshmeta.mesh_path;
@@ -513,7 +513,7 @@ void call_julia_function(
 
 int main()
 {
-    create_uv_surface();
+    create_uv_surface_intern();
 
     return 0;
 }
@@ -523,7 +523,4 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
 {
     // Register a standard C++ function
     mod.method("create_uv_surface", create_uv_surface);
-
-    // Register a C++ function that calls a Julia function
-    mod.method("create_surface_new", call_julia_function);
 }

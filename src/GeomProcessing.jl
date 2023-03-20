@@ -3,6 +3,8 @@
 # license: Apache License 2.0
 # version: 0.1.0
 
+using CxxWrap
+
 ########################################################################################
 # GeomProcessing Functions
 ########################################################################################
@@ -12,6 +14,15 @@ struct Mesh_UV_Struct
     mesh_uv_name::GeometryBasics.Mesh
     h_v_mapping::Array{Int64,1}
 end
+
+
+struct TestStruct
+    h_v_data::Vector{Float64}
+    mesh_uv_path::AbstractString
+end
+
+
+test_dict = Dict{Int64, TestStruct}()
 
 
 module HeatMethod
@@ -26,7 +37,6 @@ module HeatMethod
     end
 end
 
-using CxxWrap
 
 module UVSurface
     using CxxWrap
@@ -37,15 +47,6 @@ module UVSurface
         @initcxx
     end
 end
-# result = UVSurface.create_uv_surface("Ellipsoid", 0)
-
-
-struct TestStruct
-    h_v_data::Vector{Float64}
-    mesh_uv_path::AbstractString
-end
-
-test_dict = Dict{Int64, TestStruct}()
 
 
 """
@@ -54,7 +55,7 @@ test_dict = Dict{Int64, TestStruct}()
 Zunächst tut es mir leid. Dieser Ansatz ist verwirrend und vlt. nicht das Beste
 ! Wichtig: diese Funktion wird eine C++ Funktion und kann deshalb nicht mehr so in Julia aufgerufen werden
 
-Allg.: Wir übergeben diese Funktion C++ 'create_surface_new' und füllen sie mit C++ Daten
+Allg.: Wir übergeben diese Funktion C++ 'create_uv_surface' und füllen sie mit C++ Daten
 In C++ gibt es 'jlcxx::JuliaFunction fnClb(f);'
 Mit jener C++ Funktion werden die Inputs unser hier definierten 'get_cpp_data_to_julia' Funktion gefüllt
 -> Ja, C++ bildet die Inputs für diese Julia Funktion, in der wir die Daten mit einer Julia Struktur in einem Dict speichern
@@ -64,6 +65,7 @@ function get_cpp_data_to_julia(v::Vector{Int64}, s::AbstractString)
     CxxWrap.gcprotect(s)
     GC.enable(true)
 
+    # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
     halfedge_vertices_mapping = Vector{Int64}()
     append!(halfedge_vertices_mapping, v)
     v = nothing
@@ -72,12 +74,6 @@ function get_cpp_data_to_julia(v::Vector{Int64}, s::AbstractString)
 
     test_dict[0] = TestStruct(halfedge_vertices_mapping, s)
 end
-
-
-UVSurface.create_surface_new(get_cpp_data_to_julia, "Ellipsoid", 0)
-test_dict[0].h_v_data
-test_dict[0].mesh_uv_path
-
 
 
 """
@@ -92,17 +88,15 @@ function init_uv_mesh(
     mesh_name::String="Ellipsoid",
     start_vertice::Int=0
 )
-    h_v_mapping = UVSurface.create_uv_surface("Ellipsoid", 0)
+    UVSurface.create_uv_surface(get_cpp_data_to_julia, "Ellipsoid", 0)
 
-    # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
-    halfedge_vertices_mapping = Vector{Int64}()
-    append!(halfedge_vertices_mapping, h_v_mapping)
-    h_v_mapping = nothing
+    halfedge_vertices_mapping = test_dict[0].h_v_data
+    mesh_file = test_dict[0].mesh_uv_path
 
     num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
     @info "mapped " num_vertices_mapped "vertices to 2D mesh"
 
-    mesh_loaded_uv = FileIO.load(joinpath(pwd(), "meshes", "Ellipsoid_uv.off"))  # planar equiareal parametrization
+    mesh_loaded_uv = FileIO.load(mesh_file)  # planar equiareal parametrization
 
     return mesh_loaded_uv, halfedge_vertices_mapping
 end
