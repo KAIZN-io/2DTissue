@@ -11,6 +11,9 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include "jlcxx/jlcxx.hpp"
+// #include "jlcxx/functions.hpp"
+// #include "jlcxx/stl.hpp"
 #include <list>
 #include <map>
 #include <sstream>
@@ -101,15 +104,6 @@ const fs::path SCRIPT_PATH = __FILE__;
 const fs::path PROJECT_FOLDER = SCRIPT_PATH.parent_path().parent_path().parent_path();
 const fs::path MESH_FOLDER = PROJECT_FOLDER / "meshes";
 const unsigned int PARAMETERIZATION_ITERATIONS = 9;
-
-
-struct HVMapAndPath {
-    JuliaArray h_v_map;
-    std::string uv_mesh_path;
-
-    HVMapAndPath(JuliaArray h_v_map, std::string uv_mesh_path)
-        : h_v_map(h_v_map), uv_mesh_path(uv_mesh_path) {}
-};
 
 
 /*
@@ -496,10 +490,21 @@ int main()
 }
 
 
-// make this function visible to Julia
 JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
 {
     // register a standard C++ function
     mod.method("create_uv_surface", create_uv_surface);
-}
 
+    mod.method("create_surface_new", [] (jl_function_t* f)
+    {
+        // get the data
+        std::vector<double> v{1., 2.};
+        auto ar = jlcxx::ArrayRef<double, 1>(v.data(), v.size());
+
+        // prepare to call the function definded in Julia
+        jlcxx::JuliaFunction fnClb(f);
+
+        // fill the Julia Function with the inputs
+        fnClb((jl_value_t*)ar.wrapped(), std::wstring(L"calledFromCPP"));
+    });
+}
