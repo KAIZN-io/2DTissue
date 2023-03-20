@@ -106,6 +106,14 @@ const fs::path MESH_FOLDER = PROJECT_FOLDER / "meshes";
 const unsigned int PARAMETERIZATION_ITERATIONS = 9;
 
 
+struct MeshMeta{
+    std::string mesh_path;
+};
+
+// Global Struct Object
+MeshMeta meshmeta;
+
+
 /*
 Function to extract the mesh name (without extension) from its file path
 */
@@ -203,7 +211,7 @@ int save_stl_as_off(
 }
 
 
-std::string save_uv_mesh(
+int save_uv_mesh(
     Mesh _mesh,
     halfedge_descriptor _bhd,
     UV_pmap _uvmap,
@@ -228,7 +236,10 @@ std::string save_uv_mesh(
     // Write the UV map to the output file
     SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
 
-    return output_file_path.string();
+    // Store the file path as a meta data
+    meshmeta.mesh_path = output_file_path.string();
+
+    return 0;
 }
 
 
@@ -447,11 +458,11 @@ std::vector<int64_t> calculate_uv_surface(
     SMP::Error_code err = perform_parameterization(mesh, bhd, uvmap);
 
     // Save the uv mesh
-    auto mesh_file_path = save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
+    save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
 
     const auto _h_v_map = create_halfedge_vertex_map(mesh, sm);
+
     return _h_v_map;
-    // return std::make_pair(mesh_file_path, _h_v_map);
 }
 
 
@@ -479,8 +490,6 @@ std::vector<int64_t> create_uv_surface(
 }
 
 
-// TODO: load the data into this function
-// change the return type of the functions above to a vector which gets std::pair()
 void call_julia_function(
     jl_function_t* f,
     std::string mesh_3D = "Ellipsoid",
@@ -488,8 +497,9 @@ void call_julia_function(
 ){
     // Get the data
     auto v = create_uv_surface(mesh_3D, start_node_int);
-    // std::string mesh_file_path = results.first;
-    // std::vector<int64_t> v_test = results.second;
+
+    // Get the mesh file path from the global struct
+    auto mesh_file_path = meshmeta.mesh_path;
 
     auto ar = jlcxx::ArrayRef<int64_t, 1>(v.data(), v.size());
 
@@ -497,7 +507,7 @@ void call_julia_function(
     jlcxx::JuliaFunction fnClb(f);
 
     // Fill the Julia Function with the inputs
-    fnClb((jl_value_t*)ar.wrapped(), std::string(mesh_3D));
+    fnClb((jl_value_t*)ar.wrapped(), std::string(mesh_file_path));
 }
 
 
