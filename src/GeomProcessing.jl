@@ -74,9 +74,9 @@ function get_cpp_data_to_julia(v::Vector{Float64}, s::AbstractString)
 end
 
 
-UVSurface.fn_clb2(get_cpp_data_to_julia)
-test_dict[2].h_v_data
-test_dict[2].mesh_uv_path
+UVSurface.create_surface_new(get_cpp_data_to_julia)
+test_dict[0].h_v_data
+test_dict[0].mesh_uv_path
 
 
 
