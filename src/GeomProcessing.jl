@@ -9,7 +9,7 @@
 
 struct Mesh_UV_Struct
     start_vertice_id::Int
-    mesh_uv::GeometryBasics.Mesh
+    mesh_uv_name::GeometryBasics.Mesh
     h_v_mapping::Array{Int64,1}
 end
 
@@ -26,6 +26,7 @@ module HeatMethod
     end
 end
 
+using CxxWrap
 
 module UVSurface
     using CxxWrap
@@ -38,24 +39,45 @@ module UVSurface
 end
 # result = UVSurface.create_uv_surface("Ellipsoid", 0)
 
-# module CppTypes
-#     using CxxWrap
 
-#     @wrapmodule(joinpath(pwd(), "build", "create_uv_surface"))
+struct TestStruct
+    h_v_data::Vector{Float64}
+    mesh_uv_path::AbstractString
+end
 
-#     function __init__()
-#         @initcxx
-#     end
-# end
+test_dict = Dict{Int64, TestStruct}()
 
-# foovec = Any[UVSurface.Foo(String("a"), [1.0, 2.0, 3.0]), UVSurface.Foo(String("b"), [11.0, 12.0, 13.0])] # Must be Any because of the boxing
 
-# # unit testing
-# @test UVSurface.name(foovec[1]) == "a"
-# @test UVSurface.data(foovec[1]) == [1.0, 2.0, 3.0]
-# @test UVSurface.name(foovec[2]) == "b"
-# @test UVSurface.data(foovec[2]) == [11.0, 12.0, 13.0]
-# UVSurface.print_foo_array(foovec)
+"""
+    get_cpp_data_to_julia(v::Vector{Float64}, s::AbstractString)
+
+Zunächst tut es mir leid. Dieser Ansatz ist verwirrend und vlt. nicht das Beste
+! Wichtig: diese Funktion wird eine C++ Funktion und kann deshalb nicht mehr so in Julia aufgerufen werden
+
+Allg.: Wir übergeben diese Funktion C++ 'create_surface_new' und füllen sie mit C++ Daten
+In C++ gibt es 'jlcxx::JuliaFunction fnClb(f);'
+Mit jener C++ Funktion werden die Inputs unser hier definierten 'get_cpp_data_to_julia' Funktion gefüllt
+-> Ja, C++ bildet die Inputs für diese Julia Funktion, in der wir die Daten mit einer Julia Struktur in einem Dict speichern
+-> Nachteil: wir können bei diesem Ansatz bisher C++ keine Inputs übergeben, wie z.B. 'mesh_uv_path' oder 'start_vertice_id'
+"""
+function get_cpp_data_to_julia(v::Vector{Float64}, s::AbstractString)
+    CxxWrap.gcprotect(s) # Not sure why this is needed, since s is protected in C++ using GC_PUSH
+    GC.enable(true)
+
+    halfedge_vertices_mapping = Vector{Float64}()
+    append!(halfedge_vertices_mapping, v)
+    v = nothing
+
+    GC.gc()
+
+    test_dict[0] = TestStruct(halfedge_vertices_mapping, s)
+end
+
+
+UVSurface.fn_clb2(get_cpp_data_to_julia)
+test_dict[2].h_v_data
+test_dict[2].mesh_uv_path
+
 
 
 """
@@ -245,62 +267,61 @@ end
 """
     find_face_neighbors(Faces, Faces_coord)
 
+Loop for to search all neighbours for each faces within a radius 
+"radius_search" centered around the isobarycenter of the face. 
+The face are considered within the radius if at least one of the
+vertex is within. radius_search = displacement of particle + distance
+between isobarcenter and verteces of face considered
+Search for faces around the particle before displacement in wich the
+cell could migrate. Only face with at least one vertex within the
+zone defined by the particle at its center and of radius r_dot*dt are
+candidates for projection
+
 Create index matrix of neighbour faces to each face
+
+Tested time (17 MAR 2023): 1.882993 seconds (326.76 k allocations: 8.210 GiB, 18.27% gc time)
 """
 function find_face_neighbors(Faces, Faces_coord)
-
-    # TODO: the column size '130' should be dynamically selected
-    face_neighbors = fill(NaN, length(Faces[:,1]), 130)  # matrix of neighbourg faces
-
+    num_faces = size(Faces, 1)
+    face_neighbors = Matrix{Union{Int, Missing}}(missing, num_faces, num_faces)    # matrix of neighbourg faces
     maximum_neighbour = 0  # maximumimum number of neighbourg faces
-    # % Loop for to search all neighbours for each faces within a radius 
-    # % "radius_search" centered around the isobarycenter of the face. 
-    # % The face are considered within the radius if at least one of the
-    # % vertex is within. radius_search = displacement of particle + distance
-    # % between isobarcenter and verteces of face considered
-    # Search for faces around the particle before displacement in wich the
-    # cell could migrate. Only face with at least one vertex within the
-    # zone defined by the particle at its center and of radius r_dot*dt are
-    # candidates for projection
 
-    for i = 1:length(Faces[:,1])
-        center_faces = [Faces_coord[i,1,1]+Faces_coord[i,2,1]+Faces_coord[i,3,1],
-            Faces_coord[i,1,2]+Faces_coord[i,2,2]+Faces_coord[i,3,2],
-            Faces_coord[i,1,3]+Faces_coord[i,2,3]+Faces_coord[i,3,3]
-            ]/3
+    for i = 1:num_faces
+        center_faces = vec(sum(Faces_coord[i, :, :], dims=1)') / 3
+        extra_dist = norm(Faces_coord[i, 1, :] .- center_faces)
 
-        extra_dist = sqrt((center_faces[1]-Faces_coord[i,1,1])^2+(center_faces[2]-Faces_coord[i,1,2])^2+(center_faces[3]-Faces_coord[i,1,3])^2)
+        # Set the search radius for neighboring faces
+        radius_search = extra_dist  # +dist_motion  # TODO: warum ist in dieser Gleichung dist_motion nicht definiert?
 
-        radius_search = extra_dist # +dist_motion  # TODO: warum ist in dieser Gleichung dist_motion nicht definiert?
-        Faces2center = Faces_coord - cat(center_faces[1]*ones(size(Faces)),
-            center_faces[2]*ones(size(Faces)),center_faces[3]*
-            ones(size(Faces)), dims=3)
+        # Calculate the vectors from the face centers to the center of the current face
+        Faces2center = Faces_coord .- reshape(center_faces, 1, 1, :)
 
-        # % Norm^2 vector all faces verteces to vertex 1 of this face
-        Faces2center = Faces2center[:,:,1].*Faces2center[:,:,1] + Faces2center[:,:,2].*Faces2center[:,:,2] + Faces2center[:,:,3].*Faces2center[:,:,3]
-        # assign the value zero if vertex too far form center
-        Faces2center[Faces2center.>radius_search^2] .= 0
-        # % Sum the distance of vertices for each faces
-        Faces2center = Faces2center[:,1]+Faces2center[:,2]+Faces2center[:,3]
-        # % Create coefficient matrix for neighbourg of center of considered face.
-        # % Only faces with non zero distances are valid.
-        index_row = find_nonzero_index(Faces2center)
+        Faces2center .^= 2  # Norm^2 vector all faces verteces to vertex 1 of this face
+        Faces2center = sum(Faces2center, dims=3)[:, :, 1]   # Sum the squared components to obtain squared distances
 
-        face_neighbors[i,1:length(index_row)] = index_row'
-        face_neighbors[i,1+length(index_row)] = i
+        # Assign the value zero if vertex too far form center
+        Faces2center[Faces2center .> radius_search^2] .= 0
 
-        if length(index_row)+1 > maximum_neighbour
-            maximum_neighbour = length(index_row)+1
+        # Sum the squared distance of vertices for each faces
+        Faces2center_sum = sum(Faces2center, dims=2)[:, 1]
+
+        # Create coefficient matrix for neighbourg of center of considered face.
+        # Only faces with non zero distances are valid.
+        index_row = find_nonzero_index(Faces2center_sum)
+
+        # Store the neighboring face indices in the face_neighbors array
+        face_neighbors[i, 1:length(index_row)] = index_row'
+        face_neighbors[i, 1 + length(index_row)] = i
+
+        # Update the maximum number of neighbors if necessary
+        if length(index_row) + 1 > maximum_neighbour
+            maximum_neighbour = length(index_row) + 1
         end
-
     end
 
-    face_neighbors[face_neighbors .== 0] .= NaN
-    face_neighbors = [isnan(val) ? NaN : Int(val) for val in face_neighbors]
-    face_neighbors = face_neighbors[:,1:maximum_neighbour]  # create a subset of the matrix
-
-    return face_neighbors
+    return face_neighbors[:, 1:maximum_neighbour]
 end
+
 
 """
     P_perp(a, b)
