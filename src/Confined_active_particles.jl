@@ -115,7 +115,7 @@ function active_particles_simulation(
     # Generate the 2D mesh and return a vector which indicates the mapping between halfedges and 3D vertices
     ########################################################################################
 
-    mesh_loaded_uv, halfedge_vertices_mapping = init_uv_mesh("Ellipsoid", 0)
+    mesh_loaded_uv, halfedge_vertices_mapping = create_uv_mesh("Ellipsoid", 0)
 
     # Store the mesh in a dictionary
     mesh_dict[0] = Mesh_UV_Struct(0, mesh_loaded_uv, halfedge_vertices_mapping)
@@ -149,22 +149,9 @@ function active_particles_simulation(
 
     splay_state_coord, splay_state_vertices = get_splay_state_vertices(mesh_loaded_uv, halfedges_uv)
 
-    # h_v_mapping_test = UVSurface.create_uv_surface("Ellipsoid", splay_state_vertices[4])
+    mesh_loaded_uv_test, halfedge_vertices_mapping_test = create_uv_mesh("Ellipsoid", splay_state_vertices[4])
 
-    # # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
-    # halfedge_vertices_mapping_test = Vector{Int64}()
-    # append!(halfedge_vertices_mapping_test, h_v_mapping_test)
-    # h_v_mapping_test = nothing
 
-    # mesh_loaded_uv_test = FileIO.load(joinpath(pwd(), "meshes", "Ellipsoid_uv_4.off"))  # planar equiareal parametrization
-
-    # # TODO: plot the splay_state_vertices[4] on the mesh_loaded_uv_test
-    # # get the coordinates of the vertices
-    # halfedges_uv_test = GeometryBasics.coordinates(mesh_loaded_uv_test) |> vec_of_vec_to_array  # return the vertices of the mesh    
-
-    # TODO: baue eine Funktion, mit der man von den 3D vertices auf die 2D halfedge kommt, denn nur die 3D sind konserviert
-    # mesh!(ax3, mesh_loaded_uv_test)
-    # meshscatter!(ax3, splay_state_coord, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
 
 
     ########################################################################################
@@ -228,7 +215,7 @@ function active_particles_simulation(
     ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
     ax1.title = "3D-Plot"
 
-    # ax2 = Makie.Axis(figure[1, 2])
+    ax2 = Makie.Axis(figure[2, 2]; aspect=(1))
     ax3 = Makie.Axis(figure[2, 1]; aspect=(1))  # NOTE: remove the aspect ratio to dynamically size the plot
     ax3.title = "UV-Plot"
     ax3.xlabel = "u"
@@ -237,7 +224,7 @@ function active_particles_simulation(
     colsize!(figure.layout, 1, Relative(2 / 3))
 
     mesh!(ax1, mesh_loaded)
-    # wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
+    wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
 
     mesh!(ax3, mesh_loaded_uv)
     wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
@@ -245,6 +232,13 @@ function active_particles_simulation(
     # Plot the particles
     meshscatter!(ax1, observe_r_3D, color = :black, markersize = 0.08)  # overgive the Observable the plotting function to TRACK it
     meshscatter!(ax3, observe_r, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
+
+    # TODO: baue eine Funktion, mit der man von den 3D vertices auf die 2D halfedge kommt, denn nur die 3D sind konserviert
+    # TODO: plot the splay_state_vertices[4] on the mesh_loaded_uv_test
+    # get the coordinates of the vertices
+    halfedges_uv_test = GeometryBasics.coordinates(mesh_loaded_uv_test) |> vec_of_vec_to_array  # return the vertices of the mesh
+    mesh!(ax2, mesh_loaded_uv_test)
+    meshscatter!(ax2, splay_state_coord, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
 
     # # NOTE: for a planar system it is more difficult to visualize the height of the vertices
     # arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)

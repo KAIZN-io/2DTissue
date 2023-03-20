@@ -84,11 +84,11 @@ end
 
 Creates a specific uv mesh based on the selected starting vertice
 """
-function init_uv_mesh(
+function create_uv_mesh(
     mesh_name::String="Ellipsoid",
     start_vertice::Int=0
 )
-    UVSurface.create_uv_surface(get_cpp_data_to_julia, "Ellipsoid", 0)
+    UVSurface.create_uv_surface(get_cpp_data_to_julia, mesh_name, start_vertice)
 
     halfedge_vertices_mapping = test_dict[0].h_v_data
     mesh_file = test_dict[0].mesh_uv_path
