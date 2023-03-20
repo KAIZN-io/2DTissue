@@ -61,7 +61,7 @@ Mit jener C++ Funktion werden die Inputs unser hier definierten 'get_cpp_data_to
 -> Nachteil: wir können bei diesem Ansatz bisher C++ keine Inputs übergeben, wie z.B. 'mesh_uv_path' oder 'start_vertice_id'
 """
 function get_cpp_data_to_julia(v::Vector{Float64}, s::AbstractString)
-    CxxWrap.gcprotect(s) # Not sure why this is needed, since s is protected in C++ using GC_PUSH
+    CxxWrap.gcprotect(s)
     GC.enable(true)
 
     halfedge_vertices_mapping = Vector{Float64}()
@@ -74,7 +74,7 @@ function get_cpp_data_to_julia(v::Vector{Float64}, s::AbstractString)
 end
 
 
-UVSurface.create_surface_new(get_cpp_data_to_julia)
+UVSurface.create_surface_new(get_cpp_data_to_julia, "Ellipsoid", 0)
 test_dict[0].h_v_data
 test_dict[0].mesh_uv_path
 

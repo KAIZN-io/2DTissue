@@ -104,9 +104,9 @@ function active_particles_simulation(
     observe_n = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized orientation of particles
     observe_nr_dot = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized velocity vector
     observe_nr_dot_cross = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized binormal vector of the plane normal to the orientation vector
-    observe_order = Makie.Observable(Vector{Float64}(undef, Int(num_step/plotstep)))
+    observe_order = Makie.Observable(Vector{Float64}(undef, Int(num_step / plotstep)))
 
-    Norm_vect = ones(num_part,3); # Initialisation of normal vector of each faces
+    Norm_vect = ones(num_part, 3) # Initialisation of normal vector of each faces
 
 
     ########################################################################################
@@ -131,7 +131,7 @@ function active_particles_simulation(
 
     # calculate normal vectors for each face
     for i in 1:size(faces_uv)[1]
-        N[i,:] = calculate_vertex_normals(faces_uv, halfedges_uv, i)
+        N[i, :] = calculate_vertex_normals(faces_uv, halfedges_uv, i)
     end
 
     # Sparse arrays are arrays that contain enough zeros that storing them in a special data structure leads to savings in space and execution time, compared to dense arrays.
@@ -174,14 +174,14 @@ function active_particles_simulation(
 
     # '$' is used for the Observable reference
     observe_vertice_3D = @lift begin
-        r = reduce(vcat,transpose.($observe_r))
+        r = reduce(vcat, transpose.($observe_r))
         vertice_3D_id = zeros(Int, num_part)
 
         # @threads for i in 1:num_part
         for i in 1:num_part
-            distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i,:]', dims=2))
+            distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
             halfedges_id = argmin(distances_to_h)
-            vertice_3D_id[i]  = halfedge_vertices_mapping[halfedges_id,:][1]
+            vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id, :][1]
         end
         vertice_3D_id
     end
@@ -294,6 +294,7 @@ end
 ########################################################################################
 
 
+# TODO: improve the performance of the function
 """
     init_particle_position(
     faces_uv::Array{Int,2},
@@ -309,6 +310,8 @@ end
 Julia supports parallel loops using the Threads.@threads macro. 
 This macro is affixed in front of a for loop to indicate to Julia that the loop is a multi-threaded region
 the order of assigning the values to the particles isn't important, so we can use parallel loops
+
+old tested time (17 MAR 2023): 22.900224 seconds (12.51 M allocations: 781.494 MiB, 0.28% gc time, 11.32% compilation time)
 """
 function init_particle_position(
     faces_uv::Array{Int,2},
@@ -813,10 +816,10 @@ function simulate_next_step(
     v_order = observe_order[] |> vec_of_vec_to_array
 
     # Step size
-    dt = 0.01*τ
+    dt = 0.01 * τ
 
     # Number of calculation between plot
-    plotstep = 0.1/dt
+    plotstep = 0.1 / dt
 
     # if loop to change forces and velocity after some time because in
     # first time steps, just repulsive force for homogeneisation of

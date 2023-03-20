@@ -482,6 +482,25 @@ JuliaArray create_uv_surface(
 }
 
 
+// TODO: load the data into this function
+// change the return type of the functions above to a vector which gets std::pair()
+void call_julia_function(
+    jl_function_t* f,
+    std::string mesh_3D = "Ellipsoid",
+    int32_t start_node_int = 0
+){
+    // Get the data
+    std::vector<double> v{1., 2.};
+    auto ar = jlcxx::ArrayRef<double, 1>(v.data(), v.size());
+
+    // Prepare to call the function defined in Julia
+    jlcxx::JuliaFunction fnClb(f);
+
+    // Fill the Julia Function with the inputs
+    fnClb((jl_value_t*)ar.wrapped(), std::string(mesh_3D));
+}
+
+
 int main()
 {
     create_uv_surface();
@@ -492,19 +511,9 @@ int main()
 
 JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
 {
-    // register a standard C++ function
+    // Register a standard C++ function
     mod.method("create_uv_surface", create_uv_surface);
 
-    mod.method("create_surface_new", [] (jl_function_t* f)
-    {
-        // get the data
-        std::vector<double> v{1., 2.};
-        auto ar = jlcxx::ArrayRef<double, 1>(v.data(), v.size());
-
-        // prepare to call the function definded in Julia
-        jlcxx::JuliaFunction fnClb(f);
-
-        // fill the Julia Function with the inputs
-        fnClb((jl_value_t*)ar.wrapped(), std::wstring(L"calledFromCPP"));
-    });
+    // Register a C++ function that calls a Julia function
+    mod.method("create_surface_new", call_julia_function);
 }
