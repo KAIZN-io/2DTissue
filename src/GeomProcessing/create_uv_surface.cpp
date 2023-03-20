@@ -240,7 +240,7 @@ Logic:
     3. For a straight cut line: every halfedge h has exactly one opposite halfedge h' (opposite(h, mesh) = h')
         -> thats why we only need to go half the way around the seam edges
 */
-JuliaArray create_halfedge_vertex_map(
+std::vector<int64_t> create_halfedge_vertex_map(
     const Mesh& mesh,
     const SurfaceMesh& sm
 ){
@@ -253,10 +253,7 @@ JuliaArray create_halfedge_vertex_map(
 
     std::cout << "size of halfedge_vertex_map = " << halfedge_vertex_map.size() << std::endl;
 
-    // The ArrayRef type is provided to work conveniently with array data from Julia.
-    const auto _h_v_map = JuliaArray(halfedge_vertex_map.data(), halfedge_vertex_map.size());
-
-    return _h_v_map;
+    return halfedge_vertex_map;
 }
 
 
@@ -422,7 +419,7 @@ SMP::Error_code perform_parameterization(
 }
 
 
-JuliaArray calculate_uv_surface(
+std::vector<int64_t> calculate_uv_surface(
     const std::string& mesh_3D,
     my_vertex_descriptor start_node,
     int uv_mesh_number
@@ -453,12 +450,12 @@ JuliaArray calculate_uv_surface(
     auto mesh_file_path = save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
 
     const auto _h_v_map = create_halfedge_vertex_map(mesh, sm);
-
     return _h_v_map;
+    // return std::make_pair(mesh_file_path, _h_v_map);
 }
 
 
-JuliaArray create_uv_surface(
+std::vector<int64_t> create_uv_surface(
     std::string mesh_3D = "Ellipsoid",
     int32_t start_node_int = 0
 ){
@@ -476,9 +473,9 @@ JuliaArray create_uv_surface(
      // Calculate uv_mesh_number based on the value of start_node_int
     int uv_mesh_number = (start_node_int == 0) ? 0 : (highest_mesh_creation + 1);
 
-    const auto h_v_map = calculate_uv_surface(mesh_3D, start_node, uv_mesh_number);
+    const auto results = calculate_uv_surface(mesh_3D, start_node, uv_mesh_number);
 
-    return h_v_map;
+    return results;
 }
 
 
@@ -490,8 +487,11 @@ void call_julia_function(
     int32_t start_node_int = 0
 ){
     // Get the data
-    std::vector<double> v{1., 2.};
-    auto ar = jlcxx::ArrayRef<double, 1>(v.data(), v.size());
+    auto v = create_uv_surface(mesh_3D, start_node_int);
+    // std::string mesh_file_path = results.first;
+    // std::vector<int64_t> v_test = results.second;
+
+    auto ar = jlcxx::ArrayRef<int64_t, 1>(v.data(), v.size());
 
     // Prepare to call the function defined in Julia
     jlcxx::JuliaFunction fnClb(f);

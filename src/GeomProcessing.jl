@@ -49,7 +49,7 @@ test_dict = Dict{Int64, TestStruct}()
 
 
 """
-    get_cpp_data_to_julia(v::Vector{Float64}, s::AbstractString)
+    get_cpp_data_to_julia(v::Vector{Int64}, s::AbstractString)
 
 Zunächst tut es mir leid. Dieser Ansatz ist verwirrend und vlt. nicht das Beste
 ! Wichtig: diese Funktion wird eine C++ Funktion und kann deshalb nicht mehr so in Julia aufgerufen werden
@@ -60,11 +60,11 @@ Mit jener C++ Funktion werden die Inputs unser hier definierten 'get_cpp_data_to
 -> Ja, C++ bildet die Inputs für diese Julia Funktion, in der wir die Daten mit einer Julia Struktur in einem Dict speichern
 -> Nachteil: wir können bei diesem Ansatz bisher C++ keine Inputs übergeben, wie z.B. 'mesh_uv_path' oder 'start_vertice_id'
 """
-function get_cpp_data_to_julia(v::Vector{Float64}, s::AbstractString)
+function get_cpp_data_to_julia(v::Vector{Int64}, s::AbstractString)
     CxxWrap.gcprotect(s)
     GC.enable(true)
 
-    halfedge_vertices_mapping = Vector{Float64}()
+    halfedge_vertices_mapping = Vector{Int64}()
     append!(halfedge_vertices_mapping, v)
     v = nothing
 
