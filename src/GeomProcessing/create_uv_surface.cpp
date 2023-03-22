@@ -411,8 +411,8 @@ SMP::Error_code perform_parameterization(
     UV_pmap& uvmap
 ){
     // Choose the border type of the uv parametrisation: Circular or Square
-    using Border_parameterizer = SMP::Circular_border_arc_length_parameterizer_3<Mesh>;
-    // using Border_parameterizer = SMP::Square_border_uniform_parameterizer_3<Mesh>;
+    // using Border_parameterizer = SMP::Circular_border_arc_length_parameterizer_3<Mesh>;
+    using Border_parameterizer = SMP::Square_border_uniform_parameterizer_3<Mesh>;
     Border_parameterizer border_parameterizer;
 
     // Iterative Authalic Parameterization:

@@ -11,7 +11,7 @@ using CxxWrap
 
 struct Mesh_UV_Struct
     start_vertice_id::Int
-    mesh_uv_name::GeometryBasics.Mesh
+    mesh_uv_name::GeometryBasics.Mesh  # rename to mesh_uv
     h_v_mapping::Array{Int64,1}
 end
 
@@ -120,6 +120,62 @@ end
 
 
 """
+    get_first_uv_halfedge_from_3D_vertice_id(
+    _vertice_3D_id,
+    _halfedge_vertices_mapping
+)
+
+(vertice_3D_id -> halfedge_id) mapping
+"""
+function get_first_uv_halfedge_from_3D_vertice_id(
+    _vertice_3D_id,
+    _halfedge_vertices_mapping
+)
+    halfedge_id = zeros(Int, length(_vertice_3D_id))
+
+    for i in 1:length(_vertice_3D_id)
+        halfedge_id[i] = findfirst(_halfedge_vertices_mapping .== _vertice_3D_id[i])
+    end
+
+    return halfedge_id
+end
+
+
+"""
+    get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
+
+(halfedge_id -> r[]) mapping
+"""
+function get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
+    halfedge_uv_coord = halfedges_uv_test[halfedge_id, :]
+
+    return halfedge_uv_coord
+end
+
+
+"""
+    map_uv_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D)
+
+(halfedges -> vertice_3D_id) mapping
+"""
+function map_uv_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D)
+    _num_part = size(r_3D[], 1)
+    vertice_3D_id = zeros(Int, _num_part)
+
+    for i=1:_num_part
+        vertice_id = halfedge_vertices_mapping[halfedges_id[i], :]
+        vertice_3D_id[i] = vertice_id[1]
+        # # TODO: improve this: get the face from the vertice_id 
+        # face_ids = findall(x->x==vertice_id[1], faces_3D)
+        # face_id_choosen = face_ids[1][1]
+        # r_3D[i, :] = vertices_3D[vertice_id, :]
+    end
+
+    return vertice_3D_id
+end
+
+
+"""
     find_border_edges(mesh)
 
 Assuming that you have a manifold mesh, then the border of the mesh are those edges which belong to only one polygon.
@@ -212,49 +268,6 @@ function get_nearest_uv_halfedges(r, halfedges_uv, num_part)
     end
 
     return halfedge_vec
-end
-
-
-"""
-    map_uv_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
-
-(halfedges -> r_3D[]) mapping
-"""
-function map_uv_halfedges_to_3D(halfedges_id, halfedge_vertices_mapping, r_3D, vertices_3D, num_part)
-    vertice_3D_id = zeros(Int, num_part)
-
-    for i=1:num_part
-        vertice_id = halfedge_vertices_mapping[halfedges_id[i],:]
-        vertice_3D_id[i] = vertice_id[1]
-        # # TODO: improve this: get the face from the vertice_id 
-        # face_ids = findall(x->x==vertice_id[1], faces_3D)
-        # face_id_choosen = face_ids[1][1]
-        r_3D[i,:] = vertices_3D[vertice_id, :]
-    end
-
-    return r_3D, vertice_3D_id
-end
-
-
-"""
-    get_first_uv_halfedge_from_3D_vertice_id(
-    _vertice_3D_id,
-    _halfedge_vertices_mapping
-)
-
-(vertice_3D_id -> halfedges) mapping
-"""
-function get_first_uv_halfedge_from_3D_vertice_id(
-    _vertice_3D_id,
-    _halfedge_vertices_mapping
-)
-    halfedge_id = zeros(Int, length(_vertice_3D_id))
-
-    for i in 1:length(_vertice_3D_id)
-        halfedge_id[i] = findfirst(_halfedge_vertices_mapping .== _vertice_3D_id[i])
-    end
-
-    return halfedge_id
 end
 
 
