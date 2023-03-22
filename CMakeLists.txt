@@ -16,37 +16,16 @@ set(CMAKE_MACOSX_RPATH 1)
 # Set library output directory
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
-# Add the installation prefix of "JlCxx" to CMAKE_PREFIX_PATH
-list(APPEND CMAKE_PREFIX_PATH "${HOME}/.julia/artifacts/434257acf70ce7407e3946f2c8452e814d7cca64")
-
-# Find CGAL and required components
+# Find required packages
 find_package(CGAL 5.5.1 REQUIRED)
-
-# Include here your dependend libraries (e.g. CGAL, Eigen, Boost, etc.)
 find_package(Boost 1.80.0 REQUIRED)
-
-if(NOT Boost_FOUND)
-  message(
-    STATUS "This project requires the Boost library, and will not be compiled."
-    )
-  return()
-endif()
-
-# Find Eigen
 find_package(Eigen3 3.4.0 REQUIRED)
-
-include(CGAL_Eigen3_support)
-
-if(NOT TARGET CGAL::Eigen3_support)
-  message(
-    STATUS
-      "This project requires the Eigen library (3.3 or greater), and will not be compiled."
-  )
-  return()
-endif()
-
-# Find JlCxx
 find_package(JlCxx REQUIRED)
+
+# Check if Boost is found
+if(NOT Boost_FOUND)
+  message(FATAL_ERROR "This project requires the Boost library, and will not be compiled.")
+endif()
 
 # Get JlCxx location and set install RPATH
 get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)
@@ -54,8 +33,9 @@ get_filename_component(JlCxx_location ${JlCxx_location} DIRECTORY)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_location}")
 message(STATUS "Found JlCxx at ${JlCxx_location}")
 
-# Include local header files
+# Include directories for local header files
 include_directories("${PROJECT_DIR}/include")
+include(CGAL_Eigen3_support)
 
 
 # ##########################################################
@@ -66,13 +46,15 @@ include_directories("${PROJECT_DIR}/include")
 
 # Add C++ source files
 create_single_source_cgal_program("src/GeomProcessing/geodesic_distance.cpp")
-target_link_libraries(geodesic_distance PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 create_single_source_cgal_program("src/GeomProcessing/create_uv_surface.cpp")
-target_link_libraries(create_uv_surface PUBLIC CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
+
+# Link required libraries to the targets
+target_link_libraries(geodesic_distance PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
+target_link_libraries(create_uv_surface PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 
 # Install the target
 install(TARGETS geodesic_distance create_uv_surface
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION lib
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
 )

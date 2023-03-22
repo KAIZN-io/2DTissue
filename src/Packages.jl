@@ -10,6 +10,7 @@ using LinearAlgebra
 using Base.Threads
 using Logging
 using LinearAlgebra, SparseArrays
+using DataFrames
 
 GLMakie.activate!()
 GLMakie.set_window_config!(
