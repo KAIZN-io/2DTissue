@@ -331,6 +331,37 @@ end
 
 
 """
+    fill_distance_matrix(distance_matrix::SparseMatrixCSC, closest_vertice::Int64)
+
+Heat Method developed by Keenan Crane (http://doi.acm.org/10.1145/3131280)
+
+(r_3D[] -> distance_matrix)
+
+closest 3D vertice to particle x
+particle 1 -> vertice 1
+particle 2 -> vertice 3
+particle 3 -> vertice 5
+...
+
+fill the distance matrix in-time
+that means that we solve the Heat Method from vertice X to all other vertices if a particle is on vertice X
+if a particle already was on vertice X, we don't need to solve the Heat Method again, because we already have the distance matrix
+after some time we complete the holes in the distance matrix
+with this approach we also get an indication which node where never visited by a particle.
+
+we only need to check the sum of two rows, because for each row only 1 value is allowed to be zero
+
+"""
+function fill_distance_matrix(distance_matrix::SparseMatrixCSC, closest_vertice::Int64)
+    if sum(distance_matrix[closest_vertice, 1:2]) == 0
+        vertices_3D_distance_map = HeatMethod.geo_distance(closest_vertice)  # get the distance of all vertices to all other vertices
+        distance_matrix[closest_vertice, :] = vertices_3D_distance_map  # fill the distance matrix
+    end
+    return distance_matrix
+end
+
+
+"""
     P_perp(a, b)
 
 Define perpendicular projection functions, adapted from "PhysRevE 91 022306"
@@ -338,4 +369,109 @@ P_perp does a normal projection of the vector b on the plane normal to a
 """
 function P_perp(a, b)
     return (b-(sum(b.*a,dims=2)./(sqrt.(sum(a.^2,dims=2)).^2)*ones(1,3)).*a)
+end
+
+
+"""
+    get_face_in_and_out(particle, face_coord_temp)
+
+"""
+function get_face_in_and_out(particle, face_coord_temp)
+
+    # Check what face in which the projection is
+    p1p2 = reshape(face_coord_temp[:,2,:]-face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
+    p1p3 = reshape(face_coord_temp[:,3,:]-face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
+    p1p0 = particle - reshape(face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
+    p1p3crossp1p2 = [p1p3[:,2].*p1p2[:,3]-p1p3[:,3].*p1p2[:,2],-p1p3[:,1].*p1p2[:,3]+p1p3[:,3].*p1p2[:,1],p1p3[:,1].*p1p2[:,2]-p1p3[:,2].*p1p2[:,1]] |> vec_of_vec_to_array |> Transpose
+    p1p3crossp1p0 = [p1p3[:,2].*p1p0[:,3]-p1p3[:,3].*p1p0[:,2],-p1p3[:,1].*p1p0[:,3]+p1p3[:,3].*p1p0[:,1],p1p3[:,1].*p1p0[:,2]-p1p3[:,2].*p1p0[:,1]] |> vec_of_vec_to_array |> Transpose
+    p1p2crossp1p0 = [p1p2[:,2].*p1p0[:,3]-p1p2[:,3].*p1p0[:,2],-p1p2[:,1].*p1p0[:,3]+p1p2[:,3].*p1p0[:,1],p1p2[:,1].*p1p0[:,2]-p1p2[:,2].*p1p0[:,1]] |> vec_of_vec_to_array |> Transpose
+    p1p2crossp1p3 = [p1p2[:,2].*p1p3[:,3]-p1p2[:,3].*p1p3[:,2],-p1p2[:,1].*p1p3[:,3]+p1p2[:,3].*p1p3[:,1],p1p2[:,1].*p1p3[:,2]-p1p2[:,2].*p1p3[:,1]] |> vec_of_vec_to_array |> Transpose
+
+    len_p1p3crossp1p2 = length(p1p3crossp1p2[:,1])
+
+    # "index_face_out" are the row index(es) of face_coord_temp in which a
+    # particle cannot be projected. 
+    # "index_binary(index_face_in)" are the faces number(s) in which the 
+    # particle cannot be projected
+    index_face_out = (sum(p1p3crossp1p0.*p1p3crossp1p2,dims=2).<0) .|
+        (sum(p1p2crossp1p0.*p1p2crossp1p3,dims=2).<0) .|
+        ((sqrt.(sum(p1p3crossp1p0.^2,dims=2))+sqrt.(sum(p1p2crossp1p0.^2,dims=2)))./
+        sqrt.(sum(p1p2crossp1p3.^2,dims=2)) .> 1) |> Array |> findall 
+    index_face_out= first.(Tuple.(index_face_out))
+
+    # % "index_face_in" are the row index(es) of face_coord_temp in which a
+    # % particle can be projected. 
+    # "index_binary(index_face_in)" are the faces number(s) in which the 
+    # particle can be projected
+    index_face_in = setdiff(reshape([1:len_p1p3crossp1p2;], :, 1), index_face_out)  # Note: links muss die vollständige Liste stehen!
+
+    return index_face_in, index_face_out
+end 
+
+
+"""
+    get_index_binary(_Dist2faces::Array)
+
+Faces with closest point to r(i,:) and associated normal vectors
+Finds the neighbour faces of the particle i
+"""
+function get_index_binary(_Dist2faces::Array)
+    return first.(Tuple.(sum(findall(x->x==minimum(_Dist2faces), _Dist2faces), dims=2)))
+end
+
+
+"""
+    calculcate_norm_vector(_Faces_coord, _N, _r, _i)
+
+"""
+function calculcate_norm_vector(_Faces_coord, _N, _r, _i)
+    # Vector of particle to faces
+    face_coord_temp = _Faces_coord - cat(ones(size(_Faces_coord[:,:,3]))*_r[_i,1],
+        ones(size(_Faces_coord[:,:,3]))*_r[_i,2],
+        ones(size(_Faces_coord[:,:,3]))*_r[_i,3],
+        dims=3)
+
+    # Distance of particle to faces
+    Dist2faces = sqrt.(sum(face_coord_temp.^2,dims=3)[:,:,1])   # ! Check if it shouldnt be  sqrt.(sum(face_coord_temp.^2,dims=3))[:,:,1]
+
+    # Faces with closest point to r[i,:] and associated normal vectors
+    index_binary = get_index_binary(Dist2faces)
+    face_coord_temp = _Faces_coord[index_binary,:,:]
+    N_temp = _N[index_binary,:]
+
+    A = zeros(size(face_coord_temp, 1), 3)
+    A .= _r[_i,:]'
+    index_face_in, index_face_out = get_face_in_and_out(A , face_coord_temp)
+
+    return update_norm_vect!(N_temp, index_face_in, index_face_out, _i)
+end
+
+
+"""
+    update_norm_vect!(
+    N_temp,
+    index_face_in,
+    index_face_out,
+    i
+)
+
+"""
+function update_norm_vect!(
+    N_temp,
+    index_face_in,
+    index_face_out,
+    i
+)
+    # If the projections are in no face, take the average projection and
+    # normal vectors. Save the faces number used
+    if isempty(index_face_in) == 1
+        return mean(N_temp[index_face_out,:],dims=1)
+
+    # If the projections are in a face, save its number, normal vector and
+    # projected point
+    else
+        index_face_in = index_face_in[1]  # because first particle can be
+        # projected in different faces in this initial projection
+        return N_temp[index_face_in,:]
+    end
 end

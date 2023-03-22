@@ -8,6 +8,34 @@
 ########################################################################################
 
 """
+    normalize_3D_matrix(A)
+
+Normalize a 3D matrix A by dividing each row by its norm
+"""
+function normalize_3D_matrix(A)
+    return sqrt.(sum(A .^ 2, dims=2)) * ones(1, 3)
+end
+
+
+"""
+    calculate_3D_cross_product(A, B)
+
+Column based cross product of two 3D matrices A and B
+"""
+function calculate_3D_cross_product(A, B)
+    num_rows = size(A, 1)
+    new_A = similar(A)  # Preallocate output matrix with the same size and type as A
+
+    # Compute cross product for each row and directly assign the result to the output matrix
+    for i in 1:num_rows
+        new_A[i, :] = cross(A[i, :], B[i, :])
+    end
+
+    return new_A
+end
+
+
+"""
     find_nonzero_index(c::Array)
 
 """
