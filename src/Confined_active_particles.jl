@@ -21,14 +21,14 @@ Erfolg gegenüber 3D Simulation:
 - Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
 """
 
-include("Packages.jl")
-include("Basic.jl")
-include("GeomProcessing.jl")
-include("SoftCondMatter.jl")
-# include("src/Packages.jl")
-# include("src/Basic.jl")
-# include("src/GeomProcessing.jl")
-# include("src/SoftCondMatter.jl")
+# include("Packages.jl")
+# include("Basic.jl")
+# include("GeomProcessing.jl")
+# include("SoftCondMatter.jl")
+include("src/Packages.jl")
+include("src/Basic.jl")
+include("src/GeomProcessing.jl")
+include("src/SoftCondMatter.jl")
 
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
@@ -345,56 +345,35 @@ end
 
 
 """
-    get_distances_between_particles(r, distance_matrix, vertice_3D_id, num_part)
+    calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh, Norm_vect)
 
+Calculate particle velocity r_dot each particle
+Tested time (23 MAR 2023): 0.035065 seconds (105.86 k allocations: 5.359 MiB, 99.63% compilation time)
 """
-function get_distances_between_particles(r, distance_matrix, vertice_3D_id, num_part)
-    # % Vector between all particles (1->2; 1->3; 1->4;... 641->1; 641->2;
-    # % 641->3; 641->4;...641->640...)
-    dist_vect = cat(dims=3,
-        r[:,1]*ones(1,num_part)-ones(num_part,1)*r[:,1]',
-        r[:,2]*ones(1,num_part)-ones(num_part,1)*r[:,2]',
-        r[:,3]*ones(1,num_part)-ones(num_part,1)*r[:,3]'
-        )
+function calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh, Norm_vect)
 
-    # get the distances from the distance matrix
-    dist_length = zeros(num_part, num_part)
+    # calculate the force between particles
+    F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh)
 
-    # ! BUG: it is interesting that using the heat method the distance from a -> b is not the same as b -> a
-    for i in 1:num_part
-        for j in 1:num_part
-            dist_length[i, j] = distance_matrix[vertice_3D_id[i], vertice_3D_id[j]]
-        end
-    end
-    dist_length[diagind(dist_length)] .= 0.0
+    # velocity of each particle
+    r_dot = P_perp(Norm_vect, v0 .* n + μ .* F_track)
+    r_dot[:, 3] .= 0.0
 
-    return dist_vect, dist_length
+    return r_dot
 end
 
 
 """
-    calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
+    calculate_next_position!(r, r_dot, dt)
 
-Calculate particle velocity r_dot and the next position r_new of each particle
+Calculate next position r_new of each particle
+Tested time (23 MAR 2023): 0.018505 seconds (82.48 k allocations: 4.260 MiB, 99.73% compilation time)
 """
-function calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
-
-    F_track = calculate_forces_between_particles(
-        dist_vect,
-        dist_length,
-        k,
-        σ,
-        r_adh,
-        k_adh
-    )  # calculate the force between particles
-
-    r_dot = P_perp(Norm_vect, v0 .* n + μ .* F_track)  # velocity of each particle
-    r_dot[:, 3] .= 0.0
-
+function calculate_next_position!(r, r_dot, dt)
     r_new = r + r_dot * dt
     r_new[:, 3] .= 0.0
 
-    return r_new, r_dot
+    return r_new
 end
 
 
@@ -416,6 +395,90 @@ function calculate_particle_vectors!(r_dot, n, dt, τ, Norm_vect)
     nr_dot_cross = cross_Nrdot ./ normalize_3D_matrix(cross_Nrdot)
 
     return n, nr_dot, nr_dot_cross
+end
+
+
+"""
+    get_distances_between_particles(r, distance_matrix, vertice_3D_id)
+
+Calculate the distance between particles
+Tested time (23 MAR 2023): 0.039087 seconds (113.86 k allocations: 5.716 MiB, 99.36% compilation time)
+"""
+function get_distances_between_particles(r, distance_matrix, vertice_3D_id)
+    num_part = size(r, 1)
+
+    # Get the distances from the distance matrix
+    dist_length = zeros(num_part, num_part)
+
+    # ! BUG: it is interesting that using the heat method the distance from a -> b is not the same as b -> a
+    for i in 1:num_part
+        for j in 1:num_part
+            dist_length[i, j] = distance_matrix[vertice_3D_id[i], vertice_3D_id[j]]
+        end
+    end
+
+    # Set the diagonal elements to 0.0
+    dist_length[diagind(dist_length)] .= 0.0
+
+    return dist_length
+end
+
+
+"""
+    get_dist_vect(r)
+
+Vector between all particles (1->2; 1->3; 1->4;... 641->1; 641->2; ...)
+Tested time (23 MAR 2023): 0.066948 seconds (95.49 k allocations: 3.738 MiB, 99.83% compilation time)
+"""
+function get_dist_vect(r)
+    dist_x = r[:, 1] .- r[:, 1]'
+    dist_y = r[:, 2] .- r[:, 2]'
+    dist_z = r[:, 3] .- r[:, 3]'
+
+    dist_vect = cat(dist_x, dist_y, dist_z, dims=3)
+
+    return dist_vect
+end
+
+
+"""
+    simulation_next_flight(r, n, vertices_3D_active, distance_matrix, Norm_vect, v0, k, σ, μ, r_adh, k_adh, dt)
+
+Tested time (23 MAR 2023): 0.103998 seconds (341.54 k allocations: 21.242 MiB, 99.31% compilation time)
+"""
+function simulation_next_flight(r, n, vertices_3D_active, distance_matrix, Norm_vect, v0, k, σ, μ, r_adh, k_adh, dt)
+    dist_vect = get_dist_vect(r)
+    dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active)
+    
+    # calculate the next position and velocity of each particle based on the distances
+    r_dot = calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh, Norm_vect)
+    r_new = calculate_next_position!(r, r_dot, dt)
+
+    return r_new, r_dot, dist_length
+end
+
+
+"""
+    flight_simulation(r, n, vertices_3D_active, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+
+tested time (23 MAR 2023):
+"""
+function flight_simulation(r, n, vertices_3D_active, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    # if loop to change forces and velocity after some time because in
+    # first time steps, just repulsive force for homogeneisation of
+    # particle repartition
+    if tt > 500
+        v0 = v0_next
+        k = k_next
+    end
+
+    for i in 1:size(r,1)
+        distance_matrix = fill_distance_matrix(distance_matrix, vertices_3D_active[i])
+    end
+
+    r_new, r_dot, dist_length = simulation_next_flight(r, n, vertices_3D_active, distance_matrix, Norm_vect, v0, k, σ, μ, r_adh, k_adh, dt)
+
+    return r_new, r_dot, dist_length, distance_matrix
 end
 
 
@@ -482,13 +545,11 @@ function simulate_next_step(
     n = observe_n[] |> vec_of_vec_to_array
     vertices_3D_active = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
 
-    r_new, r_dot, dist_length, dist_vect, distance_matrix = flight_simulation(r, n, vertices_3D_active, num_part, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    r_new, r_dot, dist_length, distance_matrix = flight_simulation(r, n, vertices_3D_active, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
 
-    bool_inside_mesh = zeros(Bool, size(r, 1))
+    df = DataFrame(old_id=vertices_3D_active, next_id=observe_active_vertice_3D_id[], valid=zeros(Bool, size(r, 1)), uv_mesh_id=0)
 
-    df = DataFrame(old_id=vertices_3D_active, next_id=observe_active_vertice_3D_id[], valid=bool_inside_mesh, uv_mesh_id=0)
-
-    vertice_id = get_vertice_id(r, num_part, halfedges_uv, Int.(halfedge_vertices_mapping))
+    vertice_id = get_vertice_id(r, halfedges_uv, Int.(halfedge_vertices_mapping))
 
     df = check_validity(r_new, df, vertice_id, 0)
 
@@ -537,45 +598,28 @@ function simulate_next_step(
 end
 
 
-function simulation_next_flight(r, n, vertices_3D_active, num_part, distance_matrix, Norm_vect, v0, k, σ, μ, r_adh, k_adh, dt)
-    # calculate the distance between particles
-    dist_vect, dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active, num_part)
+"""
+    get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
 
-    # calculate the next position and velocity of each particle based on the distances
-    r_new, r_dot = calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
+Tested time (23 MAR 2023): 0.070025 seconds (611.69 k allocations: 45.447 MiB, 69.37% compilation time)
+"""
+function get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+    num_r = size(r, 1)
+    vertice_3D_id = Vector{Int}(undef, num_r)
 
-    return r_new, r_dot, dist_length, dist_vect
-end
+    for i in 1:num_r
+        min_distance = Inf
+        halfedges_id = 0
 
+        for j in 1:size(halfedges_uv, 1)
+            distance = norm(halfedges_uv[j, :] .- r[i, :])
+            if distance < min_distance
+                min_distance = distance
+                halfedges_id = j
+            end
+        end
 
-function flight_simulation(r, n, vertices_3D_active, num_part, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-    # if loop to change forces and velocity after some time because in
-    # first time steps, just repulsive force for homogeneisation of
-    # particle repartition
-    if tt > 500
-        v0 = v0_next
-        k = k_next
-    end
-
-    for i in 1:size(r,1)
-        distance_matrix = fill_distance_matrix(distance_matrix, vertices_3D_active[i])
-    end
-
-    r_new, r_dot, dist_length, dist_vect = simulation_next_flight(r, n, vertices_3D_active, num_part, distance_matrix, Norm_vect, v0, k, σ, μ, r_adh, k_adh, dt)
-    
-    return r_new, r_dot, dist_length, dist_vect, distance_matrix
-end
-
-
-function get_vertice_id(r, num_part, halfedges_uv_test, halfedge_vertices_mapping)
-
-    vertice_3D_id = zeros(Int, num_part)
-
-    # @threads for i in 1:num_part
-    for i in 1:num_part
-        distances_to_h = vec(mapslices(norm, halfedges_uv_test .- r[i, :]', dims=2))
-        halfedges_id = argmin(distances_to_h)
-        vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id, :][1]
+        vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id]
     end
 
     return vertice_3D_id
@@ -602,7 +646,7 @@ end
 
 
 function update_dataframe(df, particle, r_new2, old_id, num_part, halfedges_uv_test, halfedge_vertices_mapping_test)
-    vertice_id = get_vertice_id(r_new2, num_part, halfedges_uv_test, Int.(halfedge_vertices_mapping_test))
+    vertice_id = get_vertice_id(r_new2, halfedges_uv_test, Int.(halfedge_vertices_mapping_test))
     df = check_validity(r_new2, df, vertice_id, old_id)
     return df
 end
@@ -622,7 +666,7 @@ function process_invalid_particle(df, particle, num_part, distance_matrix, Norm_
     r_active = get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
 
     # Simulate the flight of the particle
-    r_new2, r_dot2, dist_length2, dist_vect2, distance_matrix = flight_simulation(r_active, n, df.old_id, num_part, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    r_new2, r_dot2, dist_length2, distance_matrix = flight_simulation(r_active, n, df.old_id, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
 
     df = update_dataframe(df, particle, r_new2, old_id, num_part, halfedges_uv_test, halfedge_vertices_mapping_test)
 
