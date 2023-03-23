@@ -47,6 +47,7 @@
 // Surface Parameterization Methods
 #include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_authalic_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
@@ -419,14 +420,16 @@ SMP::Error_code perform_parameterization(
     // from https://doi.org/10.1109/ICCVW.2019.00508
     // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
     // meaning that it aims to Minimize Area Distortion between the input surface mesh and the parameterized output.
-    using Parameterizer = SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer>;
-    Parameterizer parameterizer(border_parameterizer);
+    // using Parameterizer = SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer>;
 
-    // Other parameterization algorithms:
-    // using Parameterizer = SMP::Discrete_authalic_parameterizer_3<Mesh, Border_parameterizer>;
-    // using Parameterizer = SMP::Mean_value_coordinates_parameterizer_3<Mesh, Border_parameterizer>;
+    // Parameterizer parameterizer(border_parameterizer);
+    // return parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
 
-    return parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
+    // Minimize Angle Distortion
+    // from https://doi.org/10.1145/218380.218440
+    using Parameterizer = SMP::Discrete_conformal_map_parameterizer_3<Mesh, Border_parameterizer>;
+
+    return SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 }
 
 
