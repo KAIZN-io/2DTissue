@@ -127,7 +127,6 @@ std::string get_mesh_name(
     // Use the stem() function to get the mesh name without the extension
     std::string mesh_name = path.stem().string();
 
-    std::cout << "We extract the mesh name from the path string: " << mesh_name << std::endl;
     return mesh_name;
 }
 
@@ -263,8 +262,6 @@ std::vector<int64_t> create_halfedge_vertex_map(
         halfedge_vertex_map.push_back(target_vertice);
     }
 
-    std::cout << "size of halfedge_vertex_map = " << halfedge_vertex_map.size() << std::endl;
-
     return halfedge_vertex_map;
 }
 
@@ -328,8 +325,6 @@ std::vector<my_edge_descriptor> calc_virtual_border(
     auto in = get_mesh_obj(mesh_3D);
     in >> mesh;
 
-    std::cout << "number of vertices in the 3D mesh: " << mesh.number_of_vertices() << std::endl;
-
     using Point_property_map = boost::property_map<My::Mesh,CGAL::vertex_point_t>::type;
     Point_property_map ppm = get(CGAL::vertex_point, mesh);
 
@@ -351,9 +346,6 @@ std::vector<my_edge_descriptor> calc_virtual_border(
 
     // Find the target node (farthest from the start node)
     my_vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, predecessor_pmap, distance);
-
-    std::cout << "got the following start point: " << start_node << " at " << get(ppm, start_node) << std::endl;
-    std::cout << "got the following target point: " << target_node << " at " << get(ppm, target_node) << std::endl;
 
     // Get the edges of the path between the start and the target node
     std::vector<my_edge_descriptor> path_list = create_path(mesh, start_node, target_node, predecessor_pmap);
@@ -452,8 +444,6 @@ std::vector<int64_t> calculate_uv_surface(
     // Create the seam mesh
     Mesh mesh = create_seam_mesh(sm, calc_edges);
 
-    std::cout << mesh.number_of_seam_edges() << " seam edges in input" << std::endl;
-
     // Choose a halfedge on the (possibly virtual) border
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
@@ -481,8 +471,6 @@ std::vector<int64_t> create_uv_surface_intern(
     int highest_mesh_creation = find_latest_mesh_creation_number(mesh_3D);
     my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
     // my_vertex_descriptor start_node_1 = get_new_start_vertice(start_node, sm, mesh_3D);
-
-    std::cout << "highest mesh creation number " << highest_mesh_creation << "\n";
 
      // Calculate uv_mesh_number based on the value of start_node_int
     int uv_mesh_number = (start_node_int == 0) ? 0 : (highest_mesh_creation + 1);
