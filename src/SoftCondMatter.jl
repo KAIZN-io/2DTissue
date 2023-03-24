@@ -9,25 +9,46 @@
 ########################################################################################
 
 """
-    calculate_forces_between_particles(
-        dist_vect,
-        dist_length,
-        k,
-        σ,
-        r_adh,
-        k_adh
-    )
+    init_particle_position(faces_uv::Array{Int,2}, halfedges_uv::Array{Float32,2}, num_part::Int, r, n)
+
+Tested time (24 MAR 2023): 0.212001 seconds (990.08 k allocations: 52.478 MiB, 99.81% compilation time)
+"""
+function init_particle_position(faces_uv::Array{Int,2}, halfedges_uv::Array{Float32,2}, num_part::Int, r, n)
+    faces_length = length(faces_uv[:,1])
+    faces_list = range(1, faces_length, step=1)
+
+    for i=1:num_part
+    # @threads for i=1:num_part
+
+        # Randomly position of particles on the mesh
+        random_face = rand(faces_list)
+        faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
+
+        r_face_uv = faces_uv[random_face, :]  # get the random face
+
+        """ project the random particle into the center of the random face
+
+        We don't project the particle directly on a vertice, because we increased the number of vertices in the UV mesh, by transforming
+        the 3D mesh into a 3D seam mesh before cutting it along the now "virtual" border edges.
+        """
+        r[i,:] = get_face_gravity_center_coord(halfedges_uv, r_face_uv)
+
+        # random particle orientation
+        n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
+    end
+
+    r[:,3] .= 0  # set the third column to 0, because we are only interested in the 2D plot
+
+    return r, n
+end
+
+
+"""
+    calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh)
 
 Tested time (23 MAR 2023): 0.000192 seconds (33 allocations: 199.312 KiB)
 """
-function calculate_forces_between_particles(
-        dist_vect,
-        dist_length,
-        k,
-        σ,
-        r_adh,
-        k_adh
-)
+function calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh)
     num_part = size(dist_vect, 1)
     F = zeros(num_part, 3)
 
@@ -36,6 +57,7 @@ function calculate_forces_between_particles(
 
             # No force if particle itself
             if i != j
+                # Distance between particles A und B
                 dist = dist_length[i, j]
 
                 # StaticArrays if array is small
@@ -58,7 +80,55 @@ function calculate_forces_between_particles(
 end
 
 
+"""
+    calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh)
 
+Calculate particle velocity r_dot each particle
+Tested time (23 MAR 2023): 0.035065 seconds (105.86 k allocations: 5.359 MiB, 99.63% compilation time)
+"""
+function calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh)
+
+    # ! TODO: Ich denke, dass die Kraft falsch berechnet ist, da die Distanz und σ zu stark auseinander liegen. --> müsste sehr sehr viele Partikel simulieren
+    # calculate the force between particles
+    F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh)
+
+    # velocity of each particle
+    r_dot = v0 .* n + μ .* F_track
+    r_dot[:, 3] .= 0.0
+
+    return r_dot
+end
+
+
+"""
+    calculate_next_position!(r, r_dot, dt)
+
+Calculate next position r_new of each particle
+Tested time (23 MAR 2023): 0.018505 seconds (82.48 k allocations: 4.260 MiB, 99.73% compilation time)
+"""
+function calculate_next_position!(r, r_dot, dt)
+    r_new = r + r_dot * dt
+    r_new[:, 3] .= 0.0
+
+    return r_new
+end
+
+
+"""
+    calculate_particle_vectors!(r_dot, n, dt, τ)
+
+Calculates the particles vectors n, nr_dot and nr_dot_cross
+"""
+function calculate_particle_vectors!(r_dot, n, dt, τ)
+    # make a small correct for n according to Vicsek
+    n = correct_n(r_dot, n, τ, dt)
+
+    # Project the orientation of the corresponding faces using normal vectors
+    n = n ./ normalize_3D_matrix(n)
+    nr_dot = r_dot ./ normalize_3D_matrix(r_dot)
+
+    return n, nr_dot
+end
 
 
 """
@@ -75,6 +145,63 @@ function correct_n(r_dot, n, τ, dt)
     new_n = n - calculate_3D_cross_product(n, n_cross_correction)
 
     return new_n ./ normalize_3D_matrix(new_n)
+end
+
+
+"""
+    get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+
+"""
+function get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+    num_r = size(r, 1)
+    vertice_3D_id = Vector{Int}(undef, num_r)
+
+    # @threads for i in 1:num_r
+    for i in 1:num_r
+        distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
+        halfedges_id = argmin(distances_to_h)
+        vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id, :][1] + 1  # +1 because the first vertice v0 has index 1 in a Julia array
+    end
+    return vertice_3D_id
+end
+
+
+"""
+    update_dataframe_entries!(df, inside_uv_ids, vertice_id, start_id)
+
+"""
+function update_dataframe_entries!(df, inside_uv_ids, vertice_id, start_id)
+    df.valid[inside_uv_ids] .= true
+    df.next_id[inside_uv_ids] .= vertice_id[inside_uv_ids]
+    df.uv_mesh_id[inside_uv_ids] .= start_id
+    return df
+end
+
+
+"""
+    update_if_valid(r_new, df, vertice_id, start_id)
+
+Tested time (23 MAR 2023): 0.140408 seconds (385.12 k allocations: 21.163 MiB, 99.87% compilation time)
+"""
+function update_if_valid(r_new, df, vertice_id, start_id)
+    # Find out which particles are inside the mesh
+    inside_uv_ids = find_inside_uv_vertices_id(r_new)
+
+    # Update the DataFrame entries for the particles inside the mesh
+    df = update_dataframe_entries!(df, inside_uv_ids, vertice_id, start_id)
+
+    return df
+end
+
+
+"""
+
+Tested time (23 MAR 2023): 0.218366 seconds (3.26 M allocations: 95.062 MiB, 57.10% compilation time)
+"""
+function update_dataframe(df, particle, r_new2, old_id, num_part, halfedges_uv_test, halfedge_vertices_mapping_test)
+    vertice_id = get_vertice_id(r_new2, halfedges_uv_test, Int.(halfedge_vertices_mapping_test))
+    df = update_if_valid(r_new2, df, vertice_id, old_id)
+    return df
 end
 
 

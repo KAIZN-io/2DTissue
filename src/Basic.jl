@@ -3,6 +3,19 @@
 # license: Apache License 2.0
 # version: 0.1.0
 
+module Basic
+    using CxxWrap
+
+    # ! TODO: resolve the import issue: sometimes you execute the script via main.jl and sometimes via the REPL
+    #   @wrapmodule(joinpath(../@__DIR__, "build", "geodesic_distance"))
+    @wrapmodule(joinpath(pwd(), "build", "basic"))
+
+    function __init__()
+        @initcxx
+    end
+end
+
+
 ########################################################################################
 # Basic Functions
 ########################################################################################
@@ -81,14 +94,13 @@ end
 
 
 """
-    calculate_vertex_normals(faces_stl, vertices_stl, row_number)
+    calculate_vertex_normals(faces_stl, vertices_stl)
 
 calculate the cross product of BA and CA vectors
+Tested time (24 MAR 2023): 0.050367 seconds (129.69 k allocations: 6.266 MiB, 99.88% compilation time)
 """
-function calculate_vertex_normals(faces_stl, vertices_stl, row_number)
-    a = faces_stl[row_number,1]
-    b = faces_stl[row_number,2]
-    c = faces_stl[row_number,3]
+function calculate_vertex_normals(faces_stl, vertices_stl)
+    a, b, c = faces_stl
 
     A = vertices_stl[a,:]
     B = vertices_stl[b,:]
