@@ -18,6 +18,7 @@
         k_adh
     )
 
+Tested time (23 MAR 2023): 0.000192 seconds (33 allocations: 199.312 KiB)
 """
 function calculate_forces_between_particles(
         dist_vect,
@@ -26,25 +27,38 @@ function calculate_forces_between_particles(
         σ,
         r_adh,
         k_adh
-    )
-    Fij_rep = (-k * (2 * σ .- dist_length)) ./ (2 * σ)
-    Fij_adh = (k_adh * (2 *σ .- dist_length)) ./ (2 *σ -r_adh)
+)
+    num_part = size(dist_vect, 1)
+    F = zeros(num_part, 3)
 
-    # No force if particles too far from each other or if particle itself
-    no_force_condition = (dist_length .>= 2 * σ) .| (dist_length .== 0)
-    Fij_rep[no_force_condition] .= 0
+    for i in 1:num_part
+        for j in 1:num_part
 
-    adhesion_force_condition = (dist_length .< 2 * σ) .| (dist_length .> r_adh) .| (dist_length .== 0)
-    Fij_adh[adhesion_force_condition] .= 0
+            # No force if particle itself
+            if i != j
+                dist = dist_length[i, j]
 
-    # Fij is the force between particles
-    Fij = Fij_rep .+ Fij_adh
-    # Fij = cat(dims=3,Fij,Fij,Fij).*(dist_vect./(cat(dims=3,dist_length,dist_length,dist_length)))
-    Fij = Fij .* (dist_vect ./ repeat(dist_length, outer=(1, 1, 3)))
+                # StaticArrays if array is small
+                dist_v = @SVector [dist_vect[i, j, 1], dist_vect[i, j, 2], dist_vect[i, j, 3]]
+
+                # No force if particles too far from each other
+                if dist < 2 * σ
+                    Fij_rep = (-k * (2 * σ - dist)) / (2 * σ)
+                    Fij_adh = (dist > r_adh) ? 0 : (k_adh * (2 * σ - dist)) / (2 * σ - r_adh)
+                    Fij = Fij_rep + Fij_adh
+
+                    F[i, :] += Fij * (dist_v / dist)
+                end
+            end
+        end
+    end
 
     # Actual force felt by each particle
-    return reshape(sum(replace!(Fij, NaN => 0), dims=1), : ,size(Fij, 3))
+    return F
 end
+
+
+
 
 
 """
