@@ -92,6 +92,10 @@ function calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_a
     # calculate the force between particles
     F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh)
 
+    @test Inf ∉ F_track
+    @test -Inf ∉ F_track
+    @test unique(F_track[:,3]) == [0.0]
+
     # velocity of each particle
     r_dot = v0 .* n + μ .* F_track
     r_dot[:, 3] .= 0.0
@@ -166,43 +170,6 @@ function get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
 end
 
 
-"""
-    update_dataframe_entries!(df, inside_uv_ids, vertice_id, start_id)
-
-"""
-function update_dataframe_entries!(df, inside_uv_ids, vertice_id, start_id)
-    df.valid[inside_uv_ids] .= true
-    df.next_id[inside_uv_ids] .= vertice_id[inside_uv_ids]
-    df.uv_mesh_id[inside_uv_ids] .= start_id
-    return df
-end
-
-
-"""
-    update_if_valid(r_new, df, vertice_id, start_id)
-
-Tested time (23 MAR 2023): 0.140408 seconds (385.12 k allocations: 21.163 MiB, 99.87% compilation time)
-"""
-function update_if_valid(r_new, df, vertice_id, start_id)
-    # Find out which particles are inside the mesh
-    inside_uv_ids = find_inside_uv_vertices_id(r_new)
-
-    # Update the DataFrame entries for the particles inside the mesh
-    df = update_dataframe_entries!(df, inside_uv_ids, vertice_id, start_id)
-
-    return df
-end
-
-
-"""
-
-Tested time (23 MAR 2023): 0.218366 seconds (3.26 M allocations: 95.062 MiB, 57.10% compilation time)
-"""
-function update_dataframe(df, particle, r_new2, old_id, num_part, halfedges_uv_test, halfedge_vertices_mapping_test)
-    vertice_id = get_vertice_id(r_new2, halfedges_uv_test, Int.(halfedge_vertices_mapping_test))
-    df = update_if_valid(r_new2, df, vertice_id, old_id)
-    return df
-end
 
 
 ########################################################################################
