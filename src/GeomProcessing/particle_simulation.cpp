@@ -145,10 +145,94 @@ std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::MatrixXd& r) {
 }
 
 
+Eigen::MatrixXd calculate_forces_between_particles(
+    std::vector<Eigen::MatrixXd>& dist_vect,
+    Eigen::MatrixXd& dist_length,
+    double k,
+    double σ,
+    double r_adh,
+    double k_adh
+){
+    int num_part = dist_vect[0].rows();
+    Eigen::MatrixXd F(num_part, 3);
+    F.setZero();
+
+    for (int i = 0; i < num_part; i++) {
+        for (int j = 0; j < num_part; j++) {
+
+            // No force if particle itself
+            if (i != j) {
+                // Distance between particles A and B
+                double dist = dist_length(i, j);
+
+                // Eigen::Vector3d for the 3D distance vector
+                Eigen::Vector3d dist_v(dist_vect[0](i, j), dist_vect[1](i, j), dist_vect[2](i, j));
+
+                // No force if particles too far from each other
+                if (dist < 2 * σ) {
+                    double Fij_rep = (-k * (2 * σ - dist)) / (2 * σ);
+                    double Fij_adh = (dist > r_adh) ? 0 : (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
+                    double Fij = Fij_rep + Fij_adh;
+
+                    F.row(i) += Fij * (dist_v / dist);
+                }
+            }
+        }
+    }
+
+    // Actual force felt by each particle
+    return F;
+}
+
+
+Eigen::MatrixXd calculate_velocity(
+    std::vector<Eigen::MatrixXd>& dist_vect,
+    Eigen::MatrixXd& dist_length,
+    Eigen::MatrixXd& n,
+    double v0,
+    double k,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh
+) {
+    // Calculate force between particles
+    Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
+
+    // Velocity of each particle
+    Eigen::MatrixXd r_dot = v0 * n + μ * F_track;  // TODO: this isn't correct yet
+    r_dot.col(2).setZero();
+
+    return r_dot;
+}
+
+
+Eigen::MatrixXd calculate_next_position(
+    Eigen::MatrixXd& r,
+    Eigen::MatrixXd& r_dot,
+    double dt
+){
+    Eigen::MatrixXd r_new = r + r_dot * dt;
+    r_new.col(2).setZero();
+    return r_new;
+}
+
+
 int main()
 {
     Eigen::MatrixXd distance_matrix(4670, 4670);
     std::vector<int> vertices_3D_active = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    int num_part = 10;
+    Eigen::MatrixXd n(num_part, 3);
+    n.setRandom();
+    n.col(2).setZero();
+    double v0 = 1.0;
+    double k = 0.1;
+    double σ = 0.5;
+    double μ = 0.2;
+    double r_adh = 0.4;
+    double k_adh = 0.2;
+    double dt = 0.1;
 
     // iterate over the active vertices and fill the distance matrix
     for (int i = 0; i < vertices_3D_active.size(); i++) {
@@ -160,9 +244,14 @@ int main()
     r.block(0, 2, 10, 1) = Eigen::MatrixXd::Zero(10, 1);
 
     auto dist_vect = get_dist_vect(r);
-    Eigen::MatrixXd dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active);
+    auto dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active);
     transform_into_symmetric_matrix(dist_length);
-    std::cout << dist_vect << std::endl;
 
+    // calculate the next position and velocity of each particle based on the distances
+    auto r_dot = calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh);
+    auto r_new = calculate_next_position(r, r_dot, dt);
+    std::cout << r_new << std::endl;
+    std::cout << r_dot << std::endl;
     return 0;
 }
+
