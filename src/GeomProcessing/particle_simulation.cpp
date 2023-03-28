@@ -254,13 +254,12 @@ std::vector<int> dye_particles(const Eigen::VectorXd& dist_length, int num_part,
 // }
 
 
-// Eigen::MatrixXd normalize_3D_matrix(const Eigen::MatrixXd& A) {
-//     Eigen::VectorXd norms = (A.rowwise().norm()).transpose();
-//     return A.array().rowwise() / norms.array();
-// }
-
-
-// Eigen::MatrixXd correct_n(const Eigen::MatrixXd& r_dot, const Eigen::MatrixXd& n, double τ, double dt) {
+// Eigen::MatrixXd correct_n(
+//     const Eigen::MatrixXd& r_dot,
+//     const Eigen::MatrixXd& n,
+//     double τ,
+//     double dt
+// ){
 //     Eigen::MatrixXd ncross = calculate_3D_cross_product(n, r_dot).array().rowwise() / r_dot.rowwise().norm().array();
 //     Eigen::MatrixXd n_cross_correction = (1.0 / τ) * ncross * dt;
 //     Eigen::MatrixXd new_n = n - calculate_3D_cross_product(n, n_cross_correction);
@@ -268,14 +267,25 @@ std::vector<int> dye_particles(const Eigen::VectorXd& dist_length, int num_part,
 // }
 
 
-// void calculate_particle_vectors(Eigen::MatrixXd& r_dot, Eigen::MatrixXd& n) {
-//     double tau = 1.0;
-//     double dt = 1.0;
-//     n = correct_n(r_dot, n, tau, dt);
-//     n = normalize_3D_matrix(n);
-//     Eigen::MatrixXd nr_dot = r_dot;
-//     nr_dot = normalize_3D_matrix(nr_dot);
-// }
+Eigen::MatrixXd normalize_3D_matrix(const Eigen::MatrixXd &A) {
+    Eigen::VectorXd row_norms_t = A.rowwise().norm(); // Compute row-wise Euclidean norms
+    Eigen::MatrixXd row_norms = row_norms_t.replicate(1, 3); // Repeat each norm for each column
+
+    return row_norms; // Normalize each row
+}
+
+
+int calculate_particle_vectors(Eigen::MatrixXd &r_dot, Eigen::MatrixXd &n) {
+
+    // TODO:     n = correct_n(r_dot, n, τ, dt)
+
+    n = normalize_3D_matrix(n);
+
+    std::cout << "n: " << n << std::endl;
+    Eigen::MatrixXd nr_dot = normalize_3D_matrix(r_dot);
+
+    return 0;
+}
 
 
 int main()
@@ -283,9 +293,14 @@ int main()
     Eigen::MatrixXd distance_matrix(4670, 4670);
     std::vector<int> vertices_3D_active = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     int num_part = 10;
-    Eigen::MatrixXd n(num_part, 3);
-    n.setRandom();
+    Eigen::MatrixXd n(5, 3);
+    n <<  -0.999984,  -0.232996,   0.0,
+            -0.736924,    0.0388327,  0.0,
+            0.511211,  0.661931,   0.0,
+            -0.0826997, -0.930856,   0.0,
+            0.0655345, -0.893077,   0.0; 
     n.col(2).setZero();
+
     double v0 = 1.0;
     double k = 0.1;
     double σ = 0.5;
@@ -315,11 +330,20 @@ int main()
 
     auto particles_color = dye_particles(dist_length, num_part, σ);
 
-    // print out particles_color
-    for (int i = 0; i < particles_color.size(); i++) {
-        std::cout << particles_color[i] << std::endl;
-    }
-
+    calculate_particle_vectors(r_dot, n);
     return 0;
 }
 
+
+
+
+
+
+/*
+normalize a 3D matrix A by dividing each row by its norm
+*/
+// Eigen::MatrixXd normalize_3D_matrix(
+//     const Eigen::MatrixXd &A
+// ){
+//     return A.rowwise().normalized();
+// }
