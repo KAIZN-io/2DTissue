@@ -218,6 +218,66 @@ Eigen::MatrixXd calculate_next_position(
 }
 
 
+Eigen::VectorXd count_particle_neighbours(const Eigen::VectorXd& dist_length, double σ) {
+    Eigen::VectorXd num_partic(dist_length.size()); // create an empty vector
+    num_partic.setZero(); // initialize to zero
+    for (int i = 0; i < dist_length.size(); i++) {
+        if (dist_length(i) == 0 || dist_length(i) > 2.4 * σ) {
+            num_partic(i) = 0;
+        }
+    }
+    Eigen::VectorXd num_neighbors = num_partic.colwise().sum();
+    return num_neighbors;
+}
+
+std::vector<int> dye_particles(const Eigen::VectorXd& dist_length, int num_part, double σ) {
+    // Count the number of neighbours for each particle
+    Eigen::VectorXd number_neighbours = count_particle_neighbours(dist_length, σ);
+
+    std::vector<int> N_color;
+    for (int i = 0; i < num_part; i++) {
+        for (int j = 0; j < number_neighbours(i); j++) {
+            N_color.push_back(number_neighbours(i));
+        }
+    }
+
+    return N_color;
+}
+
+
+// Eigen::MatrixXd calculate_3D_cross_product(const Eigen::MatrixXd& a, const Eigen::MatrixXd& b) {
+//     Eigen::MatrixXd c(a.rows(), 3);
+//     c.col(0) = a.col(1).array() * b.col(2).array() - a.col(2).array() * b.col(1).array();
+//     c.col(1) = a.col(2).array() * b.col(0).array() - a.col(0).array() * b.col(2).array();
+//     c.col(2) = a.col(0).array() * b.col(1).array() - a.col(1).array() * b.col(0).array();
+//     return c;
+// }
+
+
+// Eigen::MatrixXd normalize_3D_matrix(const Eigen::MatrixXd& A) {
+//     Eigen::VectorXd norms = (A.rowwise().norm()).transpose();
+//     return A.array().rowwise() / norms.array();
+// }
+
+
+// Eigen::MatrixXd correct_n(const Eigen::MatrixXd& r_dot, const Eigen::MatrixXd& n, double τ, double dt) {
+//     Eigen::MatrixXd ncross = calculate_3D_cross_product(n, r_dot).array().rowwise() / r_dot.rowwise().norm().array();
+//     Eigen::MatrixXd n_cross_correction = (1.0 / τ) * ncross * dt;
+//     Eigen::MatrixXd new_n = n - calculate_3D_cross_product(n, n_cross_correction);
+//     return normalize_3D_matrix(new_n);
+// }
+
+
+// void calculate_particle_vectors(Eigen::MatrixXd& r_dot, Eigen::MatrixXd& n) {
+//     double tau = 1.0;
+//     double dt = 1.0;
+//     n = correct_n(r_dot, n, tau, dt);
+//     n = normalize_3D_matrix(n);
+//     Eigen::MatrixXd nr_dot = r_dot;
+//     nr_dot = normalize_3D_matrix(nr_dot);
+// }
+
+
 int main()
 {
     Eigen::MatrixXd distance_matrix(4670, 4670);
@@ -250,8 +310,16 @@ int main()
     // calculate the next position and velocity of each particle based on the distances
     auto r_dot = calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh);
     auto r_new = calculate_next_position(r, r_dot, dt);
-    std::cout << r_new << std::endl;
-    std::cout << r_dot << std::endl;
+    // std::cout << r_new << std::endl;
+    // std::cout << r_dot << std::endl;
+
+    auto particles_color = dye_particles(dist_length, num_part, σ);
+
+    // print out particles_color
+    for (int i = 0; i < particles_color.size(); i++) {
+        std::cout << particles_color[i] << std::endl;
+    }
+
     return 0;
 }
 
