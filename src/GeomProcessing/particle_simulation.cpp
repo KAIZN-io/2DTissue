@@ -230,6 +230,7 @@ Eigen::VectorXd count_particle_neighbours(const Eigen::VectorXd& dist_length, do
     return num_neighbors;
 }
 
+
 std::vector<int> dye_particles(const Eigen::VectorXd& dist_length, int num_part, double σ) {
     // Count the number of neighbours for each particle
     Eigen::VectorXd number_neighbours = count_particle_neighbours(dist_length, σ);
@@ -245,28 +246,9 @@ std::vector<int> dye_particles(const Eigen::VectorXd& dist_length, int num_part,
 }
 
 
-// Eigen::MatrixXd calculate_3D_cross_product(const Eigen::MatrixXd& a, const Eigen::MatrixXd& b) {
-//     Eigen::MatrixXd c(a.rows(), 3);
-//     c.col(0) = a.col(1).array() * b.col(2).array() - a.col(2).array() * b.col(1).array();
-//     c.col(1) = a.col(2).array() * b.col(0).array() - a.col(0).array() * b.col(2).array();
-//     c.col(2) = a.col(0).array() * b.col(1).array() - a.col(1).array() * b.col(0).array();
-//     return c;
-// }
-
-
-// Eigen::MatrixXd correct_n(
-//     const Eigen::MatrixXd& r_dot,
-//     const Eigen::MatrixXd& n,
-//     double τ,
-//     double dt
-// ){
-//     Eigen::MatrixXd ncross = calculate_3D_cross_product(n, r_dot).array().rowwise() / r_dot.rowwise().norm().array();
-//     Eigen::MatrixXd n_cross_correction = (1.0 / τ) * ncross * dt;
-//     Eigen::MatrixXd new_n = n - calculate_3D_cross_product(n, n_cross_correction);
-//     return normalize_3D_matrix(new_n);
-// }
-
-
+/*
+normalize a 3D matrix A
+*/
 Eigen::MatrixXd normalize_3D_matrix(const Eigen::MatrixXd &A) {
     Eigen::VectorXd row_norms_t = A.rowwise().norm(); // Compute row-wise Euclidean norms
     Eigen::MatrixXd row_norms = row_norms_t.replicate(1, 3); // Repeat each norm for each column
@@ -275,16 +257,91 @@ Eigen::MatrixXd normalize_3D_matrix(const Eigen::MatrixXd &A) {
 }
 
 
-int calculate_particle_vectors(Eigen::MatrixXd &r_dot, Eigen::MatrixXd &n) {
+/**
+ * Calculate the cross product of two 3D matrices A and B.
+ *
+ * @param A The first input matrix.
+ * @param B The second input matrix.
+ *
+ * @return The cross product of A and B, computed for each row of the matrices.
+ */
+Eigen::MatrixXd calculate_3D_cross_product(
+    const Eigen::MatrixXd &A,
+    const Eigen::MatrixXd &B
+){ 
+    // Ensure that A and B have the correct size
+    assert(A.cols() == 3 && B.cols() == 3 && A.rows() == B.rows());
 
-    // TODO:     n = correct_n(r_dot, n, τ, dt)
+    // Preallocate output matrix with the same size and type as A
+    const int num_rows = A.rows();
+    Eigen::MatrixXd new_A = Eigen::MatrixXd::Zero(num_rows, 3);
 
-    n = normalize_3D_matrix(n);
+    // Compute cross product for each row and directly assign the result to the output matrix
+    for (int i = 0; i < num_rows; ++i) {
+        // Get the i-th row of matrices A and B
+        Eigen::Vector3d A_row = A.row(i);
+        Eigen::Vector3d B_row = B.row(i);
 
-    std::cout << "n: " << n << std::endl;
-    Eigen::MatrixXd nr_dot = normalize_3D_matrix(r_dot);
+        // Compute the cross product of the i-th rows of A and B
+        new_A.row(i) = A_row.cross(B_row);
+    }
 
-    return 0;
+    return new_A;
+}
+
+
+void calculate_order_parameter(
+    Eigen::VectorXd& v_order, 
+    Eigen::MatrixXd r, 
+    Eigen::MatrixXd r_dot, 
+    int num_part,
+    double tt,
+    double plotstep
+) {
+    // Define a vector normal to position vector and velocity vector
+    Eigen::MatrixXd v_tp = calculate_3D_cross_product(r, r_dot);
+
+    // Normalize v_tp
+    Eigen::MatrixXd v_norm = v_tp.rowwise().normalized();
+
+    // Sum v_tp vectors and divide by number of particle to obtain order parameter of collective motion for spheroids
+    v_order((int)(tt / plotstep)) = (1.0 / num_part) * v_norm.colwise().sum().norm();
+}
+
+
+/*
+
+Visceck-type n correction adapted from "Phys. Rev. E 74, 061908"
+*/
+Eigen::MatrixXd correct_n(
+    const Eigen::MatrixXd& r_dot,
+    const Eigen::MatrixXd& n,
+    double τ,
+    double dt
+){
+    // cross product of n and r_dot
+    auto ncross = calculate_3D_cross_product(n, r_dot).cwiseQuotient(normalize_3D_matrix(r_dot));
+
+    Eigen::MatrixXd n_cross_correction = (1.0 / τ) * ncross * dt;
+
+    Eigen::MatrixXd new_n = n - calculate_3D_cross_product(n, n_cross_correction);
+
+    return new_n.rowwise().normalized();
+}
+
+
+std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
+    Eigen::MatrixXd &r_dot,
+    Eigen::MatrixXd &n
+){
+    // make a small correct for n according to Vicsek
+    n = correct_n(r_dot, n, 1, 1);
+
+    // Project the orientation of the corresponding faces using normal vectors
+    n = n.rowwise().normalized();
+    Eigen::MatrixXd nr_dot = r_dot.rowwise().normalized();
+
+    return std::pair(n, nr_dot);
 }
 
 
@@ -292,7 +349,6 @@ int main()
 {
     Eigen::MatrixXd distance_matrix(4670, 4670);
     std::vector<int> vertices_3D_active = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    int num_part = 10;
     Eigen::MatrixXd n(5, 3);
     n <<  -0.999984,  -0.232996,   0.0,
             -0.736924,    0.0388327,  0.0,
@@ -301,6 +357,7 @@ int main()
             0.0655345, -0.893077,   0.0; 
     n.col(2).setZero();
 
+    int num_part = 10;
     double v0 = 1.0;
     double k = 0.1;
     double σ = 0.5;
@@ -308,13 +365,15 @@ int main()
     double r_adh = 0.4;
     double k_adh = 0.2;
     double dt = 0.1;
+    double tt = 1;
+    double plotstep = 0.1;
 
     // iterate over the active vertices and fill the distance matrix
     for (int i = 0; i < vertices_3D_active.size(); i++) {
         fill_distance_matrix(distance_matrix, vertices_3D_active[i]);
     }
 
-    Eigen::MatrixXd r = Eigen::MatrixXd::Random(10, 3);  // create a 10x3 matrix with random values between -1 and 1
+    Eigen::MatrixXd r = Eigen::MatrixXd::Random(5, 3);  // create a 10x3 matrix with random values between -1 and 1
     r.block(0, 0, 10, 2) = (r.block(0, 0, 10, 2).array() + 1.0) / 2.0;  // rescale the values in the first 2 columns to be between 0 and 1
     r.block(0, 2, 10, 1) = Eigen::MatrixXd::Zero(10, 1);
 
@@ -325,25 +384,46 @@ int main()
     // calculate the next position and velocity of each particle based on the distances
     auto r_dot = calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh);
     auto r_new = calculate_next_position(r, r_dot, dt);
-    // std::cout << r_new << std::endl;
-    // std::cout << r_dot << std::endl;
 
     auto particles_color = dye_particles(dist_length, num_part, σ);
+    auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n);
+    std::cout << ntest << std::endl;
+    std::cout << nr_dot << std::endl;
 
-    calculate_particle_vectors(r_dot, n);
+    // Define the output vector v_order
+    Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
+
+    // Calculate the order parameter
+    calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep);
+    std::cout << v_order << std::endl;
+
     return 0;
 }
 
 
 
-
-
-
-/*
-normalize a 3D matrix A by dividing each row by its norm
-*/
-// Eigen::MatrixXd normalize_3D_matrix(
-//     const Eigen::MatrixXd &A
+// void create_uv_surface(
+//     jl_function_t* f,
+//     std::string mesh_3D = "Ellipsoid",
+//     int32_t start_node_int = 0
 // ){
-//     return A.rowwise().normalized();
+//     // Get the data
+//     auto v = create_uv_surface_intern(mesh_3D, start_node_int);
+
+//     // Get the mesh file path from the global struct
+//     auto mesh_file_path = meshmeta.mesh_path;
+
+//     auto ar = jlcxx::ArrayRef<int64_t, 1>(v.data(), v.size());
+
+//     // Prepare to call the function defined in Julia
+//     jlcxx::JuliaFunction fnClb(f);
+
+//     // Fill the Julia Function with the inputs
+//     fnClb((jl_value_t*)ar.wrapped(), std::string(mesh_file_path));
+// }
+
+// JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
+// {
+//     // Register a standard C++ function
+//     mod.method("particle_simulation", particle_simulation);
 // }
