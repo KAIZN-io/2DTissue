@@ -442,6 +442,56 @@ Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
 }
 
 
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> perform_particle_simulation(
+    Eigen::MatrixXd& r,
+    Eigen::MatrixXd& n,
+    std::vector<int>& vertices_3D_active,
+    Eigen::MatrixXd& distance_matrix_v,
+    double v0,
+    double k,
+    double k_next,
+    double v0_next,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh,
+    double dt,
+    double tt,
+    int num_part = 10,
+    double plotstep = 0.1
+){
+    // Iterate over the active vertices and fill the distance matrix
+    for (int i = 0; i < vertices_3D_active.size(); i++) {
+        fill_distance_matrix(distance_matrix_v, vertices_3D_active[i]);
+    }
+
+    // Get distance vectors and calculate distances between particles
+    auto dist_vect = get_dist_vect(r);
+    auto dist_length = get_distances_between_particles(r, distance_matrix_v, vertices_3D_active);
+    transform_into_symmetric_matrix(dist_length);
+
+    // Calculate the velocity of each particle based on the distances
+    auto r_dot = calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh);
+
+    // Calculate the new position of each particle
+    auto r_new = calculate_next_position(r, r_dot, dt);
+
+    // Dye the particles based on distance
+    auto particles_color = dye_particles(dist_length, num_part, σ);
+
+    // Calculate the particle vectors
+    auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n);
+
+    // Define the output vector v_order
+    Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
+
+    // Calculate the order parameter
+    calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep);
+
+    return std::make_tuple(r_new, r_dot, dist_length, distance_matrix_v);
+}
+
+
 void particle_simulation(
     jl_function_t* f,
     JuliaArray2D r_v,
@@ -534,7 +584,10 @@ int main()
     Eigen::MatrixXd vertices_3D_active_eigen = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/vertices_3D_active_id_data.csv");
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
-    std::cout << vertices_3D_active_eigen << std::endl;
+    auto [r_new, r_dot, dist_length, distance_matrix_new] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+    std::cout << "r_new" << r_new << std::endl;
+    std::cout << "r_dot" << r_dot << std::endl;
+    std::cout << "dist_length" << dist_length << std::endl;
 
     return 0;
 }
