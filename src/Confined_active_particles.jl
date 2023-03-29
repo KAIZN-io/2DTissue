@@ -18,46 +18,29 @@ Erfolg gegenüber 3D Simulation:
 - Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
 """
 
-include("Packages.jl")
-include("Basic.jl")
-include("GeomProcessing.jl")
-include("SoftCondMatter.jl")
-# include("src/Packages.jl")
-# include("src/Basic.jl")
-# include("src/GeomProcessing.jl")
-# include("src/SoftCondMatter.jl")
+# include("Packages.jl")
+# include("Basic.jl")
+# include("GeomProcessing.jl")
+# include("SoftCondMatter.jl")
+include("src/Packages.jl")
+include("src/Basic.jl")
+include("src/GeomProcessing.jl")
+include("src/SoftCondMatter.jl")
 
-# TODO
-# ERROR: LoadError: MethodError: Cannot `convert` an object of type Nothing to an object of type Int64
-# Closest candidates are:
-#   convert(::Type{T}, ::Ptr) where T<:Integer at pointer.jl:23
-#   convert(::Type{T1}, ::CEnum.Cenum{T2}) where {T1<:Integer, T2<:Integer} at ~/.julia/packages/CEnum/Bqafi/src/operators.jl:24
-#   convert(::Type{IT}, ::OffsetInteger) where IT<:Integer at ~/.julia/packages/GeometryBasics/KE3OI/src/offsetintegers.jl:40
-#   ...
-# Stacktrace:
-#   [1] setindex!(A::Vector{Int64}, x::Nothing, i1::Int64)
-#     @ Base ./array.jl:966
-#   [2] get_first_uv_halfedge_from_3D_vertice_id(_vertice_3D_id::Vector{Int64}, _halfedge_vertices_mapping::Vector{Int64})
-#     @ Main ~/git_repos/Confined_active_particles/src/GeomProcessing.jl:134
-#   [3] get_original_mesh_halfedges_coord(df::DataFrame, i::Int64, r_new::Matrix{Float64})
-#     @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:566
-#   [4] simulate_next_step(tt::Int64, observe_r::Observable{Vector{GeometryBasics.Point{3, Float32}}}, observe_active_vertice_3D_id::Observable{Vector{Int64}}, distance_matrix::Matrix{Float64}, num_part::Int64, observe_n::Observable{Vector{GeometryBasics.Point{3, Float32}}}, observe_nr_dot::Observable{Vector{GeometryBasics.Point{3, Float32}}}, observe_order::Observable{Vector{Float64}}, v0::Float64, v0_next::Float64, k::Int64, k_next::Int64, σ::Float64, μ::Int64, τ::Int64, r_adh::Int64, k_adh::Float64)
-#     @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:462
-#   [5] (::var"#10#13"{Int64, Float64, Float64, Float64, Int64, Int64, Int64, Float64, Int64, Int64, Observable{Vector{Int64}}, Observable{Vector{Float64}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}})(tt::Int64)
-#     @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:245
-#   [6] Record(func::var"#10#13"{Int64, Float64, Float64, Float64, Int64, Int64, Int64, Float64, Int64, Int64, Observable{Vector{Int64}}, Observable{Vector{Float64}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}}, figlike::Figure, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, SubString{String}, Tuple{Symbol}, NamedTuple{(:format,), Tuple{SubString{String}}}})
-#     @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:167
-#   [7] record(func::Function, figlike::Figure, path::String, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}})
-#     @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:148
-#   [8] record
-#     @ ~/.julia/packages/Makie/gAmAB/src/recording.jl:146 [inlined]
-#   [9] active_particles_simulation(; num_part::Int64, v0::Float64, v0_next::Float64, num_step::Int64, σ::Float64, r_adh::Int64, k::Int64, k_next::Int64, k_adh::Float64, μ::Int64, τ::Int64, ρ::Int64)
-#     @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:244
-#  [10] top-level scope
-#     @ ~/git_repos/Confined_active_particles/main.jl:4
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_dict = Dict{Int64, Mesh_UV_Struct}()
+
+
+module ParticleSimulation
+    using CxxWrap
+
+    @wrapmodule(joinpath(pwd(), "build", "particle_simulation"))
+
+    function __init__()
+        @initcxx
+    end
+end
 
 
 ########################################################################################
@@ -173,7 +156,7 @@ function active_particles_simulation(
 
     @test length(faces_3D) == length(N)
     @test vertices_length <= size(halfedges_uv)[1]
-    @info "mesh analysis tests passed. 2D <-> 3D mapping is valid."
+    @info "Mesh analysis tests passed. 2D <-> 3D mapping is valid."
 
 
     ########################################################################################
@@ -216,12 +199,12 @@ function active_particles_simulation(
     vertices_3D_active = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
 
     # Time for the for loop (24 MAR 2023): 1.213848 seconds (100.62 k allocations: 4.882 MiB, 3.31% compilation time)
-    # ! BUG for distance matrix
     for i in 1:num_part
     # @threads for i in 1:num_part
         distance_matrix = fill_distance_matrix(distance_matrix, vertices_3D_active[i])
     end
 
+    @info "Initialization of the particle position and orientation done."
 
     ########################################################################################
     # Step 4.: Simulate and visualize
@@ -465,8 +448,56 @@ function simulate_next_step(
     r = observe_r[] |> vec_of_vec_to_array
     n = observe_n[] |> vec_of_vec_to_array
     vertices_3D_active_id = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
+    v_order = observe_order[] |> vec_of_vec_to_array
+
+
+    # TODO: simulate in C++
 
     r_new, r_dot, dist_length, distance_matrix = flight_simulation(r, n, vertices_3D_active_id, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    particles_color = dye_particles(dist_length, num_part, σ)
+    n, nr_dot = calculate_particle_vectors!(r_dot, n, dt, τ)  # TODO: r_dot is not updated in the virtual meshes
+
+    test2_dict = Dict()
+    function get_new_cpp_data_to_julia(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2}, _dist_length::Array{Float64, 2}, _distance_matrix::Array{Float64, 2})
+        GC.enable(true)
+
+        # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
+        r_julia = Array{Float64, 2}
+        r_new = vcat(r_julia, _r_new)
+        _r_new = nothing
+
+        r_dot_julia = Array{Float64, 2}
+        r_dot = vcat(r_dot_julia, _r_dot)
+        _r_dot = nothing
+
+        dist_length_julia = Array{Float64, 2}
+        dist_length = vcat(dist_length_julia, _dist_length)
+        _dist_length = nothing
+
+        distance_matrix_julia = Array{Float64, 2}
+        distance_matrix = vcat(distance_matrix_julia, _distance_matrix)
+        _distance_matrix = nothing
+
+        GC.gc()
+        test2_dict[0] = r_new[2:end, :]
+        test2_dict[1] = r_dot[2:end, :]
+        test2_dict[2] = dist_length[2:end, :]
+        test2_dict[3] = distance_matrix[2:end, :]
+    end
+
+    # transform r to type Array{Float64, 2}
+    r = convert(Array{Float64}, r)
+    n = convert(Array{Float64}, n)
+
+    # ! NOTE: ich bekomme Ergebnisse im richtigen Format zurück, aber die weichen bisschen von den Julia Ergebnissen ab. Eins von beiden hat irgendwo ein Mathefehler
+    # ! Die Struktur der C++ Daten sieht aber gut aus!
+    ParticleSimulation.particle_simulation(get_new_cpp_data_to_julia, r, n, vertices_3D_active_id, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    @info "r_new" test2_dict[0]
+    @info "r_dot" test2_dict[1]
+    @info "dist_length" test2_dict[2]
+    @info "distance_matrix" test2_dict[3]
+
+
 
     df = DataFrame(old_id=vertices_3D_active_id, next_id=observe_active_vertice_3D_id[], valid=zeros(Bool, size(r, 1)), uv_mesh_id=0)
     r_new *= 1.2
@@ -491,15 +522,11 @@ function simulate_next_step(
         end
     end
 
-    v_order = observe_order[] |> vec_of_vec_to_array
+    # NOTE: I have a function for this in C++
+    v_order = calculate_order_parameter!(v_order, r_new, r_dot, num_part, tt, plotstep)
 
     # Graphic output if plotstep is a multiple of tt
     if rem(tt,plotstep) == 0
-
-        particles_color = dye_particles(dist_length, num_part, σ)
-        n, nr_dot = calculate_particle_vectors!(r_dot, n, dt, τ)  # TODO: r_dot is not updated in the virtual meshes
-        v_order = calculate_order_parameter!(v_order, r_new, r_dot, num_part, tt, plotstep)
-
         observe_order[] = v_order
         observe_r[] = array_to_vec_of_vec(r_new)
         observe_n[] = array_to_vec_of_vec(n)
@@ -591,6 +618,7 @@ Tested time (23 MAR 2023): 0.029823 seconds (33.03 k allocations: 2.702 MiB, 98.
 """
 function get_original_mesh_halfedges_coord(df, i, r_new)
     vertices_id = df[df.uv_mesh_id .== i, :next_id]
+    @test i in keys(mesh_dict)
     halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(vertices_id, mesh_dict[i].h_v_mapping)
     halfedges_uv_test = GeometryBasics.coordinates(mesh_dict[i].mesh_uv_name) |> vec_of_vec_to_array  # return the vertices of the mesh
 

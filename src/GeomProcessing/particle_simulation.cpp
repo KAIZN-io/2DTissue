@@ -38,6 +38,9 @@ using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, doubl
 using Heat_method_idt = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CGAL::Heat_method_3::Direct>;
 using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh>;
 
+using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
+using JuliaArray2D = jlcxx::ArrayRef<double, 2>;
+
 
 std::vector<double> geo_distance(
     int32_t start_node
@@ -345,37 +348,72 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
 }
 
 
-int main()
-{
-    Eigen::MatrixXd distance_matrix(4670, 4670);
-    std::vector<int> vertices_3D_active = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    Eigen::MatrixXd n(5, 3);
-    n <<  -0.999984,  -0.232996,   0.0,
-            -0.736924,    0.0388327,  0.0,
-            0.511211,  0.661931,   0.0,
-            -0.0826997, -0.930856,   0.0,
-            0.0655345, -0.893077,   0.0; 
-    n.col(2).setZero();
+Eigen::MatrixXd reshape_vertices_array(
+    const JuliaArray2D& vertices_stl,
+    int num_rows,
+    int num_cols
+) {
+    Eigen::MatrixXd vertices(num_rows, num_cols);
+    for (int i = 0; i < num_rows; ++i) {
+        for (int j = 0; j < num_cols; ++j) {
+            vertices(i, j) = vertices_stl[j * num_rows + i];
+        }
+    }
+
+    return vertices;
+}
+
+
+Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
+    const jlcxx::ArrayRef<int64_t, 1>& inputArray
+){
+    int arraySize = inputArray.size();
+    Eigen::VectorXd outputVector(arraySize);
+
+    for (int i = 0; i < arraySize; i++) {
+        outputVector(i) = static_cast<double>(inputArray[i]);
+    }
+
+    return outputVector;
+}
+
+
+void particle_simulation(
+    jl_function_t* f,
+    JuliaArray2D r_v,
+    JuliaArray2D n_v,
+    JuliaArray vertices_3D_active_id,
+    JuliaArray2D distance_matrix_v,
+    double v0,
+    double k,
+    double k_next,
+    double v0_next,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh,
+    double dt,
+    double tt
+){
+
+    int num_entry = r_v.size();
+    int num_rows = num_entry / 3;
+    int num_rows_dist = sqrt(distance_matrix_v.size());
+    Eigen::MatrixXd r = reshape_vertices_array(r_v, num_rows, 3);
+    Eigen::MatrixXd n = reshape_vertices_array(n_v, num_rows, 3);
+    Eigen::MatrixXd distance_matrix = reshape_vertices_array(distance_matrix_v, num_rows_dist, num_rows_dist);
+    Eigen::VectorXd vertices_3D_active_eigen = jlcxxArrayRefToEigenVectorXd(vertices_3D_active_id);
+
+    // convert the active vertices to a vector -> only neccessary as long as the other functions of this script depend von std::vector
+    std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     int num_part = 10;
-    double v0 = 1.0;
-    double k = 0.1;
-    double σ = 0.5;
-    double μ = 0.2;
-    double r_adh = 0.4;
-    double k_adh = 0.2;
-    double dt = 0.1;
-    double tt = 1;
     double plotstep = 0.1;
 
     // iterate over the active vertices and fill the distance matrix
     for (int i = 0; i < vertices_3D_active.size(); i++) {
         fill_distance_matrix(distance_matrix, vertices_3D_active[i]);
     }
-
-    Eigen::MatrixXd r = Eigen::MatrixXd::Random(5, 3);  // create a 10x3 matrix with random values between -1 and 1
-    r.block(0, 0, 10, 2) = (r.block(0, 0, 10, 2).array() + 1.0) / 2.0;  // rescale the values in the first 2 columns to be between 0 and 1
-    r.block(0, 2, 10, 1) = Eigen::MatrixXd::Zero(10, 1);
 
     auto dist_vect = get_dist_vect(r);
     auto dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active);
@@ -397,33 +435,43 @@ int main()
     calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep);
     std::cout << v_order << std::endl;
 
+    // transform the data into a Julia array
+    auto r_julia = jlcxx::ArrayRef<double, 2>(r.data(), r.rows(), r.cols());
+    auto r_dot_julia = jlcxx::ArrayRef<double, 2>(r_dot.data(), r_dot.rows(), r_dot.cols());
+    auto dist_length_julia = jlcxx::ArrayRef<double, 2>(dist_length.data(), dist_length.rows(), dist_length.cols());
+    auto distance_matrix_julia = jlcxx::ArrayRef<double, 2>(distance_matrix.data(), distance_matrix.rows(), distance_matrix.cols());
+
+
+    auto v_order_julia = jlcxx::ArrayRef<double, 1>(v_order.data(), v_order.size());
+
+    // Prepare to call the function defined in Julia
+    jlcxx::JuliaFunction fnClb(f);
+
+    // Fill the Julia Function with the inputs
+    fnClb((jl_value_t*)r_julia.wrapped(), (jl_value_t*)r_dot_julia.wrapped(), (jl_value_t*)dist_length_julia.wrapped(), (jl_value_t*)distance_matrix_julia.wrapped());
+}
+
+
+int main()
+{
+    // Eigen::MatrixXd distance_matrix(4670, 4670);
+    // std::vector<int> vertices_3D_active = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    // Eigen::MatrixXd n(5, 3);
+    // n <<  -0.999984,  -0.232996,   0.0,
+    //         -0.736924,    0.0388327,  0.0,
+    //         0.511211,  0.661931,   0.0,
+    //         -0.0826997, -0.930856,   0.0,
+    //         0.0655345, -0.893077,   0.0; 
+    // n.col(2).setZero();
+    // Eigen::MatrixXd r = Eigen::MatrixXd::Random(5, 3);  // create a 10x3 matrix with random values between -1 and 1
+    // r.block(0, 0, 10, 2) = (r.block(0, 0, 10, 2).array() + 1.0) / 2.0;  // rescale the values in the first 2 columns to be between 0 and 1
+    // r.block(0, 2, 10, 1) = Eigen::MatrixXd::Zero(10, 1);
     return 0;
 }
 
 
-
-// void create_uv_surface(
-//     jl_function_t* f,
-//     std::string mesh_3D = "Ellipsoid",
-//     int32_t start_node_int = 0
-// ){
-//     // Get the data
-//     auto v = create_uv_surface_intern(mesh_3D, start_node_int);
-
-//     // Get the mesh file path from the global struct
-//     auto mesh_file_path = meshmeta.mesh_path;
-
-//     auto ar = jlcxx::ArrayRef<int64_t, 1>(v.data(), v.size());
-
-//     // Prepare to call the function defined in Julia
-//     jlcxx::JuliaFunction fnClb(f);
-
-//     // Fill the Julia Function with the inputs
-//     fnClb((jl_value_t*)ar.wrapped(), std::string(mesh_file_path));
-// }
-
-// JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
-// {
-//     // Register a standard C++ function
-//     mod.method("particle_simulation", particle_simulation);
-// }
+JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
+{
+    // Register a standard C++ function
+    mod.method("particle_simulation", particle_simulation);
+}
