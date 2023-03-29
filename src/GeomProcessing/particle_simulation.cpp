@@ -21,6 +21,8 @@ As a rule of thumb, the method works well on triangle meshes, which are Delaunay
 #include <sstream>
 #include <cstddef>
 #include <vector>
+#include <thread>
+#include <atomic>
 
 #include "jlcxx/jlcxx.hpp"
 #include "jlcxx/array.hpp"
@@ -40,6 +42,25 @@ using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Trian
 
 using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
 using JuliaArray2D = jlcxx::ArrayRef<double, 2>;
+
+
+template<typename M>
+M load_csv (const std::string & path) {
+    std::ifstream indata;
+    indata.open(path);
+    std::string line;
+    std::vector<double> values;
+    uint rows = 0;
+    while (std::getline(indata, line)) {
+        std::stringstream lineStream(line);
+        std::string cell;
+        while (std::getline(lineStream, cell, ',')) {
+            values.push_back(std::stod(cell));
+        }
+        ++rows;
+    }
+    return Eigen::Map<const Eigen::Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, Eigen::RowMajor>>(values.data(), rows, values.size()/rows);
+}
 
 
 std::vector<double> geo_distance(
@@ -75,14 +96,15 @@ Eigen::MatrixXd get_distances_between_particles(Eigen::MatrixXd r, Eigen::Matrix
     // Get the distances from the distance matrix
     Eigen::MatrixXd dist_length = Eigen::MatrixXd::Zero(num_part, num_part);
 
-    // ! BUG: it is interesting that using the heat method the distance from a -> b is not the same as b -> a
+    // Use the #pragma omp parallel for directive to parallelize the outer loop
+    // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them
+    #pragma omp parallel for
     for (int i = 0; i < num_part; i++) {
         for (int j = 0; j < num_part; j++) {
             dist_length(i, j) = distance_matrix(vertice_3D_id[i], vertice_3D_id[j]);
         }
     }
 
-    // Set the diagonal elements to 0.0
     dist_length.diagonal().array() = 0.0;
 
     return dist_length;
@@ -110,14 +132,46 @@ void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
 }
 
 
-void fill_distance_matrix(Eigen::MatrixXd &distance_matrix, int closest_vertice){
+void parallel_fill_distance_matrix(
+    Eigen::MatrixXd& distance_matrix,
+    int closest_vertice,
+    std::vector<double>& vertices_3D_distance_map,
+    std::atomic<int>& current_index
+){
+    while (true) {
+        int i = current_index.fetch_add(1);
+        if (i >= vertices_3D_distance_map.size()) {
+            break;
+        }
+
+        distance_matrix.coeffRef(closest_vertice, i) = vertices_3D_distance_map[i];
+    }
+}
+
+
+/*
+atomic variable to keep track of the current index of the vector of distances, and each thread processes a
+different index until all the distances have been added to the distance matrix.
+*/
+void fill_distance_matrix(
+    Eigen::MatrixXd &distance_matrix,
+    int closest_vertice
+){
     if (distance_matrix.row(closest_vertice).head(2).isZero()) {
         // get the distance of all vertices to all other vertices
         std::vector<double> vertices_3D_distance_map = geo_distance(closest_vertice);
 
         // fill the distance matrix
-        for (int i = 0; i < vertices_3D_distance_map.size(); i++) {
-            distance_matrix.coeffRef(closest_vertice, i) = vertices_3D_distance_map[i];
+        int num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        std::atomic<int> current_index(0);
+
+        for (int i = 0; i < num_threads; i++) {
+            threads.push_back(std::thread(parallel_fill_distance_matrix, std::ref(distance_matrix), closest_vertice, std::ref(vertices_3D_distance_map), std::ref(current_index)));
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
         }
     }
 }
@@ -128,6 +182,10 @@ std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::MatrixXd& r) {
     Eigen::VectorXd dist_y = r.col(1);
     Eigen::VectorXd dist_z = r.col(2);
 
+    // // Compute the difference between each pair of rows using broadcasting
+    // Eigen::MatrixXd diff_x = (dist_x.transpose().array() - dist_x.array()).matrix();
+    // Eigen::MatrixXd diff_y = (dist_y.transpose().array() - dist_y.array()).matrix();
+    // Eigen::MatrixXd diff_z = (dist_z.transpose().array() - dist_z.array()).matrix();
     // Replicate each column into a square matrix
     Eigen::MatrixXd square_x = dist_x.replicate(1, r.rows());
     Eigen::MatrixXd square_y = dist_y.replicate(1, r.rows());
@@ -160,6 +218,7 @@ Eigen::MatrixXd calculate_forces_between_particles(
     Eigen::MatrixXd F(num_part, 3);
     F.setZero();
 
+    #pragma omp parallel for
     for (int i = 0; i < num_part; i++) {
         for (int j = 0; j < num_part; j++) {
 
@@ -224,6 +283,7 @@ Eigen::MatrixXd calculate_next_position(
 Eigen::VectorXd count_particle_neighbours(const Eigen::VectorXd& dist_length, double σ) {
     Eigen::VectorXd num_partic(dist_length.size()); // create an empty vector
     num_partic.setZero(); // initialize to zero
+    #pragma omp parallel for
     for (int i = 0; i < dist_length.size(); i++) {
         if (dist_length(i) == 0 || dist_length(i) > 2.4 * σ) {
             num_partic(i) = 0;
@@ -239,6 +299,7 @@ std::vector<int> dye_particles(const Eigen::VectorXd& dist_length, int num_part,
     Eigen::VectorXd number_neighbours = count_particle_neighbours(dist_length, σ);
 
     std::vector<int> N_color;
+    #pragma omp parallel for
     for (int i = 0; i < num_part; i++) {
         for (int j = 0; j < number_neighbours(i); j++) {
             N_color.push_back(number_neighbours(i));
@@ -280,6 +341,7 @@ Eigen::MatrixXd calculate_3D_cross_product(
     Eigen::MatrixXd new_A = Eigen::MatrixXd::Zero(num_rows, 3);
 
     // Compute cross product for each row and directly assign the result to the output matrix
+    // #pragma omp parallel for
     for (int i = 0; i < num_rows; ++i) {
         // Get the i-th row of matrices A and B
         Eigen::Vector3d A_row = A.row(i);
@@ -354,6 +416,7 @@ Eigen::MatrixXd reshape_vertices_array(
     int num_cols
 ) {
     Eigen::MatrixXd vertices(num_rows, num_cols);
+    // #pragma omp parallel for
     for (int i = 0; i < num_rows; ++i) {
         for (int j = 0; j < num_cols; ++j) {
             vertices(i, j) = vertices_stl[j * num_rows + i];
@@ -370,6 +433,7 @@ Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
     int arraySize = inputArray.size();
     Eigen::VectorXd outputVector(arraySize);
 
+    // #pragma omp parallel for
     for (int i = 0; i < arraySize; i++) {
         outputVector(i) = static_cast<double>(inputArray[i]);
     }
@@ -440,8 +504,6 @@ void particle_simulation(
     auto r_dot_julia = jlcxx::ArrayRef<double, 2>(r_dot.data(), r_dot.rows(), r_dot.cols());
     auto dist_length_julia = jlcxx::ArrayRef<double, 2>(dist_length.data(), dist_length.rows(), dist_length.cols());
     auto distance_matrix_julia = jlcxx::ArrayRef<double, 2>(distance_matrix.data(), distance_matrix.rows(), distance_matrix.cols());
-
-
     auto v_order_julia = jlcxx::ArrayRef<double, 1>(v_order.data(), v_order.size());
 
     // Prepare to call the function defined in Julia
@@ -454,18 +516,26 @@ void particle_simulation(
 
 int main()
 {
-    // Eigen::MatrixXd distance_matrix(4670, 4670);
-    // std::vector<int> vertices_3D_active = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    // Eigen::MatrixXd n(5, 3);
-    // n <<  -0.999984,  -0.232996,   0.0,
-    //         -0.736924,    0.0388327,  0.0,
-    //         0.511211,  0.661931,   0.0,
-    //         -0.0826997, -0.930856,   0.0,
-    //         0.0655345, -0.893077,   0.0; 
-    // n.col(2).setZero();
-    // Eigen::MatrixXd r = Eigen::MatrixXd::Random(5, 3);  // create a 10x3 matrix with random values between -1 and 1
-    // r.block(0, 0, 10, 2) = (r.block(0, 0, 10, 2).array() + 1.0) / 2.0;  // rescale the values in the first 2 columns to be between 0 and 1
-    // r.block(0, 2, 10, 1) = Eigen::MatrixXd::Zero(10, 1);
+    // For testing purposes
+    auto v0 = 0.1;
+    auto k = 10;
+    auto k_next = 10;
+    auto v0_next = 0.1;
+    auto σ = 0.4166666666666667;
+    auto μ = 1;
+    auto r_adh = 1;
+    auto k_adh = 0.75;
+    auto dt = 0.01;
+    auto tt = 10;
+
+    Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data.csv");
+    Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data.csv");
+    Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/distance_matrix_data.csv");
+    Eigen::MatrixXd vertices_3D_active_eigen = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/vertices_3D_active_id_data.csv");
+    std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
+
+    std::cout << vertices_3D_active_eigen << std::endl;
+
     return 0;
 }
 
