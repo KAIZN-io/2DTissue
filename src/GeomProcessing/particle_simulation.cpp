@@ -27,6 +27,7 @@ As a rule of thumb, the method works well on triangle meshes, which are Delaunay
 #include <thread>
 #include <atomic>
 #include <ctime>
+#include <omp.h>
 
 #include "jlcxx/jlcxx.hpp"
 #include "jlcxx/array.hpp"
@@ -102,7 +103,6 @@ Eigen::MatrixXd get_distances_between_particles(Eigen::MatrixXd r, Eigen::Matrix
 
     // Use the #pragma omp parallel for directive to parallelize the outer loop
     // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them
-    #pragma omp parallel for
     for (int i = 0; i < num_part; i++) {
         for (int j = 0; j < num_part; j++) {
             dist_length(i, j) = distance_matrix(vertice_3D_id[i], vertice_3D_id[j]);
@@ -174,10 +174,6 @@ std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::MatrixXd& r) {
     Eigen::VectorXd dist_y = r.col(1);
     Eigen::VectorXd dist_z = r.col(2);
 
-    // // Compute the difference between each pair of rows using broadcasting
-    // Eigen::MatrixXd diff_x = (dist_x.transpose().array() - dist_x.array()).matrix();
-    // Eigen::MatrixXd diff_y = (dist_y.transpose().array() - dist_y.array()).matrix();
-    // Eigen::MatrixXd diff_z = (dist_z.transpose().array() - dist_z.array()).matrix();
     // Replicate each column into a square matrix
     Eigen::MatrixXd square_x = dist_x.replicate(1, r.rows());
     Eigen::MatrixXd square_y = dist_y.replicate(1, r.rows());
@@ -199,38 +195,41 @@ std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::MatrixXd& r) {
 
 
 Eigen::MatrixXd calculate_forces_between_particles(
-    std::vector<Eigen::MatrixXd>& dist_vect,
-    Eigen::MatrixXd& dist_length,
+    const std::vector<Eigen::MatrixXd>& dist_vect,
+    const Eigen::MatrixXd& dist_length,
     double k,
     double σ,
     double r_adh,
     double k_adh
 ){
+    // Get the number of particles
     int num_part = dist_vect[0].rows();
+
+    // Initialize force matrix with zeros
     Eigen::MatrixXd F(num_part, 3);
     F.setZero();
 
-    #pragma omp parallel for
+    // Loop over all particle pairs
     for (int i = 0; i < num_part; i++) {
         for (int j = 0; j < num_part; j++) {
 
-            // No force if particle itself
-            if (i != j) {
-                // Distance between particles A and B
-                double dist = dist_length(i, j);
+            // Skip if particle itself
+            if (i == j) continue;
 
-                // Eigen::Vector3d for the 3D distance vector
-                Eigen::Vector3d dist_v(dist_vect[0](i, j), dist_vect[1](i, j), dist_vect[2](i, j));
+            // Distance between particles A and B
+            double dist = dist_length(i, j);
 
-                // No force if particles too far from each other
-                if (dist < 2 * σ) {
-                    double Fij_rep = (-k * (2 * σ - dist)) / (2 * σ);
-                    double Fij_adh = (dist > r_adh) ? 0 : (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
-                    double Fij = Fij_rep + Fij_adh;
+            // No force if particles too far from each other
+            if (dist >= 2 * σ) continue;
 
-                    F.row(i) += Fij * (dist_v / dist);
-                }
-            }
+            // Eigen::Vector3d for the 3D distance vector
+            Eigen::Vector3d dist_v(dist_vect[0](i, j), dist_vect[1](i, j), dist_vect[2](i, j));
+
+            double Fij_rep = (-k * (2 * σ - dist)) / (2 * σ);
+            double Fij_adh = (dist > r_adh) ? 0 : (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
+            double Fij = Fij_rep + Fij_adh;
+
+            F.row(i) += Fij * (dist_v / dist);
         }
     }
 
@@ -275,7 +274,7 @@ Eigen::MatrixXd calculate_next_position(
 Eigen::VectorXd count_particle_neighbours(const Eigen::VectorXd& dist_length, double σ) {
     Eigen::VectorXd num_partic(dist_length.size()); // create an empty vector
     num_partic.setZero(); // initialize to zero
-    #pragma omp parallel for
+
     for (int i = 0; i < dist_length.size(); i++) {
         if (dist_length(i) == 0 || dist_length(i) > 2.4 * σ) {
             num_partic(i) = 0;
@@ -291,7 +290,7 @@ std::vector<int> dye_particles(const Eigen::VectorXd& dist_length, int num_part,
     Eigen::VectorXd number_neighbours = count_particle_neighbours(dist_length, σ);
 
     std::vector<int> N_color;
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < num_part; i++) {
         for (int j = 0; j < number_neighbours(i); j++) {
             N_color.push_back(number_neighbours(i));
@@ -333,7 +332,6 @@ Eigen::MatrixXd calculate_3D_cross_product(
     Eigen::MatrixXd new_A = Eigen::MatrixXd::Zero(num_rows, 3);
 
     // Compute cross product for each row and directly assign the result to the output matrix
-    #pragma omp parallel for
     for (int i = 0; i < num_rows; ++i) {
         // Get the i-th row of matrices A and B
         Eigen::Vector3d A_row = A.row(i);
@@ -451,10 +449,20 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> p
     int num_part = 10,
     double plotstep = 0.1
 ){
+    // TODO: this for loop is ideally for getting theads
+    // ! dieser Schritt kostet über 1s und ist damit der Bottleneck !
     // Iterate over the active vertices and fill the distance matrix
+    std::clock_t start_dist = std::clock();
+    // #pragma omp parallel for
     for (int i = 0; i < vertices_3D_active.size(); i++) {
         fill_distance_matrix(distance_matrix_v, vertices_3D_active[i]);
     }
+
+    std::clock_t end_dist = std::clock();
+    double duration_dist = (end_dist - start_dist) / (double) CLOCKS_PER_SEC;
+    std::cout << "Time taken for filling the distance matrix: " << duration_dist << " seconds" << std::endl;
+
+    std::clock_t start_movement = std::clock();
 
     // Get distance vectors and calculate distances between particles
     auto dist_vect = get_dist_vect(r);
@@ -471,6 +479,10 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> p
     // Calculate the new position of each particle
     Eigen::MatrixXd r_new = r + r_dot * dt;
     r_new.col(2).setZero();
+
+    std::clock_t end_movement = std::clock();
+    double duration_movement = (end_movement - start_movement) / (double) CLOCKS_PER_SEC;
+    std::cout << "Time taken for movement: " << duration_movement << " seconds" << std::endl;
 
     // Dye the particles based on distance
     auto particles_color = dye_particles(dist_length, num_part, σ);
