@@ -12,6 +12,9 @@ As a rule of thumb, the method works well on triangle meshes, which are Delaunay
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
+#define EIGEN_DONT_PARALLELIZE
+#define EIGEN_USE_THREADS
+#include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/Geometry>
 
@@ -23,6 +26,7 @@ As a rule of thumb, the method works well on triangle meshes, which are Delaunay
 #include <vector>
 #include <thread>
 #include <atomic>
+#include <ctime>
 
 #include "jlcxx/jlcxx.hpp"
 #include "jlcxx/array.hpp"
@@ -160,19 +164,7 @@ void fill_distance_matrix(
     if (distance_matrix.row(closest_vertice).head(2).isZero()) {
         // get the distance of all vertices to all other vertices
         std::vector<double> vertices_3D_distance_map = geo_distance(closest_vertice);
-
-        // fill the distance matrix
-        int num_threads = std::thread::hardware_concurrency();
-        std::vector<std::thread> threads;
-        std::atomic<int> current_index(0);
-
-        for (int i = 0; i < num_threads; i++) {
-            threads.push_back(std::thread(parallel_fill_distance_matrix, std::ref(distance_matrix), closest_vertice, std::ref(vertices_3D_distance_map), std::ref(current_index)));
-        }
-
-        for (auto& thread : threads) {
-            thread.join();
-        }
+        distance_matrix.row(closest_vertice) = Eigen::Map<Eigen::VectorXd>(vertices_3D_distance_map.data(), vertices_3D_distance_map.size());
     }
 }
 
@@ -341,7 +333,7 @@ Eigen::MatrixXd calculate_3D_cross_product(
     Eigen::MatrixXd new_A = Eigen::MatrixXd::Zero(num_rows, 3);
 
     // Compute cross product for each row and directly assign the result to the output matrix
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < num_rows; ++i) {
         // Get the i-th row of matrices A and B
         Eigen::Vector3d A_row = A.row(i);
@@ -416,7 +408,7 @@ Eigen::MatrixXd reshape_vertices_array(
     int num_cols
 ) {
     Eigen::MatrixXd vertices(num_rows, num_cols);
-    // #pragma omp parallel for
+
     for (int i = 0; i < num_rows; ++i) {
         for (int j = 0; j < num_cols; ++j) {
             vertices(i, j) = vertices_stl[j * num_rows + i];
@@ -433,7 +425,6 @@ Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
     int arraySize = inputArray.size();
     Eigen::VectorXd outputVector(arraySize);
 
-    // #pragma omp parallel for
     for (int i = 0; i < arraySize; i++) {
         outputVector(i) = static_cast<double>(inputArray[i]);
     }
@@ -470,11 +461,16 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> p
     auto dist_length = get_distances_between_particles(r, distance_matrix_v, vertices_3D_active);
     transform_into_symmetric_matrix(dist_length);
 
-    // Calculate the velocity of each particle based on the distances
-    auto r_dot = calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh);
+    // Calculate force between particles
+    Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
+
+    // Velocity of each particle
+    Eigen::MatrixXd r_dot = v0 * n + μ * F_track;  // TODO: this isn't correct yet
+    r_dot.col(2).setZero();
 
     // Calculate the new position of each particle
-    auto r_new = calculate_next_position(r, r_dot, dt);
+    Eigen::MatrixXd r_new = r + r_dot * dt;
+    r_new.col(2).setZero();
 
     // Dye the particles based on distance
     auto particles_color = dye_particles(dist_length, num_part, σ);
@@ -584,10 +580,13 @@ int main()
     Eigen::MatrixXd vertices_3D_active_eigen = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/vertices_3D_active_id_data.csv");
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
+    std::clock_t start = std::clock();
+    // Time taken (30 MAR 2023): 1.15709 seconds
     auto [r_new, r_dot, dist_length, distance_matrix_new] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
-    std::cout << "r_new" << r_new << std::endl;
-    std::cout << "r_dot" << r_dot << std::endl;
-    std::cout << "dist_length" << dist_length << std::endl;
+
+    std::clock_t end = std::clock();
+    double duration = (end - start) / (double) CLOCKS_PER_SEC;
+    std::cout << "Time taken: " << duration << " seconds" << std::endl;
 
     return 0;
 }
