@@ -7,6 +7,8 @@
 Shortest paths on a terrain using one source point 
 The heat method package returns an Approximation of the Geodesic Distance for all vertices of a triangle mesh to the closest vertex in a given set of source vertices.
 As a rule of thumb, the method works well on triangle meshes, which are Delaunay.
+
+Disclaimer: The heat method solver is the bottle neck of the algorithm.
 */
 
 #include <CGAL/Simple_cartesian.h>
@@ -285,16 +287,22 @@ Eigen::VectorXd count_particle_neighbours(const Eigen::VectorXd& dist_length, do
 }
 
 
-std::vector<int> dye_particles(const Eigen::VectorXd& dist_length, int num_part, double σ) {
+Eigen::VectorXd dye_particles(const Eigen::VectorXd& dist_length, double σ) {
     // Count the number of neighbours for each particle
     Eigen::VectorXd number_neighbours = count_particle_neighbours(dist_length, σ);
-
-    std::vector<int> N_color;
+    int num_part = number_neighbours.size();
+    std::vector<int> N_color_temp;
     // #pragma omp parallel for
     for (int i = 0; i < num_part; i++) {
         for (int j = 0; j < number_neighbours(i); j++) {
-            N_color.push_back(number_neighbours(i));
+            N_color_temp.push_back(number_neighbours(i));
         }
+    }
+
+    // Convert std::vector<int> to Eigen::VectorXd
+    Eigen::VectorXd N_color(N_color_temp.size());
+    for (size_t i = 0; i < N_color_temp.size(); ++i) {
+        N_color(i) = N_color_temp[i];
     }
 
     return N_color;
@@ -349,10 +357,10 @@ void calculate_order_parameter(
     Eigen::VectorXd& v_order, 
     Eigen::MatrixXd r, 
     Eigen::MatrixXd r_dot, 
-    int num_part,
     double tt,
     double plotstep
 ) {
+    int num_part = r.rows();
     // Define a vector normal to position vector and velocity vector
     Eigen::MatrixXd v_tp = calculate_3D_cross_product(r, r_dot);
 
@@ -431,11 +439,35 @@ Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
 }
 
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> perform_particle_simulation(
+int get_all_distances(
+
+){
+    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+    Triangle_mesh tm;
+    filename >> tm;
+    Eigen::MatrixXd distance_matrix_v(num_vertices(tm), num_vertices(tm));
+    // ! dieser Schritt ist der Bottleneck der Simulation!
+    // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
+    // loop over all vertices and fill the distance matrix
+    for (auto vi = vertices(tm).first; vi != vertices(tm).second; ++vi) {
+        fill_distance_matrix(distance_matrix_v, *vi);
+    }
+
+    // save the distance matrix to a csv file using comma as delimiter
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+    std::ofstream file("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
+    file << distance_matrix_v.format(CSVFormat);
+    file.close();
+
+    return 0;
+}
+
+
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
     Eigen::MatrixXd& r,
     Eigen::MatrixXd& n,
     std::vector<int>& vertices_3D_active,
-    Eigen::MatrixXd& distance_matrix_v,
+    Eigen::MatrixXd distance_matrix_v,
     double v0,
     double k,
     double k_next,
@@ -449,20 +481,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> p
     int num_part = 10,
     double plotstep = 0.1
 ){
-    // TODO: this for loop is ideally for getting theads
-    // ! dieser Schritt kostet über 1s und ist damit der Bottleneck !
-    // Iterate over the active vertices and fill the distance matrix
-    std::clock_t start_dist = std::clock();
-    // #pragma omp parallel for
-    for (int i = 0; i < vertices_3D_active.size(); i++) {
-        fill_distance_matrix(distance_matrix_v, vertices_3D_active[i]);
-    }
-
-    std::clock_t end_dist = std::clock();
-    double duration_dist = (end_dist - start_dist) / (double) CLOCKS_PER_SEC;
-    std::cout << "Time taken for filling the distance matrix: " << duration_dist << " seconds" << std::endl;
-
-    std::clock_t start_movement = std::clock();
 
     // Get distance vectors and calculate distances between particles
     auto dist_vect = get_dist_vect(r);
@@ -480,23 +498,18 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> p
     Eigen::MatrixXd r_new = r + r_dot * dt;
     r_new.col(2).setZero();
 
-    std::clock_t end_movement = std::clock();
-    double duration_movement = (end_movement - start_movement) / (double) CLOCKS_PER_SEC;
-    std::cout << "Time taken for movement: " << duration_movement << " seconds" << std::endl;
-
     // Dye the particles based on distance
-    auto particles_color = dye_particles(dist_length, num_part, σ);
+    Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
     // Calculate the particle vectors
     auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n);
 
     // Define the output vector v_order
     Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
+    calculate_order_parameter(v_order, r, r_dot, tt, plotstep);
 
-    // Calculate the order parameter
-    calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep);
 
-    return std::make_tuple(r_new, r_dot, dist_length, distance_matrix_v);
+    return std::make_tuple(r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order);
 }
 
 
@@ -506,6 +519,7 @@ void particle_simulation(
     JuliaArray2D n_v,
     JuliaArray vertices_3D_active_id,
     JuliaArray2D distance_matrix_v,
+    int& mesh_id,
     double v0,
     double k,
     double k_next,
@@ -529,46 +543,25 @@ void particle_simulation(
     // convert the active vertices to a vector -> only neccessary as long as the other functions of this script depend von std::vector
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
-    int num_part = 10;
     double plotstep = 0.1;
 
-    // iterate over the active vertices and fill the distance matrix
-    for (int i = 0; i < vertices_3D_active.size(); i++) {
-        fill_distance_matrix(distance_matrix, vertices_3D_active[i]);
-    }
-
-    auto dist_vect = get_dist_vect(r);
-    auto dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active);
-    transform_into_symmetric_matrix(dist_length);
-
-    // calculate the next position and velocity of each particle based on the distances
-    auto r_dot = calculate_velocity(dist_vect, dist_length, n, v0, k, σ, μ, r_adh, k_adh);
-    auto r_new = calculate_next_position(r, r_dot, dt);
-
-    auto particles_color = dye_particles(dist_length, num_part, σ);
-    auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n);
-    std::cout << ntest << std::endl;
-    std::cout << nr_dot << std::endl;
-
-    // Define the output vector v_order
-    Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
-
-    // Calculate the order parameter
-    calculate_order_parameter(v_order, r, r_dot, num_part, tt, plotstep);
-    std::cout << v_order << std::endl;
+    // Simulate the particles
+    auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, plotstep);
 
     // transform the data into a Julia array
-    auto r_julia = jlcxx::ArrayRef<double, 2>(r.data(), r.rows(), r.cols());
+    auto r_julia = jlcxx::ArrayRef<double, 2>(r_new.data(), r_new.rows(), r_new.cols());
     auto r_dot_julia = jlcxx::ArrayRef<double, 2>(r_dot.data(), r_dot.rows(), r_dot.cols());
     auto dist_length_julia = jlcxx::ArrayRef<double, 2>(dist_length.data(), dist_length.rows(), dist_length.cols());
-    auto distance_matrix_julia = jlcxx::ArrayRef<double, 2>(distance_matrix.data(), distance_matrix.rows(), distance_matrix.cols());
+    auto ntest_julia = jlcxx::ArrayRef<double, 2>(ntest.data(), ntest.rows(), ntest.cols());
+    auto nr_dot_julia = jlcxx::ArrayRef<double, 2>(nr_dot.data(), nr_dot.rows(), nr_dot.cols());
+    auto particles_color_julia = jlcxx::ArrayRef<double, 1>(particles_color.data(), particles_color.size());
     auto v_order_julia = jlcxx::ArrayRef<double, 1>(v_order.data(), v_order.size());
 
     // Prepare to call the function defined in Julia
     jlcxx::JuliaFunction fnClb(f);
 
     // Fill the Julia Function with the inputs
-    fnClb((jl_value_t*)r_julia.wrapped(), (jl_value_t*)r_dot_julia.wrapped(), (jl_value_t*)dist_length_julia.wrapped(), (jl_value_t*)distance_matrix_julia.wrapped());
+    fnClb((jl_value_t*)r_julia.wrapped(), (jl_value_t*)r_dot_julia.wrapped(), (jl_value_t*)dist_length_julia.wrapped(), mesh_id);
 }
 
 
@@ -588,13 +581,15 @@ int main()
 
     Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data.csv");
     Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data.csv");
-    Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/distance_matrix_data.csv");
+    Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
     Eigen::MatrixXd vertices_3D_active_eigen = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/vertices_3D_active_id_data.csv");
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
+    // get_all_distances();
+
     std::clock_t start = std::clock();
     // Time taken (30 MAR 2023): 1.15709 seconds
-    auto [r_new, r_dot, dist_length, distance_matrix_new] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+    auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
 
     std::clock_t end = std::clock();
     double duration = (end - start) / (double) CLOCKS_PER_SEC;
@@ -608,4 +603,5 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
 {
     // Register a standard C++ function
     mod.method("particle_simulation", particle_simulation);
+    mod.method("get_all_distances", get_all_distances);
 }

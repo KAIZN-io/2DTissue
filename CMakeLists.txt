@@ -21,11 +21,20 @@ find_package(CGAL 5.5.1 REQUIRED)
 find_package(Boost 1.80.0 REQUIRED)
 find_package(Eigen3 3.4.0 REQUIRED)
 find_package(JlCxx REQUIRED)
+find_package(OpenMP)
 
 # Check if Boost is found
 if(NOT Boost_FOUND)
   message(FATAL_ERROR "This project requires the Boost library, and will not be compiled.")
 endif()
+
+if(OpenMP_CXX_FOUND)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+else()
+  message(WARNING "OpenMP not found. Some parts of the project might run slower without OpenMP support.")
+endif()
+
 
 # Get JlCxx location and set install RPATH
 get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)

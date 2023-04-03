@@ -11,6 +11,7 @@ using LinearAlgebra
 using Base.Threads
 using Logging
 using LinearAlgebra, SparseArrays
+using CSV
 using DataFrames
 
 GLMakie.activate!()

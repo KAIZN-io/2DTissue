@@ -11,7 +11,9 @@ JLCXX_PATH := $(shell julia --project=@. -e 'using Pkg; Pkg.instantiate(); using
 # CMake flags
 CMAKE_FLAGS := -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_CXX_FLAGS="-O2" \
-               -DCMAKE_PREFIX_PATH=$(JLCXX_PATH)
+			   -DCMAKE_C_COMPILER=$(shell brew --prefix llvm)/bin/clang \
+			   -DCMAKE_CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++ \
+               -DCMAKE_PREFIX_PATH=$(JLCXX_PATH);
 
 # Extern repository name
 REPOSITORY := libcxxwrap-julia
