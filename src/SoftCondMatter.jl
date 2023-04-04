@@ -152,59 +152,10 @@ function correct_n(r_dot, n, τ, dt)
 end
 
 
-"""
-    get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
-
-"""
-function get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
-    num_r = size(r, 1)
-    vertice_3D_id = Vector{Int}(undef, num_r)
-
-    # @threads for i in 1:num_r
-    for i in 1:num_r
-        distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
-        halfedges_id = argmin(distances_to_h)
-        vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id, :][1] + 1  # +1 because the first vertice v0 has index 1 in a Julia array
-    end
-    return vertice_3D_id
-end
-
-
-
 
 ########################################################################################
 # Analysis Functions
 ########################################################################################
-
-"""
-    is_inside_uv(r)
-
-Check if the given point r is inside the UV parametrization bounds.
-"""
-function is_inside_uv(r)
-    return (0 <= r[1] <= 1) && (0 <= r[2] <= 1)
-end
-
-
-"""
-    find_inside_uv_vertices_id(r)
-
-Find all rows in the r array where one value is bigger than 1
-Optimized for performance on 16 MAR 2023, JNP
-"""
-function find_inside_uv_vertices_id(r)
-    nrows = size(r, 1)
-    inside_id = Int[]
-
-    for i in 1:nrows
-        # Check if the point is inside the UV parametrization bounds
-        if is_inside_uv(r[i, :])
-            push!(inside_id, i)
-        end
-    end
-
-    return inside_id
-end
 
 
 """

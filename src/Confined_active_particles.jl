@@ -18,17 +18,22 @@ Erfolg gegenüber 3D Simulation:
 - Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
 """
 
-
+# include("Packages.jl")
+# include("Basic.jl")
+# include("GeomProcessing.jl")
+# include("SoftCondMatter.jl")
 include("src/Packages.jl")
 include("src/Basic.jl")
 include("src/GeomProcessing.jl")
 include("src/SoftCondMatter.jl")
+
 
 struct ParticleSimSolution
     r_new::Array{Float64,2}
     r_dot::Array{Float64,2}
     dist_length::Array{Float64, 2}
 end
+
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_dict = Dict{Int64, Mesh_UV_Struct}()
@@ -46,9 +51,6 @@ module ParticleSimulation
 end
 
 
-
-
-
 function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2}, _dist_length::Array{Float64, 2}, _mesh_id::Ref{Int32})
     GC.enable(true)
 
@@ -64,7 +66,7 @@ function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2
     dist_length_julia = Array{Float64, 2}
     dist_length = vcat(dist_length_julia, _dist_length)
     _dist_length = nothing
-    
+
     mesh_id = _mesh_id[]
 
     GC.gc()
@@ -134,6 +136,7 @@ function active_particles_simulation(
     b = v0_next/(2*σ*μ*k_next) # for calculating coupling constant
     J = b/τ # Coupling constant of orientation vectors
     scale=0.1*ρ # Scale the vector for making movies
+    bases_id = 0  # Starting mesh node id
 
     ########################################################################################
     # Step 0.: Initialize the Observables for the visualization
@@ -281,7 +284,6 @@ function active_particles_simulation(
     # update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
 
     @info "Simulation started"
-
     record(figure, "assets/confined_active_particles.mp4", 1:num_step) do tt
         # Step size
         dt = 0.01 * τ
@@ -292,28 +294,37 @@ function active_particles_simulation(
         r = observe_r[] |> vec_of_vec_to_array
         n = observe_n[] |> vec_of_vec_to_array
         vertices_3D_active_id = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
+        df = DataFrame(old_id=vertices_3D_active_id, next_id=observe_active_vertice_3D_id[], valid=zeros(Bool, size(r, 1)), uv_mesh_id=0)
+        halfedges_uv = GeometryBasics.coordinates(mesh_dict[0].mesh_uv_name) |> vec_of_vec_to_array
 
+    
         # transform r to type Array{Float64, 2}
         r = convert(Array{Float64}, r)
         n = convert(Array{Float64}, n)
+        mesh_id = Ref{Int32}(bases_id)
 
-        mesh_id = Ref{Int32}(0)
+        # Simulate the flight route
+        # 0.744727 seconds (1.93 M allocations: 100.476 MiB, 23.27% gc time, 35.42% compilation time)
         ParticleSimulation.particle_simulation(get_cpp_data_helper, r, n, vertices_3D_active_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-        r_new = particle_sim_sol[0].r_new
+        r_new = particle_sim_sol[bases_id].r_new
 
-        df = DataFrame(old_id=vertices_3D_active_id, next_id=observe_active_vertice_3D_id[], valid=zeros(Bool, size(r, 1)), uv_mesh_id=0)
 
-        halfedges_uv =  GeometryBasics.coordinates(mesh_dict[0].mesh_uv_name) |> vec_of_vec_to_array
+
+
+        # BEGIN of bug
+        # TODO: Why? wenn man simuliert und ein Teilchen das Mesh verlässt, dann sind danach alle Partikel an neuen, unlogischen Stellen
 
         # TODO: refactor the function update_dataframe! for the following two lines
-        vertice_id = get_vertice_id(r_new, halfedges_uv, mesh_dict[0].h_v_mapping)
-        update_if_valid!(r_new, df, vertice_id, 0)
+        # 0.299444 seconds (3.24 M allocations: 115.867 MiB, 77.44% compilation time)
+        vertice_3D_id = get_vertice_id(r_new, halfedges_uv, mesh_dict[bases_id].h_v_mapping)
+        # 0.119913 seconds (410.20 k allocations: 22.697 MiB, 99.68% compilation time)
+        update_if_valid!(df, r_new, vertice_3D_id, bases_id)
 
         if false in df.valid
+            # 1.231166 seconds (3.53 M allocations: 136.961 MiB, 29.04% gc time, 35.25% compilation time)
             process_if_not_valid(df, num_part, distance_matrix, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
         end
 
-        # ! BUG: sometimes particles are on the same vertice
         if all(df.valid)==false
             @info df[df.valid .== false, :]
             @info unique(df.uv_mesh_id)
@@ -326,6 +337,14 @@ function active_particles_simulation(
             if i != 0
                 r_new = get_original_mesh_halfedges_coord(df, i, r_new)
             end
+        end
+
+        # END of bug
+
+
+
+        if length(find_inside_uv_vertices_id(r_new)) != num_part
+           @test_throws ErrorException "We lost particles after getting the original mesh halfedges coord"
         end
 
         # Graphic output if plotstep is a multiple of tt
@@ -345,19 +364,67 @@ end
 
 
 """
+    is_inside_uv(r)
+
+Check if the given point r is inside the UV parametrization bounds.
+"""
+function is_inside_uv(r)
+    return (0 <= r[1] <= 1) && (0 <= r[2] <= 1)
+end
+
+
+"""
+    find_inside_uv_vertices_id(r)
+
+Find all rows in the r array where one value is bigger than 1
+Optimized for performance on 16 MAR 2023, JNP
+"""
+function find_inside_uv_vertices_id(r)
+    nrows = size(r, 1)
+    inside_id = Int[]
+
+    for i in 1:nrows
+        # Check if the point is inside the UV parametrization bounds
+        if is_inside_uv(r[i, :])
+            push!(inside_id, i)
+        end
+    end
+
+    return inside_id
+end
+
+
+"""
 update_if_valid(r_new, df, vertice_id, start_id)
 
 Tested time (23 MAR 2023): 0.140408 seconds (385.12 k allocations: 21.163 MiB, 99.87% compilation time)
 """
-function update_if_valid!(r_new, df, vertice_id, start_id)
+function update_if_valid!(df, r_new, vertice_3D_id, start_id)
     # Find out which particles are inside the mesh
     inside_uv_ids = find_inside_uv_vertices_id(r_new)
 
     df.valid[inside_uv_ids] .= true
-    df.next_id[inside_uv_ids] .= vertice_id[inside_uv_ids]
+    df.next_id[inside_uv_ids] .= vertice_3D_id[inside_uv_ids]
     df.uv_mesh_id[inside_uv_ids] .= start_id
+end
 
-    return 0
+
+"""
+    get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+
+(2D coordinates -> 3D vertice id) mapping
+"""
+function get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+    num_r = size(r, 1)
+    vertice_3D_id = Vector{Int}(undef, num_r)
+
+    # @threads for i in 1:num_r
+    for i in 1:num_r
+        distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
+        halfedges_id = argmin(distances_to_h)
+        vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id, :][1] + 1  # +1 because the first vertice v0 has index 1 in a Julia array
+    end
+    return vertice_3D_id
 end
 
 
@@ -367,7 +434,7 @@ Tested time (23 MAR 2023): 0.218366 seconds (3.26 M allocations: 95.062 MiB, 57.
 """
 function update_dataframe!(df, r_new, start_id, halfedges_uv, halfedge_vertices_mapping)
     vertice_id = get_vertice_id(r_new, halfedges_uv, Int.(halfedge_vertices_mapping))
-    update_if_valid!(r_new, df, vertice_id, start_id)
+    update_if_valid!(df, r_new, vertice_id, start_id)
     return 0
 end
 
