@@ -221,8 +221,14 @@ Eigen::MatrixXd calculate_forces_between_particles(
             // Distance between particles A and B
             double dist = dist_length(i, j);
 
-            // No force if particles too far from each other
+            // No force if particles too far from each other 
             if (dist >= 2 * σ) continue;
+
+            // Add a small value if the distance is zero or you get Inf forces
+            // ∀F: Inf ∉ F_track
+            if (dist == 0) {
+                dist += 0.0001;
+            }
 
             // Eigen::Vector3d for the 3D distance vector
             Eigen::Vector3d dist_v(dist_vect[0](i, j), dist_vect[1](i, j), dist_vect[2](i, j));
