@@ -233,8 +233,23 @@ function active_particles_simulation(
 
     observe_r[] = array_to_vec_of_vec(r)
     observe_n[] = array_to_vec_of_vec(n)
-    vertices_3D_active = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
 
+    # # Test the mapping before running the simulation
+    # # 1. (halfedge_id -> 3D vertice) mapping
+    # vertice_3D_id_test = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+
+    # # 2. (3D vertice -> halfedge_id) mapping
+    # halfedge_id_test = get_first_uv_halfedge_from_3D_vertice_id(vertice_3D_id_test, halfedge_vertices_mapping)
+
+    # # 3. (halfedge_id -> r[]) mapping
+    # r_test = halfedges_uv[halfedge_id_test, :]
+
+    # const tolerance = 0.05   # Toleranzwert
+    # if compare_arrays(r, r_test, tolerance) == false
+    #     @error "r[] and r_test[] are not equal. The mapping between the r coordinates and their corresponding halfedge is not correct."
+    # end
+
+    # @info "Mapping between the r coordinates and their corresponding halfedge is correct."
     @info "Initialization of the particle position and orientation done."
 
     ########################################################################################
@@ -297,7 +312,6 @@ function active_particles_simulation(
         df = DataFrame(old_id=vertices_3D_active_id, next_id=observe_active_vertice_3D_id[], valid=zeros(Bool, size(r, 1)), uv_mesh_id=0)
         halfedges_uv = GeometryBasics.coordinates(mesh_dict[0].mesh_uv_name) |> vec_of_vec_to_array
 
-    
         # transform r to type Array{Float64, 2}
         r = convert(Array{Float64}, r)
         n = convert(Array{Float64}, n)
@@ -306,42 +320,44 @@ function active_particles_simulation(
         # Simulate the flight route
         # 0.744727 seconds (1.93 M allocations: 100.476 MiB, 23.27% gc time, 35.42% compilation time)
         ParticleSimulation.particle_simulation(get_cpp_data_helper, r, n, vertices_3D_active_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-        r_new = particle_sim_sol[bases_id].r_new
+        r_new_temp = particle_sim_sol[bases_id].r_new
 
+        # Find out which particles are inside the mesh
+        inside_uv_ids = find_inside_uv_vertices_id(r_new_temp)
+        vertice_3D_id = get_vertice_id(r_new_temp, halfedges_uv, mesh_dict[bases_id].h_v_mapping)
 
-
-
-        # BEGIN of bug
-        # TODO: Why? wenn man simuliert und ein Teilchen das Mesh verlässt, dann sind danach alle Partikel an neuen, unlogischen Stellen
-
-        # TODO: refactor the function update_dataframe! for the following two lines
-        # 0.299444 seconds (3.24 M allocations: 115.867 MiB, 77.44% compilation time)
-        vertice_3D_id = get_vertice_id(r_new, halfedges_uv, mesh_dict[bases_id].h_v_mapping)
-        # 0.119913 seconds (410.20 k allocations: 22.697 MiB, 99.68% compilation time)
-        update_if_valid!(df, r_new, vertice_3D_id, bases_id)
+        # Only update if valid = false
+        # für alle Partikel, die vorher auf dem Mesh blieben, darf sich die 3D mesh Vertices ID nicht verändern
+        for i in inside_uv_ids
+            if df.valid[i] == false
+                df.next_id[i] = vertice_3D_id[i]
+                df.uv_mesh_id[i] = bases_id
+                df.valid[i] = true
+            end
+        end
 
         if false in df.valid
             # 1.231166 seconds (3.53 M allocations: 136.961 MiB, 29.04% gc time, 35.25% compilation time)
             process_if_not_valid(df, num_part, distance_matrix, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
         end
 
-        if all(df.valid)==false
+        if all(df.valid) == false
             @info df[df.valid .== false, :]
             @info unique(df.uv_mesh_id)
             @test_throws ErrorException "There are still particles outside the mesh"
         end
 
-        # Get all the halfeddges for the original UV mesh based on the df.next_id 3D vertice id
-        # You only have to do this, if there are particles outside the mesh
-        for i in unique(df.uv_mesh_id)
-            if i != 0
-                r_new = get_original_mesh_halfedges_coord(df, i, r_new)
-            end
+        # Get all the halfedges for the original UV mesh because the 3D vertices are conserved
+        # Only change the r_new_temp value, if df.uv_mesh_id != 0
+        outside_uv_ids = setdiff(1:num_part, inside_uv_ids)
+        vertices_id = df.next_id
+
+        for i in outside_uv_ids
+            halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(vertices_id[i], mesh_dict[bases_id].h_v_mapping)
+            r_new_temp[i, :] =  get_r_from_halfedge_id(halfedge_id, halfedges_uv)
         end
 
-        # END of bug
-
-
+        r_new = r_new_temp
 
         if length(find_inside_uv_vertices_id(r_new)) != num_part
            @test_throws ErrorException "We lost particles after getting the original mesh halfedges coord"
@@ -403,9 +419,13 @@ function update_if_valid!(df, r_new, vertice_3D_id, start_id)
     # Find out which particles are inside the mesh
     inside_uv_ids = find_inside_uv_vertices_id(r_new)
 
-    df.valid[inside_uv_ids] .= true
-    df.next_id[inside_uv_ids] .= vertice_3D_id[inside_uv_ids]
-    df.uv_mesh_id[inside_uv_ids] .= start_id
+    for i in inside_uv_ids
+        if df.valid[i] == false
+            df.next_id[i] = vertice_3D_id[i]
+            df.uv_mesh_id[i] = start_id
+            df.valid[i] = true
+        end
+    end
 end
 
 
@@ -422,7 +442,7 @@ function get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
     for i in 1:num_r
         distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
         halfedges_id = argmin(distances_to_h)
-        vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id, :][1] + 1  # +1 because the first vertice v0 has index 1 in a Julia array
+        vertice_3D_id[i] = halfedge_vertices_mapping[(halfedges_id .+ 1), :][1]  # +1 because the first vertice v0 has index 1 in a Julia array
     end
     return vertice_3D_id
 end
@@ -461,9 +481,10 @@ function process_invalid_particle!(df, particle, num_part, distance_matrix, n, v
     n = convert(Array{Float64}, n)
     mesh_id = Ref{Int32}(old_id)
     ParticleSimulation.particle_simulation(get_cpp_data_helper, r_active, n, df.old_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-    r_new = particle_sim_sol[old_id].r_new
+    r_new_virtual = particle_sim_sol[old_id].r_new
 
-    update_dataframe!(df, r_new, old_id, halfedges_uv_test, halfedge_vertices_mapping_test)
+    vertice_id = get_vertice_id(r_new_virtual, halfedges_uv_test, Int.(halfedge_vertices_mapping_test)) .- 1   # NOTE: keine Ahnung warum, aber der Unterschied scheint immer 1 zu sein zu den Base Mesh
+    update_if_valid!(df, r_new_virtual, vertice_id, old_id)
 
     return 0
 end
@@ -505,4 +526,17 @@ function get_original_mesh_halfedges_coord(df, i, r_new)
     # Update all the r_new values if applicable
     r_new[df.uv_mesh_id .== i, :] = get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
     return r_new
+end
+
+
+# Funktion, die prüft, ob alle Elemente von array1 und array2 innerhalb der Toleranz liegen
+function compare_arrays(array1, array2, tolerance)
+    for i in 1:size(array1, 1)
+        for j in 1:size(array1, 2)
+            if !isapprox(array1[i, j], array2[i, j]; atol=tolerance)
+                return false
+            end
+        end
+    end
+    return true
 end
