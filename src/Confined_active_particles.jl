@@ -18,20 +18,21 @@ Erfolg gegenüber 3D Simulation:
 - Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
 """
 
-# include("Packages.jl")
-# include("Basic.jl")
-# include("GeomProcessing.jl")
-# include("SoftCondMatter.jl")
-include("src/Packages.jl")
-include("src/Basic.jl")
-include("src/GeomProcessing.jl")
-include("src/SoftCondMatter.jl")
+include("Packages.jl")
+include("Basic.jl")
+include("GeomProcessing.jl")
+include("SoftCondMatter.jl")
+# include("src/Packages.jl")
+# include("src/Basic.jl")
+# include("src/GeomProcessing.jl")
+# include("src/SoftCondMatter.jl")
 
 
 struct ParticleSimSolution
     r_new::Array{Float64,2}
     r_dot::Array{Float64,2}
     dist_length::Array{Float64, 2}
+    v_order::Array{Float64, 1}
 end
 
 
@@ -51,7 +52,7 @@ module ParticleSimulation
 end
 
 
-function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2}, _dist_length::Array{Float64, 2}, _mesh_id::Ref{Int32})
+function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2}, _dist_length::Array{Float64, 2}, _mesh_id::Ref{Int32}, _v_order::Array{Float64, 1})
     GC.enable(true)
 
     # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
@@ -67,10 +68,14 @@ function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2
     dist_length = vcat(dist_length_julia, _dist_length)
     _dist_length = nothing
 
+    v_order_julia = Array{Float64, 1}
+    v_order = vcat(v_order_julia, _v_order)
+    _v_order = nothing
+
     mesh_id = _mesh_id[]
 
     GC.gc()
-    particle_sim_sol[mesh_id] = ParticleSimSolution(r_new[2:end, :], r_dot[2:end, :], dist_length[2:end, :])
+    particle_sim_sol[mesh_id] = ParticleSimSolution(r_new[2:end, :], r_dot[2:end, :], dist_length[2:end, :], v_order[2:end])
 end
 
 
@@ -253,16 +258,16 @@ function active_particles_simulation(
 
     scene = GLMakie.Scene(resolution = (400,400), show_axis = false);
 
-    figure = GLMakie.Figure(resolution=(1400, 2100))
-    ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    figure = GLMakie.Figure(resolution=(2100, 2400))
+    ax1 = Makie.Axis3(figure[1, :]; aspect=(1, 1, 1), perspectiveness=0.5)
     ax1.title = "3D-Plot"
 
-    ax2 = Makie.Axis(figure[1, 2]; aspect=(1))
-    ax2.title = "Order Parameter"
-    ax2.xlabel = "t"
-    ax2.ylabel = "n"
+    # ax2 = Makie.Axis(figure[1, 2]; aspect=(1))
+    # ax2.title = "Order Parameter"
+    # ax2.xlabel = "t"
+    # ax2.ylabel = "n"
 
-    ax3 = Makie.Axis(figure[2, 1]; aspect=(1))  # NOTE: remove the aspect ratio to dynamically size the plot
+    ax3 = Makie.Axis(figure[2,:]; aspect=(2))  # NOTE: remove the aspect ratio to dynamically size the plot
     ax3.title = "UV-Plot"
     ax3.xlabel = "u"
     ax3.ylabel = "v"
@@ -270,18 +275,18 @@ function active_particles_simulation(
     colsize!(figure.layout, 1, Relative(2 / 3))
 
     mesh!(ax1, mesh_loaded)
-    wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
+    wireframe!(ax1, mesh_loaded, color=(:black, 0.1), linewidth=2, transparency=true)  # only for the asthetic
 
     # Colorbar(fig[1, 4], hm, label="values", height=Relative(0.5))
-    ylims!(ax2, 0, 1)
-    lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
+    # ylims!(ax2, 0, 1)
+    # lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
 
     mesh!(ax3, mesh_loaded_uv)
-    wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
+    wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.1), linewidth=2, transparency=true)  # only for the asthetic
 
     # Plot the particles
     meshscatter!(ax1, observe_r_3D, color = :black, markersize = 0.08)  # overgive the Observable the plotting function to TRACK it
-    meshscatter!(ax3, observe_r, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
+    meshscatter!(ax3, observe_r, color = :black, markersize = 0.008)  # overgive the Observable the plotting function to TRACK it
 
     # # NOTE: for a planar system it is more difficult to visualize the height of the vertices
     # arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
@@ -299,10 +304,39 @@ function active_particles_simulation(
     # Number of calculation between plot
     plotstep = 0.1 / dt
 
+    # ! TODO: 0 und letzter Index sind das Problem 
+    """
+    ERROR: LoadError: BoundsError: attempt to access 4717-element Vector{Int64} at index [4718, 1:1]
+    Stacktrace:
+    [1] throw_boundserror(A::Vector{Int64}, I::Tuple{Int64, Base.Slice{Base.OneTo{Int64}}})
+        @ Base ./abstractarray.jl:703
+    [2] checkbounds
+        @ ./abstractarray.jl:668 [inlined]
+    [3] _getindex(::IndexLinear, ::Vector{Int64}, ::Int64, ::Base.Slice{Base.OneTo{Int64}})
+        @ Base ./multidimensional.jl:874
+    [4] getindex
+        @ ./abstractarray.jl:1241 [inlined]
+    [5] get_vertice_id(r::Matrix{Float64}, halfedges_uv::Matrix{Float32}, halfedge_vertices_mapping::Vector{Int64})
+        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:450
+    [6] process_invalid_particle!(df::DataFrame, particle::DataFrameRow{DataFrame, DataFrames.Index}, num_part::Int64, distance_matrix::Matrix{Float64}, n::Matrix{Float64}, v0::Float64, k::Int64, k_next::Int64, v0_next::Float64, σ::Float64, μ::Int64, r_adh::Int64, k_adh::Float64, dt::Float64, tt::Int64)
+        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:499
+    [7] process_if_not_valid(df::DataFrame, num_part::Int64, distance_matrix::Matrix{Float64}, n::Matrix{Float64}, v0::Float64, k::Int64, k_next::Int64, v0_next::Float64, σ::Float64, μ::Int64, r_adh::Int64, k_adh::Float64, dt::Float64, tt::Int64)
+        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:517
+    [8] (::var"#10#13"{Int64, Float64, Float64, Float64, Int64, Int64, Int64, Float64, Int64, Observable{Vector{Int64}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Int64})(tt::Int64)
+        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:344
+    [9] Record(func::var"#10#13"{Int64, Float64, Float64, Float64, Int64, Int64, Int64, Float64, Int64, Observable{Vector{Int64}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Int64}, figlike::Figure, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Any, Tuple{Symbol, Symbol}, NamedTuple{(:format, :framerate), Tuple{SubString{String}, Int64}}})
+        @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:167
+    [10] record(func::Function, figlike::Figure, path::String, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Int64, Tuple{Symbol}, NamedTuple{(:framerate,), Tuple{Int64}}})
+        @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:148
+    [11] active_particles_simulation(; num_part::Int64, v0::Float64, v0_next::Float64, num_step::Int64, σ::Float64, r_adh::Int64, k::Int64, k_next::Int64, k_adh::Float64, μ::Int64, τ::Int64, ρ::Int64)
+        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:310
+    [12] top-level scope
+        @ ~/git_repos/Confined_active_particles/main.jl:4
+    """
 
     @info "Simulation started"
 
-    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate=12) do tt
+    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate=8) do tt
         r = observe_r[] |> vec_of_vec_to_array
         n = observe_n[] |> vec_of_vec_to_array
         vertices_3D_active_id = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
@@ -366,9 +400,11 @@ function active_particles_simulation(
         # if rem(tt,plotstep) == 0
         observe_r[] = array_to_vec_of_vec(r_new)
         observe_n[] = array_to_vec_of_vec(n)
+        # maximum(particle_sim_sol[bases_id].v_order)  # TODO: fix this
     end
 
     @info "Simulation finished"
+
 end
 
 

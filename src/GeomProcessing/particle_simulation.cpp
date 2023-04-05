@@ -567,7 +567,7 @@ void particle_simulation(
     jlcxx::JuliaFunction fnClb(f);
 
     // Fill the Julia Function with the inputs
-    fnClb((jl_value_t*)r_julia.wrapped(), (jl_value_t*)r_dot_julia.wrapped(), (jl_value_t*)dist_length_julia.wrapped(), mesh_id);
+    fnClb((jl_value_t*)r_julia.wrapped(), (jl_value_t*)r_dot_julia.wrapped(), (jl_value_t*)dist_length_julia.wrapped(), mesh_id, (jl_value_t*)v_order_julia.wrapped());
 }
 
 
