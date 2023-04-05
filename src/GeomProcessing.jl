@@ -131,7 +131,7 @@ function get_first_uv_halfedge_from_3D_vertice_id(
     halfedge_id = zeros(Int, length(_vertice_3D_id))
 
     for i in 1:length(_vertice_3D_id)
-        halfedge_id[i] = findfirst(_halfedge_vertices_mapping .== _vertice_3D_id[i])
+        halfedge_id[i] = findfirst(_halfedge_vertices_mapping .== _vertice_3D_id[i]) - 1  # ? warum -1?
     end
 
     return halfedge_id
@@ -252,19 +252,19 @@ end
 
 
 """
-    get_nearest_uv_halfedges(r, halfedges_uv, num_part)
+    get_nearest_uv_halfedges(r, halfedges_uv)
 
 (r[] -> halfedges) mapping
 """
-function get_nearest_uv_halfedges(r, halfedges_uv, num_part)
-    halfedge_vec = zeros(Int32, size(r)[1])
-
-    for i in 1:num_part
-        distances = vec(mapslices(norm, halfedges_uv .- r[i,:]', dims=2))
-        halfedge_vec[i] = argmin(distances)
+function get_nearest_uv_halfedges(r, halfedges_uv)
+    num_r = size(r, 1)
+    halfedges_id = Vector{Int}(undef, num_r)
+    for i in 1:num_r
+        distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
+        halfedges_id[i] = argmin(distances_to_h)
     end
 
-    return halfedge_vec
+    return halfedges_id
 end
 
 
