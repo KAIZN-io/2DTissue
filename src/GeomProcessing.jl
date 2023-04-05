@@ -144,7 +144,7 @@ end
 (halfedge_id -> r[]) mapping
 """
 function get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
-    halfedge_uv_coord = halfedges_uv_test[halfedge_id, :]
+    halfedge_uv_coord = halfedges_uv_test[(halfedge_id .+ 1), :]
 
     return halfedge_uv_coord
 end

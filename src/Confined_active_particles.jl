@@ -178,10 +178,6 @@ function active_particles_simulation(
     @test N[:, 1] == zeros(size(N)[1])
     @test N[:, 2] == zeros(size(N)[1])
 
-    # halfedges_uv_float64 = convert(Array{Float64}, halfedges_uv)
-    # ! NOTE: hier ist eine C++ Funktion, aber die ist für diese Rechnung sogar langsamer als die Julia Funktion
-    # Basic.calculate_vertex_normals(faces_uv[i, :], halfedges_uv_float64)
-
     # Load the distance matrix from the csv file if it exists
     distance_matrix_path = "meshes/data/ellipsoid_x4_distance_matrix_static.csv"
     if isfile(distance_matrix_path)
@@ -303,37 +299,10 @@ function active_particles_simulation(
     # Number of calculation between plot
     plotstep = 0.1 / dt
 
-    # ! BUG
-    """
-    ERROR: LoadError: BoundsError: attempt to access 4714×3 Matrix{Float32} at index [[0], 1:3]
-    Stacktrace:
-    [1] throw_boundserror(A::Matrix{Float32}, I::Tuple{Vector{Int64}, Base.Slice{Base.OneTo{Int64}}})
-        @ Base ./abstractarray.jl:703
-    [2] checkbounds
-        @ ./abstractarray.jl:668 [inlined]
-    [3] _getindex
-        @ ./multidimensional.jl:874 [inlined]
-    [4] getindex
-        @ ./abstractarray.jl:1241 [inlined]
-    [5] get_r_from_halfedge_id(halfedge_id::Vector{Int64}, halfedges_uv_test::Matrix{Float32})
-        @ Main ~/git_repos/Confined_active_particles/src/GeomProcessing.jl:147
-    [6] (::var"#10#13"{Int64, Float64, Float64, Float64, Int64, Int64, Int64, Float64, Int64, Observable{Vector{Int64}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Int64})(tt::Int64)
-        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:358
-    [7] Record(func::var"#10#13"{Int64, Float64, Float64, Float64, Int64, Int64, Int64, Float64, Int64, Observable{Vector{Int64}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Int64}, figlike::Figure, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, SubString{String}, Tuple{Symbol}, NamedTuple{(:format,), Tuple{SubString{String}}}})
-        @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:167
-    [8] record(func::Function, figlike::Figure, path::String, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}})
-        @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:148
-    [9] record
-        @ ~/.julia/packages/Makie/gAmAB/src/recording.jl:146 [inlined]
-    [10] active_particles_simulation(; num_part::Int64, v0::Float64, v0_next::Float64, num_step::Int64, σ::Float64, r_adh::Int64, k::Int64, k_next::Int64, k_adh::Float64, μ::Int64, τ::Int64, ρ::Int64)
-        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:308
-    [11] top-level scope
-        @ ~/git_repos/Confined_active_particles/main.jl:4
-    """
-
 
     @info "Simulation started"
-    record(figure, "assets/confined_active_particles.mp4", 1:num_step) do tt
+
+    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate=12) do tt
         r = observe_r[] |> vec_of_vec_to_array
         n = observe_n[] |> vec_of_vec_to_array
         vertices_3D_active_id = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
@@ -383,6 +352,7 @@ function active_particles_simulation(
 
         for i in outside_uv_ids
             halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(vertices_id[i], mesh_dict[bases_id].h_v_mapping)
+            # NOTE: halfedge_id kann auch 0 sein, da C++ bei 0 beginnt und es deshalb h0 gibt
             r_new_temp[i, :] =  get_r_from_halfedge_id(halfedge_id, halfedges_uv)
         end
 
