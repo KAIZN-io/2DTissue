@@ -22,6 +22,15 @@ find_package(Boost 1.80.0 REQUIRED)
 find_package(Eigen3 3.4.0 REQUIRED)
 find_package(JlCxx REQUIRED)
 find_package(OpenMP)
+# Set the Assimp path
+set(ASSIMP_ROOT "/opt/homebrew/Cellar/assimp/5.2.5")
+set(ASSIMP_INCLUDE_DIRS "${ASSIMP_ROOT}/include")
+set(ASSIMP_LIBRARY_DIRS "${ASSIMP_ROOT}/lib")
+
+# Include the Assimp headers and libraries
+include_directories(${ASSIMP_INCLUDE_DIRS})
+link_directories(${ASSIMP_LIBRARY_DIRS})
+
 
 # Check if Boost is found
 if(NOT Boost_FOUND)
@@ -63,7 +72,7 @@ create_single_source_cgal_program("src/GeomProcessing/particle_simulation.cpp")
 target_link_libraries(geodesic_distance PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(create_uv_surface PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(basic PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
-target_link_libraries(particle_simulation PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
+target_link_libraries(particle_simulation PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
 
 # Install the target
 install(TARGETS geodesic_distance create_uv_surface basic particle_simulation
