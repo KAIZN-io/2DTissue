@@ -461,7 +461,7 @@ std::vector<int64_t> calculate_uv_surface(
 }
 
 
-std::vector<int64_t> create_uv_surface_intern(
+std::pair<std::vector<int64_t>, std::string> create_uv_surface_intern(
     std::string mesh_3D,
     int32_t start_node_int
 ){
@@ -476,8 +476,9 @@ std::vector<int64_t> create_uv_surface_intern(
 
      // Calculate uv_mesh_number based on the value of start_node_int
     int uv_mesh_number = (start_node_int == 0) ? 0 : (highest_mesh_creation + 1);
+    auto mesh_file_path = meshmeta.mesh_path;
 
     const auto results = calculate_uv_surface(mesh_3D, start_node, uv_mesh_number);
 
-    return results;
+    return std::make_pair(results, mesh_file_path);
 }

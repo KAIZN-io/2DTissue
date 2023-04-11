@@ -46,6 +46,7 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 #include <omp.h>
 #include <sstream>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include "uv_surface.h"
@@ -92,6 +93,13 @@ struct ParticleSimSolution {
     Eigen::MatrixXd r_dot;
     Eigen::MatrixXd dist_length;
     Eigen::VectorXd v_order;
+};
+
+
+struct Mesh_UV_Struct {
+    int start_vertice_id;
+    Eigen::MatrixXd mesh;
+    std::vector<int64_t> h_v_mapping;
 };
 
 
@@ -633,6 +641,113 @@ std::vector<VertexData> update_vertex_data(
 }
 
 
+bool are_all_valid(const std::vector<VertexData>& vertex_data) {
+    for (const VertexData& data : vertex_data) {
+        if (!data.valid) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+std::vector<int64_t> get_first_uv_halfedge_from_3D_vertice_id(
+    const std::vector<int64_t>& _vertice_3D_id,
+    const std::vector<int64_t>& _halfedge_vertices_mapping
+) {
+    std::vector<int64_t> halfedge_id(_vertice_3D_id.size());
+
+    for (size_t i = 0; i < _vertice_3D_id.size(); ++i) {
+        auto it = std::find(_halfedge_vertices_mapping.begin(), _halfedge_vertices_mapping.end(), _vertice_3D_id[i]);
+        halfedge_id[i] = static_cast<int>(std::distance(_halfedge_vertices_mapping.begin(), it)) - 1;
+    }
+
+    return halfedge_id;
+}
+
+
+void process_invalid_particle(
+    std::vector<VertexData>& vertex_data,
+    const VertexData& particle,
+    int num_part,
+    const Eigen::MatrixXd& distance_matrix,
+    Eigen::MatrixXd& n,
+    double v0,
+    double k,
+    double k_next,
+    double v0_next,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh,
+    double dt,
+    double tt
+) {
+    int old_id = particle.old_id;
+    std::cout << "old_id: " << old_id << std::endl;
+    static std::unordered_map<int, Mesh_UV_Struct> mesh_dict;
+
+    Eigen::MatrixXd halfedges_uv;
+    std::vector<int64_t> h_v_mapping;
+
+    auto it = mesh_dict.find(old_id);
+    if (it != mesh_dict.end()) {
+        // Load the mesh
+        halfedges_uv = it->second.mesh;
+        h_v_mapping = it->second.h_v_mapping;
+    } else {
+        auto result = create_uv_surface_intern("Ellipsoid", old_id);
+        h_v_mapping = std::get<0>(result);
+        std::string mesh_file_path = std::get<1>(result);
+        halfedges_uv = loadMeshVertices(mesh_file_path);
+
+        mesh_dict[old_id] = Mesh_UV_Struct{old_id, halfedges_uv, h_v_mapping};
+    }
+
+    std::vector<int64_t> old_ids(vertex_data.size());
+    for (size_t i = 0; i < vertex_data.size(); ++i) {
+        old_ids[i] = vertex_data[i].old_id;
+    }
+
+    auto halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(old_ids, h_v_mapping);
+
+}
+
+
+void process_if_not_valid(
+    std::vector<VertexData>& vertex_data,
+    int num_part,
+    Eigen::MatrixXd& distance_matrix_v,
+    Eigen::MatrixXd& n,
+    double v0,
+    double k,
+    double k_next,
+    double v0_next,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh,
+    double dt,
+    double tt
+) {
+    std::vector<int> invalid_ids;
+
+    for (int i = 0; i < vertex_data.size(); ++i) {
+        if (!vertex_data[i].valid) {
+            invalid_ids.push_back(i);
+        }
+    }
+
+    for (int invalid_id : invalid_ids) {
+        process_invalid_particle(vertex_data, vertex_data[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+
+        if (are_all_valid(vertex_data)) {
+            break;
+        }
+    }
+}
+
+
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
     Eigen::MatrixXd& r,
     Eigen::MatrixXd& n,
@@ -667,30 +782,34 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Calculate the new position of each particle
     Eigen::MatrixXd r_new = r + r_dot * dt;
     r_new.col(2).setZero();
+    // ! TEMP: multiply r_new with 1.3
+    r_new *= 1.3;
 
     std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_new);
-
-    std::cout << "Inside UV vertices id: ";
-    for (const auto& id : inside_uv_ids) {
-        std::cout << id << " ";
-    }
-    std::cout << std::endl;
-
     std::vector<int> outside_uv_ids = set_difference(num_part, inside_uv_ids);
 
-
     // Specify the file path of the 3D model you want to load
-    Eigen::MatrixXd vertices = loadMeshVertices("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
-    Eigen::MatrixXd halfedges_uv = loadMeshVertices("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/Ellipsoid_uv.off");
+    Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
 
-    std::vector<int64_t> h_v_mapping = create_uv_surface_intern("Ellipsoid", 0);
+    auto result = create_uv_surface_intern("Ellipsoid", 0);
+    std::vector<int64_t> h_v_mapping = std::get<0>(result);
+    std::string mesh_file_path = std::get<1>(result);
+    Eigen::MatrixXd halfedges_uv = loadMeshVertices(mesh_file_path);
+
     Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new, halfedges_uv, h_v_mapping);
 
-    std::vector<VertexData> df = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids);
+    std::vector<VertexData> vertex_data = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids);
 
-    for (int i = 0; i < df.size(); ++i) {
-        std::cout << "Particle " << i << ": " << df[i].old_id << " -> " << df[i].next_id << std::endl;
-    }
+    bool all_valid = are_all_valid(vertex_data);
+    std::cout << "all valid: " << all_valid << std::endl;
+
+    // if (all_valid) {
+    process_if_not_valid(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+
+    // }
+
+
+
 
     // Dye the particles based on distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
