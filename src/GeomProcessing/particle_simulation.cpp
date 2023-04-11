@@ -11,31 +11,45 @@ As a rule of thumb, the method works well on triangle meshes, which are Delaunay
 Disclaimer: The heat method solver is the bottle neck of the algorithm.
 */
 
+// CGAL
+#include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
-#include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
+
+// Eigen
 #define EIGEN_DONT_PARALLELIZE
 #define EIGEN_USE_THREADS
 #include <Eigen/Core>
-#include <Eigen/Sparse>
 #include <Eigen/Geometry>
+#include <Eigen/Sparse>
 
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <sstream>
-#include <cstddef>
-#include <vector>
-#include <thread>
-#include <atomic>
-#include <ctime>
-#include <omp.h>
+// Assimp
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
-#include "jlcxx/jlcxx.hpp"
+// Jlcxx
 #include "jlcxx/array.hpp"
 #include "jlcxx/functions.hpp"
+#include "jlcxx/jlcxx.hpp"
+
+// Standard libraries
+#include <algorithm>
+#include <atomic>
+#include <cstddef>
+#include <ctime>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <omp.h>
+#include <sstream>
+#include <thread>
+#include <vector>
+
+#include "uv_surface.h"
 
 
+// CGAL type aliases
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_3 = Kernel::Point_3;
 using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
@@ -43,10 +57,12 @@ using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
 using vertex_descriptor = boost::graph_traits<Triangle_mesh>::vertex_descriptor;
 using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, double>;
 
-//  The Intrinsic Delaunay Triangulation algorithm is switched off by the template parameter Heat_method_3::Direct.
+// Heat method type aliases
+// The Intrinsic Delaunay Triangulation algorithm is switched off by the template parameter Heat_method_3::Direct.
 using Heat_method_idt = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CGAL::Heat_method_3::Direct>;
 using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh>;
 
+// Jlcxx type aliases
 using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
 using JuliaArray2D = jlcxx::ArrayRef<double, 2>;
 
@@ -68,6 +84,13 @@ M load_csv (const std::string & path) {
     }
     return Eigen::Map<const Eigen::Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, Eigen::RowMajor>>(values.data(), rows, values.size()/rows);
 }
+
+struct ParticleSimSolution {
+    Eigen::MatrixXd r_new;
+    Eigen::MatrixXd r_dot;
+    Eigen::MatrixXd dist_length;
+    Eigen::VectorXd v_order;
+};
 
 
 std::vector<double> geo_distance(
@@ -94,6 +117,41 @@ std::vector<double> geo_distance(
     }
 
     return distances_list;
+}
+
+
+Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {
+    // Create an instance of the Importer class
+    Assimp::Importer importer;
+
+    // Load the 3D model
+    // We pass several post-processing flags to this function, including aiProcess_Triangulate to convert all the geometry to triangles,
+    // aiProcess_FlipUVs to flip the texture coordinates along the y-axis, and aiProcess_GenNormals to generate normals if they are not present in the model.
+    const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+
+    if (!scene) {
+        std::cerr << "Failed to load model: " << filepath << std::endl;
+        return Eigen::MatrixXd(0, 0);
+    }
+
+    // Get the first mesh in the scene
+    const aiMesh* mesh = scene->mMeshes[0];
+
+    // Create an Eigen matrix to store the vertices coordinates
+    Eigen::MatrixXd vertices(mesh->mNumVertices, 3);
+
+    // Copy the vertices coordinates from the mesh to the Eigen matrix
+    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+        const aiVector3D& vertex = mesh->mVertices[i];
+        vertices(i, 0) = vertex.x;
+        vertices(i, 1) = vertex.y;
+        vertices(i, 2) = vertex.z;
+    }
+
+    // Free the memory allocated by the importer
+    importer.FreeScene();
+
+    return vertices;
 }
 
 
@@ -230,6 +288,7 @@ Eigen::MatrixXd calculate_forces_between_particles(
                 dist += 0.0001;
             }
 
+            // ! TODO: schauen, warum dist==0 eine Inf Kraft wirklich hervorruft, da 2 * σ - dist gilt
             // Eigen::Vector3d for the 3D distance vector
             Eigen::Vector3d dist_v(dist_vect[0](i, j), dist_vect[1](i, j), dist_vect[2](i, j));
 
@@ -469,6 +528,40 @@ int get_all_distances(
 }
 
 
+// Check if the given point r is inside the UV parametrization bounds
+bool is_inside_uv(const Eigen::Vector2d& r) {
+    return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
+}
+
+
+std::vector<int> find_inside_uv_vertices_id(const Eigen::MatrixXd& r) {
+    int nrows = r.rows();
+    std::vector<int> inside_id;
+
+    for (int i = 0; i < nrows; ++i) {
+        // Check if the point is inside the UV parametrization bounds
+        Eigen::Vector2d first_two_columns = r.row(i).head<2>();
+        if (is_inside_uv(first_two_columns)) {
+            inside_id.push_back(i);
+        }
+    }
+
+    return inside_id;
+}
+
+std::vector<int> set_difference(int num_part, const std::vector<int>& inside_uv_ids) {
+    std::set<int> inside_uv_set(inside_uv_ids.begin(), inside_uv_ids.end());
+    std::vector<int> outside_uv_ids;
+
+    for (int i = 1; i <= num_part; ++i) {
+        if (inside_uv_set.find(i) == inside_uv_set.end()) {
+            outside_uv_ids.push_back(i);
+        }
+    }
+
+    return outside_uv_ids;
+}
+
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
     Eigen::MatrixXd& r,
     Eigen::MatrixXd& n,
@@ -504,6 +597,31 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     Eigen::MatrixXd r_new = r + r_dot * dt;
     r_new.col(2).setZero();
 
+    std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_new);
+
+    std::cout << "Inside UV vertices id: ";
+    for (const auto& id : inside_uv_ids) {
+        std::cout << id << " ";
+    }
+    std::cout << std::endl;
+
+    std::vector<int> outside_uv_ids = set_difference(num_part, inside_uv_ids);
+
+
+    // Specify the file path of the 3D model you want to load
+    Eigen::MatrixXd vertices = loadMeshVertices("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
+    Eigen::MatrixXd halfedges_uv = loadMeshVertices("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/Ellipsoid_uv.off");
+
+    // std::cout << vertices << std::endl;
+    std::cout << halfedges_uv << std::endl;
+
+    std::vector<int64_t> h_v_mapping = create_uv_surface_intern("Ellipsoid", 0);
+    for (const auto& id : h_v_mapping) {
+        std::cout << id << " ";
+    }
+
+    // TODO:  vertice_3D_id = get_vertice_id(r_new_temp, halfedges_uv, mesh_dict[bases_id].h_v_mapping)
+
     // Dye the particles based on distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
@@ -514,6 +632,15 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
     calculate_order_parameter(v_order, r, r_dot, tt, plotstep);
 
+    // std::map<int, ParticleSimSolution> particle_sim_sol;
+
+    // ParticleSimSolution new_solution;
+    // new_solution.r_new = r_new;
+    // new_solution.r_dot = r_dot;
+    // new_solution.dist_length = dist_length;
+    // new_solution.v_order = v_order;
+
+    // particle_sim_sol[1] = new_solution;
 
     return std::make_tuple(r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order);
 }

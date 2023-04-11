@@ -56,6 +56,8 @@
 #include "jlcxx/array.hpp"
 #include "jlcxx/functions.hpp"
 
+#include "uv_surface.h"
+
 
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
@@ -478,40 +480,4 @@ std::vector<int64_t> create_uv_surface_intern(
     const auto results = calculate_uv_surface(mesh_3D, start_node, uv_mesh_number);
 
     return results;
-}
-
-
-void create_uv_surface(
-    jl_function_t* f,
-    std::string mesh_3D = "Ellipsoid",
-    int32_t start_node_int = 0
-){
-    // Get the data
-    auto v = create_uv_surface_intern(mesh_3D, start_node_int);
-
-    // Get the mesh file path from the global struct
-    auto mesh_file_path = meshmeta.mesh_path;
-
-    auto ar = jlcxx::ArrayRef<int64_t, 1>(v.data(), v.size());
-
-    // Prepare to call the function defined in Julia
-    jlcxx::JuliaFunction fnClb(f);
-
-    // Fill the Julia Function with the inputs
-    fnClb((jl_value_t*)ar.wrapped(), std::string(mesh_file_path));
-}
-
-
-int main()
-{
-    create_uv_surface_intern("Ellipsoid", 0);
-
-    return 0;
-}
-
-
-JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
-{
-    // Register a standard C++ function
-    mod.method("create_uv_surface", create_uv_surface);
 }
