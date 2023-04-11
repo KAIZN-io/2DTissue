@@ -11,9 +11,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include "jlcxx/jlcxx.hpp"
-// #include "jlcxx/functions.hpp"
-// #include "jlcxx/stl.hpp"
 #include <list>
 #include <map>
 #include <sstream>
@@ -50,11 +47,6 @@
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
-
-// JLCxx
-#include "jlcxx/jlcxx.hpp"
-#include "jlcxx/array.hpp"
-#include "jlcxx/functions.hpp"
 
 #include "uv_surface.h"
 
@@ -97,7 +89,6 @@ using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
 using vertex_iterator = boost::graph_traits<Mesh>::vertex_iterator;
 
 using UV_pmap = SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>;
-using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = std::filesystem;

@@ -1,5 +1,5 @@
 // author: @Jan-Piotraschke
-// date: 2023-02-17
+// date: 2023-04-11
 // license: Apache License 2.0
 // version: 0.1.0
 
@@ -50,6 +50,7 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 #include <vector>
 
 #include "uv_surface.h"
+#include "geo_distance.h"
 
 
 // CGAL type aliases
@@ -109,33 +110,6 @@ struct VertexData {
     bool valid;
     int uv_mesh_id;
 };
-
-
-std::vector<double> geo_distance(
-    int32_t start_node
-){
-    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
-    Triangle_mesh tm;
-    filename >> tm;
-
-    //property map for the distance values to the source set
-    Vertex_distance_map vertex_distance = tm.add_property_map<vertex_descriptor, double>("v:distance", 0).first;
-
-    //pass in the idt object and its vertex_distance_map
-    Heat_method hm_idt(tm);
-
-    //add the first vertex as the source set
-    vertex_descriptor source = *(vertices(tm).first + start_node);
-    hm_idt.add_source(source);
-    hm_idt.estimate_geodesic_distances(vertex_distance);
-
-    std::vector<double> distances_list;
-    for(vertex_descriptor vd : vertices(tm)){
-        distances_list.push_back(get(vertex_distance, vd));
-    }
-
-    return distances_list;
-}
 
 
 Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {

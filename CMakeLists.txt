@@ -71,14 +71,16 @@ create_single_source_cgal_program("src/GeomProcessing/particle_simulation.cpp")
 
 add_library(uv_surface_lib STATIC
     src/GeomProcessing/uv_surface.cpp
+    src/GeomProcessing/geo_distance.cpp
 )
-target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 
+target_include_directories(uv_surface_lib PRIVATE src)
 
 # Link required libraries to the targets
-target_link_libraries(geodesic_distance PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
+target_link_libraries(geodesic_distance PRIVATE uv_surface_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(create_uv_surface PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(basic PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
+target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(particle_simulation PRIVATE uv_surface_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
 
 # Install the target
