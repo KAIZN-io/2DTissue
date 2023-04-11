@@ -36,10 +36,12 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 // Standard libraries
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstddef>
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <omp.h>
 #include <sstream>
@@ -90,6 +92,14 @@ struct ParticleSimSolution {
     Eigen::MatrixXd r_dot;
     Eigen::MatrixXd dist_length;
     Eigen::VectorXd v_order;
+};
+
+
+struct VertexData {
+    int64_t old_id;
+    int64_t next_id;
+    bool valid;
+    int uv_mesh_id;
 };
 
 
@@ -549,6 +559,7 @@ std::vector<int> find_inside_uv_vertices_id(const Eigen::MatrixXd& r) {
     return inside_id;
 }
 
+
 std::vector<int> set_difference(int num_part, const std::vector<int>& inside_uv_ids) {
     std::set<int> inside_uv_set(inside_uv_ids.begin(), inside_uv_ids.end());
     std::vector<int> outside_uv_ids;
@@ -561,6 +572,66 @@ std::vector<int> set_difference(int num_part, const std::vector<int>& inside_uv_
 
     return outside_uv_ids;
 }
+
+
+// (2D coordinates -> 3D vertice id) mapping
+Eigen::VectorXd get_vertice_id(
+    const Eigen::MatrixXd& r,
+    const Eigen::MatrixXd& halfedges_uv,
+    const std::vector<int64_t>& halfedge_vertices_mapping
+){
+    int num_r = r.rows();
+    Eigen::VectorXd vertice_3D_id(num_r);
+
+    for (int i = 0; i < num_r; ++i) {
+        double min_distance = std::numeric_limits<double>::max();
+        int64_t min_idx = -1;
+
+        for (int j = 0; j < halfedges_uv.rows(); ++j) {
+            Eigen::VectorXd diff = halfedges_uv.row(j) - r.row(i);
+            double distance = diff.norm();
+
+            if (distance < min_distance) {
+                min_distance = distance;
+                min_idx = j;
+            }
+        }
+
+        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx + 1]; // +1 because the first vertice v0 has index 1 in a Julia array
+    }
+
+    return vertice_3D_id;
+}
+
+
+std::vector<VertexData> update_vertex_data(
+    const std::vector<int>& vertices_3D_active,
+    const Eigen::VectorXd& vertice_3D_id,
+    const std::vector<int>& inside_uv_ids
+){
+    int num_r = vertices_3D_active.size();
+    std::vector<VertexData> vertex_data(num_r);
+
+    // Initialize the vertex data
+    for (int i = 0; i < num_r; ++i) {
+        vertex_data[i].old_id = vertices_3D_active[i];
+        vertex_data[i].next_id = vertices_3D_active[i];
+        vertex_data[i].valid = false;
+        vertex_data[i].uv_mesh_id = 0;
+    }
+
+    // Update the vertex data based on inside_uv_ids
+    for (int i : inside_uv_ids) {
+        if (!vertex_data[i].valid) {
+            vertex_data[i].next_id = static_cast<int>(vertice_3D_id(i));
+            vertex_data[i].uv_mesh_id = 0;
+            vertex_data[i].valid = true;
+        }
+    }
+
+    return vertex_data;
+}
+
 
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
     Eigen::MatrixXd& r,
@@ -612,15 +683,14 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     Eigen::MatrixXd vertices = loadMeshVertices("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
     Eigen::MatrixXd halfedges_uv = loadMeshVertices("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/Ellipsoid_uv.off");
 
-    // std::cout << vertices << std::endl;
-    std::cout << halfedges_uv << std::endl;
-
     std::vector<int64_t> h_v_mapping = create_uv_surface_intern("Ellipsoid", 0);
-    for (const auto& id : h_v_mapping) {
-        std::cout << id << " ";
-    }
+    Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new, halfedges_uv, h_v_mapping);
 
-    // TODO:  vertice_3D_id = get_vertice_id(r_new_temp, halfedges_uv, mesh_dict[bases_id].h_v_mapping)
+    std::vector<VertexData> df = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids);
+
+    for (int i = 0; i < df.size(); ++i) {
+        std::cout << "Particle " << i << ": " << df[i].old_id << " -> " << df[i].next_id << std::endl;
+    }
 
     // Dye the particles based on distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
