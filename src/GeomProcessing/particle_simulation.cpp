@@ -40,6 +40,7 @@
 
 #include "uv_surface.h"
 #include "mesh_loader.h"
+#include "mesh_analysis.h"
 #include "geo_distance.h"
 #include "flight_of_the_particle.h"
 #include "dye_particle.h"
@@ -235,6 +236,16 @@ Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
 }
 
 
+bool are_all_valid(const std::vector<VertexData>& vertex_data) {
+    for (const VertexData& data : vertex_data) {
+        if (!data.valid) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 // Check if the given point r is inside the UV parametrization bounds
 bool is_inside_uv(const Eigen::Vector2d& r) {
     return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
@@ -271,34 +282,7 @@ std::vector<int> set_difference(int num_part, const std::vector<int>& inside_uv_
 }
 
 
-// (2D coordinates -> 3D vertice id) mapping
-Eigen::VectorXd get_vertice_id(
-    const Eigen::MatrixXd& r,
-    const Eigen::MatrixXd& halfedges_uv,
-    const std::vector<int64_t>& halfedge_vertices_mapping
-){
-    int num_r = r.rows();
-    Eigen::VectorXd vertice_3D_id(num_r);
 
-    for (int i = 0; i < num_r; ++i) {
-        double min_distance = std::numeric_limits<double>::max();
-        int64_t min_idx = -1;
-
-        for (int j = 0; j < halfedges_uv.rows(); ++j) {
-            Eigen::VectorXd diff = halfedges_uv.row(j) - r.row(i);
-            double distance = diff.norm();
-
-            if (distance < min_distance) {
-                min_distance = distance;
-                min_idx = j;
-            }
-        }
-
-        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx + 1]; // +1 because the first vertice v0 has index 1 in a Julia array
-    }
-
-    return vertice_3D_id;
-}
 
 
 std::vector<VertexData> update_vertex_data(
@@ -327,46 +311,6 @@ std::vector<VertexData> update_vertex_data(
     }
 
     return vertex_data;
-}
-
-
-bool are_all_valid(const std::vector<VertexData>& vertex_data) {
-    for (const VertexData& data : vertex_data) {
-        if (!data.valid) {
-            return false;
-        }
-    }
-    return true;
-}
-
-
-std::vector<int64_t> get_first_uv_halfedge_from_3D_vertice_id(
-    const std::vector<int64_t>& _vertice_3D_id,
-    const std::vector<int64_t>& _halfedge_vertices_mapping
-) {
-    std::vector<int64_t> halfedge_id(_vertice_3D_id.size());
-
-    for (size_t i = 0; i < _vertice_3D_id.size(); ++i) {
-        auto it = std::find(_halfedge_vertices_mapping.begin(), _halfedge_vertices_mapping.end(), _vertice_3D_id[i]);
-        halfedge_id[i] = static_cast<int>(std::distance(_halfedge_vertices_mapping.begin(), it)) - 1;
-    }
-
-    return halfedge_id;
-}
-
-
-Eigen::MatrixXd get_r_from_halfedge_id(
-    const std::vector<int64_t>& halfedge_id,
-    const Eigen::MatrixXd& halfedges_uv
-){
-    int num_halfedges = halfedge_id.size();
-    Eigen::MatrixXd halfedge_uv_coord(num_halfedges, halfedges_uv.cols());
-
-    for (int i = 0; i < num_halfedges; i++) {
-        halfedge_uv_coord.row(i) = halfedges_uv.row(halfedge_id[i]);
-    }
-
-    return halfedge_uv_coord;
 }
 
 
@@ -555,6 +499,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
         std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(single_vertex_next_id, h_v_mapping);
 
         Eigen::MatrixXd r_new_temp_single_row = get_r_from_halfedge_id(halfedge_id, halfedges_uv);
+        std::cout << "r_new_temp_single_row:\n" << r_new_temp_single_row << std::endl;
         r_new_temp.row(i) = r_new_temp_single_row.row(0);
     }
 
