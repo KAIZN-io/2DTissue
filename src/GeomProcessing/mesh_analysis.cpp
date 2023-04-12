@@ -12,6 +12,7 @@
 #include "mesh_analysis.h"
 
 
+// (3D Vertice id -> Halfedge id) mapping
 std::vector<int64_t> get_first_uv_halfedge_from_3D_vertice_id(
     const std::vector<int64_t>& _vertice_3D_id,
     const std::vector<int64_t>& _halfedge_vertices_mapping
@@ -21,13 +22,14 @@ std::vector<int64_t> get_first_uv_halfedge_from_3D_vertice_id(
 
     for (const auto& vertice_3D_id : _vertice_3D_id) {
         auto it = std::find(_halfedge_vertices_mapping.begin(), _halfedge_vertices_mapping.end(), vertice_3D_id);
-        halfedge_id.push_back(static_cast<int64_t>(std::distance(_halfedge_vertices_mapping.begin(), it)) - 1);
+        halfedge_id.push_back(static_cast<int64_t>(std::distance(_halfedge_vertices_mapping.begin(), it)) - 1);  // ? can i remove -1 here?
     }
 
     return halfedge_id;
 }
 
 
+// (Halfedge id -> 2D Coordinates) mapping
 Eigen::MatrixXd get_r_from_halfedge_id(
     const std::vector<int64_t>& halfedge_id,
     const Eigen::MatrixXd& halfedges_uv
@@ -43,7 +45,7 @@ Eigen::MatrixXd get_r_from_halfedge_id(
 }
 
 
-// (2D coordinates -> 3D vertice id) mapping
+// (2D Coordinates -> 3D Vertice id) mapping
 Eigen::VectorXd get_vertice_id(
     const Eigen::MatrixXd& r,
     const Eigen::MatrixXd& halfedges_uv,
@@ -66,7 +68,7 @@ Eigen::VectorXd get_vertice_id(
             }
         }
 
-        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx + 1];
+        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx + 1];  // ? can i remove +1 here?
     }
 
     return vertice_3D_id;
