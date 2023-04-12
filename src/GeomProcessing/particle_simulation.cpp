@@ -51,7 +51,7 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 
 #include "uv_surface.h"
 #include "geo_distance.h"
-#include "particle_forces.h"
+#include "flight_of_the_particle.h"
 
 
 // CGAL type aliases
@@ -148,47 +148,6 @@ Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {
 }
 
 
-Eigen::MatrixXd get_distances_between_particles(Eigen::MatrixXd r, Eigen::MatrixXd distance_matrix, std::vector<int> vertice_3D_id) {
-    int num_part = r.rows();
-
-    // Get the distances from the distance matrix
-    Eigen::MatrixXd dist_length = Eigen::MatrixXd::Zero(num_part, num_part);
-
-    // Use the #pragma omp parallel for directive to parallelize the outer loop
-    // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them
-    for (int i = 0; i < num_part; i++) {
-        for (int j = 0; j < num_part; j++) {
-            dist_length(i, j) = distance_matrix(vertice_3D_id[i], vertice_3D_id[j]);
-        }
-    }
-
-    dist_length.diagonal().array() = 0.0;
-
-    return dist_length;
-}
-
-
-/*
-Reminder: if you access the input variable with the '&' sign, you can change the variable in the function, without to return the new value.
-The variable is Changed In the Memory and with that also in the main function
-*/
-void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
-    int n = A.rows();
-
-    for (int i = 0; i < n; i++) {
-        for (int j = i+1; j < n; j++) {
-            if (A(i, j) != 0 && A(j, i) != 0) {
-                A(i, j) = A(j, i) = std::min(A(i, j), A(j, i));
-            } else if (A(i, j) == 0) {
-                A(i, j) = A(j, i);
-            } else {
-                A(j, i) = A(i, j);
-            }
-        }
-    }
-}
-
-
 void parallel_fill_distance_matrix(
     Eigen::MatrixXd& distance_matrix,
     int closest_vertice,
@@ -219,64 +178,6 @@ void fill_distance_matrix(
         std::vector<double> vertices_3D_distance_map = geo_distance(closest_vertice);
         distance_matrix.row(closest_vertice) = Eigen::Map<Eigen::VectorXd>(vertices_3D_distance_map.data(), vertices_3D_distance_map.size());
     }
-}
-
-
-std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::MatrixXd& r) {
-    Eigen::VectorXd dist_x = r.col(0);
-    Eigen::VectorXd dist_y = r.col(1);
-    Eigen::VectorXd dist_z = r.col(2);
-
-    // Replicate each column into a square matrix
-    Eigen::MatrixXd square_x = dist_x.replicate(1, r.rows());
-    Eigen::MatrixXd square_y = dist_y.replicate(1, r.rows());
-    Eigen::MatrixXd square_z = dist_z.replicate(1, r.rows());
-
-    // Compute the difference between each pair of rows
-    Eigen::MatrixXd diff_x = square_x.array().rowwise() - dist_x.transpose().array();
-    Eigen::MatrixXd diff_y = square_y.array().rowwise() - dist_y.transpose().array();
-    Eigen::MatrixXd diff_z = square_z.array().rowwise() - dist_z.transpose().array();
-
-    // Store the difference matrices in a vector
-    std::vector<Eigen::MatrixXd> dist_vect;
-    dist_vect.push_back(diff_x);
-    dist_vect.push_back(diff_y);
-    dist_vect.push_back(diff_z);
-
-    return dist_vect;
-}
-
-
-Eigen::MatrixXd calculate_velocity(
-    std::vector<Eigen::MatrixXd>& dist_vect,
-    Eigen::MatrixXd& dist_length,
-    Eigen::MatrixXd& n,
-    double v0,
-    double k,
-    double σ,
-    double μ,
-    double r_adh,
-    double k_adh
-) {
-    // Calculate force between particles
-    Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
-
-    // Velocity of each particle
-    Eigen::MatrixXd r_dot = v0 * n + μ * F_track;  // TODO: this isn't correct yet
-    r_dot.col(2).setZero();
-
-    return r_dot;
-}
-
-
-Eigen::MatrixXd calculate_next_position(
-    Eigen::MatrixXd& r,
-    Eigen::MatrixXd& r_dot,
-    double dt
-){
-    Eigen::MatrixXd r_new = r + r_dot * dt;
-    r_new.col(2).setZero();
-    return r_new;
 }
 
 
@@ -590,6 +491,21 @@ std::vector<int64_t> get_first_uv_halfedge_from_3D_vertice_id(
 }
 
 
+Eigen::MatrixXd get_r_from_halfedge_id(
+    const std::vector<int64_t>& halfedge_id,
+    const Eigen::MatrixXd& halfedges_uv
+){
+    int num_halfedges = halfedge_id.size();
+    Eigen::MatrixXd halfedge_uv_coord(num_halfedges, halfedges_uv.cols());
+
+    for (int i = 0; i < num_halfedges; i++) {
+        halfedge_uv_coord.row(i) = halfedges_uv.row(halfedge_id[i]);
+    }
+
+    return halfedge_uv_coord;
+}
+
+
 void process_invalid_particle(
     std::vector<VertexData>& vertex_data,
     const VertexData& particle,
@@ -633,7 +549,21 @@ void process_invalid_particle(
         old_ids[i] = vertex_data[i].old_id;
     }
 
-    auto halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(old_ids, h_v_mapping);
+    // Get the halfedges based on the choosen h-v mapping
+    // TODO: check, ob das so richtig ist
+    std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(old_ids, h_v_mapping);
+
+    // Get the coordinates of the halfedges
+    auto r_active = get_r_from_halfedge_id(halfedge_id, halfedges_uv);
+
+    // Simulate the flight of the particle
+
+    // TODO: hier weiterarbeiten, die Funktion ist noch nicht fertig
+    // ParticleSimulation.particle_simulation(get_cpp_data_helper, r_active, n, df.old_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    // r_new_virtual = particle_sim_sol[old_id].r_new
+
+    // vertice_id = get_vertice_id(r_new_virtual, halfedges_uv_test, Int.(halfedge_vertices_mapping_test)) .- 1   # NOTE: keine Ahnung warum, aber der Unterschied scheint immer 1 zu sein zu den Base Mesh
+    // update_if_valid!(df, r_new_virtual, vertice_id, old_id)
 
 }
 
@@ -672,6 +602,7 @@ void process_if_not_valid(
 }
 
 
+
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
     Eigen::MatrixXd& r,
     Eigen::MatrixXd& n,
@@ -690,22 +621,9 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     int num_part = 10,
     double plotstep = 0.1
 ){
+    // Simulate the flight of the particle
+    auto [r_new, r_dot, dist_length] = simulate_flight(r, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, dt);
 
-    // Get distance vectors and calculate distances between particles
-    auto dist_vect = get_dist_vect(r);
-    auto dist_length = get_distances_between_particles(r, distance_matrix_v, vertices_3D_active);
-    transform_into_symmetric_matrix(dist_length);
-
-    // Calculate force between particles
-    Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
-
-    // Velocity of each particle
-    Eigen::MatrixXd r_dot = v0 * n + μ * F_track;  // TODO: this isn't correct yet
-    r_dot.col(2).setZero();
-
-    // Calculate the new position of each particle
-    Eigen::MatrixXd r_new = r + r_dot * dt;
-    r_new.col(2).setZero();
     // ! TEMP: multiply r_new with 1.3
     r_new *= 1.3;
 
