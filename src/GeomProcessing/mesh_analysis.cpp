@@ -16,11 +16,12 @@ std::vector<int64_t> get_first_uv_halfedge_from_3D_vertice_id(
     const std::vector<int64_t>& _vertice_3D_id,
     const std::vector<int64_t>& _halfedge_vertices_mapping
 ) {
-    std::vector<int64_t> halfedge_id(_vertice_3D_id.size());
+    std::vector<int64_t> halfedge_id;
+    halfedge_id.reserve(_vertice_3D_id.size());
 
-    for (size_t i = 0; i < _vertice_3D_id.size(); ++i) {
-        auto it = std::find(_halfedge_vertices_mapping.begin(), _halfedge_vertices_mapping.end(), _vertice_3D_id[i]);
-        halfedge_id[i] = static_cast<int>(std::distance(_halfedge_vertices_mapping.begin(), it)) - 1;
+    for (const auto& vertice_3D_id : _vertice_3D_id) {
+        auto it = std::find(_halfedge_vertices_mapping.begin(), _halfedge_vertices_mapping.end(), vertice_3D_id);
+        halfedge_id.push_back(static_cast<int64_t>(std::distance(_halfedge_vertices_mapping.begin(), it)) - 1);
     }
 
     return halfedge_id;
@@ -31,7 +32,7 @@ Eigen::MatrixXd get_r_from_halfedge_id(
     const std::vector<int64_t>& halfedge_id,
     const Eigen::MatrixXd& halfedges_uv
 ){
-    int num_halfedges = halfedge_id.size();
+    int num_halfedges = static_cast<int>(halfedge_id.size());
     Eigen::MatrixXd halfedge_uv_coord(num_halfedges, halfedges_uv.cols());
 
     for (int i = 0; i < num_halfedges; i++) {
@@ -65,7 +66,7 @@ Eigen::VectorXd get_vertice_id(
             }
         }
 
-        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx + 1]; // +1 because the first vertice v0 has index 1 in a Julia array
+        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx + 1];
     }
 
     return vertice_3D_id;
