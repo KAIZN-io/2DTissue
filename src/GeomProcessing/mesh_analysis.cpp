@@ -22,7 +22,7 @@ std::vector<int64_t> get_first_uv_halfedge_from_3D_vertice_id(
 
     for (const auto& vertice_3D_id : _vertice_3D_id) {
         auto it = std::find(_halfedge_vertices_mapping.begin(), _halfedge_vertices_mapping.end(), vertice_3D_id);
-        halfedge_id.push_back(static_cast<int64_t>(std::distance(_halfedge_vertices_mapping.begin(), it)) - 1);  // ? can i remove -1 here?
+        halfedge_id.push_back(static_cast<int64_t>(std::distance(_halfedge_vertices_mapping.begin(), it)));
     }
 
     return halfedge_id;
@@ -68,7 +68,7 @@ Eigen::VectorXd get_vertice_id(
             }
         }
 
-        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx + 1];  // ? can i remove +1 here?
+        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx];
     }
 
     return vertice_3D_id;
