@@ -3,14 +3,6 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-/*
-Shortest paths on a terrain using one source point 
-The heat method package returns an Approximation of the Geodesic Distance for all vertices of a triangle mesh to the closest vertex in a given set of source vertices.
-As a rule of thumb, the method works well on triangle meshes, which are Delaunay.
-
-Disclaimer: The heat method solver is the bottle neck of the algorithm.
-*/
-
 // CGAL
 #include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
 #include <CGAL/Simple_cartesian.h>
@@ -22,11 +14,6 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/Sparse>
-
-// Assimp
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 
 // Jlcxx
 #include "jlcxx/array.hpp"
@@ -52,8 +39,10 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 #include <vector>
 
 #include "uv_surface.h"
+#include "mesh_loader.h"
 #include "geo_distance.h"
 #include "flight_of_the_particle.h"
+#include "dye_particle.h"
 
 
 // CGAL type aliases
@@ -92,6 +81,7 @@ M load_csv (const std::string & path) {
     return Eigen::Map<const Eigen::Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, Eigen::RowMajor>>(values.data(), rows, values.size()/rows);
 }
 
+
 struct ParticleSimSolution {
     Eigen::MatrixXd r_new;
     Eigen::MatrixXd r_dot;
@@ -113,110 +103,6 @@ struct VertexData {
     bool valid;
     int uv_mesh_id;
 };
-
-
-Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {
-    // Create an instance of the Importer class
-    Assimp::Importer importer;
-
-    // Load the 3D model
-    // We pass several post-processing flags to this function, including aiProcess_Triangulate to convert all the geometry to triangles,
-    // aiProcess_FlipUVs to flip the texture coordinates along the y-axis, and aiProcess_GenNormals to generate normals if they are not present in the model.
-    const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
-
-    if (!scene) {
-        std::cerr << "Failed to load model: " << filepath << std::endl;
-        return Eigen::MatrixXd(0, 0);
-    }
-
-    // Get the first mesh in the scene
-    const aiMesh* mesh = scene->mMeshes[0];
-
-    // Create an Eigen matrix to store the vertices coordinates
-    Eigen::MatrixXd vertices(mesh->mNumVertices, 3);
-
-    // Copy the vertices coordinates from the mesh to the Eigen matrix
-    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-        const aiVector3D& vertex = mesh->mVertices[i];
-        vertices(i, 0) = vertex.x;
-        vertices(i, 1) = vertex.y;
-        vertices(i, 2) = vertex.z;
-    }
-
-    // Free the memory allocated by the importer
-    importer.FreeScene();
-
-    return vertices;
-}
-
-
-void parallel_fill_distance_matrix(
-    Eigen::MatrixXd& distance_matrix,
-    int closest_vertice,
-    std::vector<double>& vertices_3D_distance_map,
-    std::atomic<int>& current_index
-){
-    while (true) {
-        int i = current_index.fetch_add(1);
-        if (i >= vertices_3D_distance_map.size()) {
-            break;
-        }
-
-        distance_matrix.coeffRef(closest_vertice, i) = vertices_3D_distance_map[i];
-    }
-}
-
-
-/*
-atomic variable to keep track of the current index of the vector of distances, and each thread processes a
-different index until all the distances have been added to the distance matrix.
-*/
-void fill_distance_matrix(
-    Eigen::MatrixXd &distance_matrix,
-    int closest_vertice
-){
-    if (distance_matrix.row(closest_vertice).head(2).isZero()) {
-        // get the distance of all vertices to all other vertices
-        std::vector<double> vertices_3D_distance_map = geo_distance(closest_vertice);
-        distance_matrix.row(closest_vertice) = Eigen::Map<Eigen::VectorXd>(vertices_3D_distance_map.data(), vertices_3D_distance_map.size());
-    }
-}
-
-
-Eigen::VectorXd count_particle_neighbours(const Eigen::VectorXd& dist_length, double σ) {
-    Eigen::VectorXd num_partic(dist_length.size()); // create an empty vector
-    num_partic.setZero(); // initialize to zero
-
-    for (int i = 0; i < dist_length.size(); i++) {
-        if (dist_length(i) == 0 || dist_length(i) > 2.4 * σ) {
-            num_partic(i) = 0;
-        }
-    }
-    Eigen::VectorXd num_neighbors = num_partic.colwise().sum();
-    return num_neighbors;
-}
-
-
-Eigen::VectorXd dye_particles(const Eigen::VectorXd& dist_length, double σ) {
-    // Count the number of neighbours for each particle
-    Eigen::VectorXd number_neighbours = count_particle_neighbours(dist_length, σ);
-    int num_part = number_neighbours.size();
-    std::vector<int> N_color_temp;
-    // #pragma omp parallel for
-    for (int i = 0; i < num_part; i++) {
-        for (int j = 0; j < number_neighbours(i); j++) {
-            N_color_temp.push_back(number_neighbours(i));
-        }
-    }
-
-    // Convert std::vector<int> to Eigen::VectorXd
-    Eigen::VectorXd N_color(N_color_temp.size());
-    for (size_t i = 0; i < N_color_temp.size(); ++i) {
-        N_color(i) = N_color_temp[i];
-    }
-
-    return N_color;
-}
 
 
 /*
@@ -346,30 +232,6 @@ Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
     }
 
     return outputVector;
-}
-
-
-int get_all_distances(
-
-){
-    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
-    Triangle_mesh tm;
-    filename >> tm;
-    Eigen::MatrixXd distance_matrix_v(num_vertices(tm), num_vertices(tm));
-    // ! dieser Schritt ist der Bottleneck der Simulation!
-    // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
-    // loop over all vertices and fill the distance matrix
-    for (auto vi = vertices(tm).first; vi != vertices(tm).second; ++vi) {
-        fill_distance_matrix(distance_matrix_v, *vi);
-    }
-
-    // save the distance matrix to a csv file using comma as delimiter
-    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-    std::ofstream file("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
-    file << distance_matrix_v.format(CSVFormat);
-    file.close();
-
-    return 0;
 }
 
 
