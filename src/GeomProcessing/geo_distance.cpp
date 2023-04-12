@@ -17,9 +17,6 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 
 #include <iostream>
 #include <fstream>
-#include <algorithm>
-#include <sstream>
-#include <cstddef>
 #include <vector>
 
 #include "geo_distance.h"
@@ -27,7 +24,6 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_3 = Kernel::Point_3;
 using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
-
 using vertex_descriptor = boost::graph_traits<Triangle_mesh>::vertex_descriptor;
 using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, double>;
 
@@ -36,8 +32,7 @@ using Heat_method_idt = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<T
 using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh>;
 
 
-std::vector<double> geo_distance(int32_t start_node)
-{
+std::vector<double> geo_distance(int32_t start_node){
     std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
     Triangle_mesh tm;
     filename >> tm;
@@ -78,12 +73,11 @@ void fill_distance_matrix(
 }
 
 
-int get_all_distances(
-
-){
+int get_all_distances(){
     std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
     Triangle_mesh tm;
     filename >> tm;
+
     Eigen::MatrixXd distance_matrix_v(num_vertices(tm), num_vertices(tm));
     // ! dieser Schritt ist der Bottleneck der Simulation!
     // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
@@ -100,7 +94,6 @@ int get_all_distances(
 
     return 0;
 }
-
 
 
 // void parallel_fill_distance_matrix(
