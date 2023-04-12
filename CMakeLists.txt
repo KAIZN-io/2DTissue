@@ -72,6 +72,7 @@ create_single_source_cgal_program("src/GeomProcessing/particle_simulation.cpp")
 add_library(uv_surface_lib STATIC
     src/GeomProcessing/uv_surface.cpp
     src/GeomProcessing/geo_distance.cpp
+    src/GeomProcessing/particle_forces.cpp
 )
 
 target_include_directories(uv_surface_lib PRIVATE src)
