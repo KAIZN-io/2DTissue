@@ -35,6 +35,7 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 
 // Standard libraries
 #include <algorithm>
+#include <set>
 #include <atomic>
 #include <cmath>
 #include <cstddef>
@@ -45,6 +46,7 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 #include <map>
 #include <omp.h>
 #include <sstream>
+#include <stdexcept>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -506,6 +508,25 @@ Eigen::MatrixXd get_r_from_halfedge_id(
 }
 
 
+void update_if_valid(
+    std::vector<VertexData>& vertex_data,
+    const Eigen::MatrixXd& r_new,
+    const Eigen::VectorXd& vertice_3D_id,
+    int start_id
+){
+    // Find out which particles are inside the mesh
+    std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_new);
+
+    for (int i : inside_uv_ids) {
+        if (!vertex_data[i].valid) {
+            vertex_data[i].next_id = static_cast<int64_t>(vertice_3D_id[i]);
+            vertex_data[i].uv_mesh_id = start_id;
+            vertex_data[i].valid = true;
+        }
+    }
+}
+
+
 void process_invalid_particle(
     std::vector<VertexData>& vertex_data,
     const VertexData& particle,
@@ -549,6 +570,13 @@ void process_invalid_particle(
         old_ids[i] = vertex_data[i].old_id;
     }
 
+    // ! TEMPORARY SOLUTION
+    // Create a new vector of int and copy the elements from old_ids
+    std::vector<int> old_ids_int(old_ids.size());
+    for (size_t i = 0; i < old_ids.size(); ++i) {
+        old_ids_int[i] = static_cast<int>(old_ids[i]);
+    }
+
     // Get the halfedges based on the choosen h-v mapping
     // TODO: check, ob das so richtig ist
     std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(old_ids, h_v_mapping);
@@ -557,14 +585,11 @@ void process_invalid_particle(
     auto r_active = get_r_from_halfedge_id(halfedge_id, halfedges_uv);
 
     // Simulate the flight of the particle
+    auto [r_new_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids_int, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
 
-    // TODO: hier weiterarbeiten, die Funktion ist noch nicht fertig
-    // ParticleSimulation.particle_simulation(get_cpp_data_helper, r_active, n, df.old_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-    // r_new_virtual = particle_sim_sol[old_id].r_new
+    Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new_virtual, halfedges_uv, h_v_mapping);
 
-    // vertice_id = get_vertice_id(r_new_virtual, halfedges_uv_test, Int.(halfedge_vertices_mapping_test)) .- 1   # NOTE: keine Ahnung warum, aber der Unterschied scheint immer 1 zu sein zu den Base Mesh
-    // update_if_valid!(df, r_new_virtual, vertice_id, old_id)
-
+    update_if_valid(vertex_data, r_new_virtual, vertice_3D_id, old_id);
 }
 
 
@@ -600,7 +625,6 @@ void process_if_not_valid(
         }
     }
 }
-
 
 
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
@@ -648,10 +672,39 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // if (all_valid) {
     process_if_not_valid(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
 
+    if (!are_all_valid(vertex_data)){
+        std::cout << "Invalid vertices:\n";
+        for (const VertexData& vd : vertex_data) {
+            if (!vd.valid) {
+                std::cout << "Old ID: " << vd.old_id << ", Next ID: " << vd.next_id << ", Valid: " << vd.valid << ", UV Mesh ID: " << vd.uv_mesh_id << '\n';
+            }
+        }
+        throw std::runtime_error("There are still particles outside the mesh");
+    }
+
+    std::vector<int64_t> vertices_next_id(vertex_data.size());
+    for (size_t i = 0; i < vertex_data.size(); ++i) {
+        vertices_next_id[i] = vertex_data[i].next_id;
+    }
+
+    Eigen::MatrixXd r_new_temp(vertex_data.size(), halfedges_uv.cols());
+    for (int i : outside_uv_ids) {
+        std::vector<int64_t> single_vertex_next_id = {vertices_next_id[i]};
+        std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(single_vertex_next_id, h_v_mapping);
+
+        Eigen::MatrixXd r_new_temp_single_row = get_r_from_halfedge_id(halfedge_id, halfedges_uv);
+        r_new_temp.row(i) = r_new_temp_single_row.row(0);
+    }
+
+    // ! TODO BUG: r_new_temp is empty -> something goes wrong
+    std::cout << "r_new_temp:\n" << r_new_temp << std::endl;
+    std::cout << "r_new:\n" << r_new << std::endl;
+
+    // r_new = r_new_temp;
+
+    // if (find_inside_uv_vertices_id(r_new_temp).size() != num_part) {
+    //     throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
     // }
-
-
-
 
     // Dye the particles based on distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
@@ -662,16 +715,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Define the output vector v_order
     Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
     calculate_order_parameter(v_order, r, r_dot, tt, plotstep);
-
-    // std::map<int, ParticleSimSolution> particle_sim_sol;
-
-    // ParticleSimSolution new_solution;
-    // new_solution.r_new = r_new;
-    // new_solution.r_dot = r_dot;
-    // new_solution.dist_length = dist_length;
-    // new_solution.v_order = v_order;
-
-    // particle_sim_sol[1] = new_solution;
 
     return std::make_tuple(r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order);
 }
