@@ -76,14 +76,20 @@ add_library(particle_forces_lib STATIC
 target_include_directories(particle_forces_lib PRIVATE src)
 target_link_libraries(particle_forces_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
+add_library(matrix_algebra_lib STATIC
+    src/GeomProcessing/matrix_algebra.cpp
+)
+target_include_directories(matrix_algebra_lib PRIVATE src)
+target_link_libraries(matrix_algebra_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 add_library(uv_surface_lib STATIC
-    src/GeomProcessing/uv_surface.cpp
-    src/GeomProcessing/geo_distance.cpp
-    src/GeomProcessing/flight_of_the_particle.cpp
-    src/GeomProcessing/mesh_loader.cpp
-    src/GeomProcessing/mesh_analysis.cpp
     src/GeomProcessing/dye_particle.cpp
+    src/GeomProcessing/flight_of_the_particle.cpp
+    src/GeomProcessing/geo_distance.cpp
+    src/GeomProcessing/mesh_analysis.cpp
+    src/GeomProcessing/mesh_loader.cpp
+    src/GeomProcessing/particle_vector.cpp
+    src/GeomProcessing/uv_surface.cpp
 )
 target_include_directories(uv_surface_lib PRIVATE src)
 target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost)
@@ -93,7 +99,7 @@ target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 target_link_libraries(geodesic_distance PRIVATE uv_surface_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(create_uv_surface PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(basic PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
-target_link_libraries(particle_simulation PRIVATE uv_surface_lib particle_forces_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
+target_link_libraries(particle_simulation PRIVATE uv_surface_lib particle_forces_lib matrix_algebra_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
 
 # Install the target
 install(TARGETS geodesic_distance create_uv_surface basic particle_simulation

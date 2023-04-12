@@ -44,6 +44,8 @@
 #include "geo_distance.h"
 #include "flight_of_the_particle.h"
 #include "dye_particle.h"
+#include "matrix_algebra.h"
+#include "particle_vector.h"
 
 
 // CGAL type aliases
@@ -106,105 +108,6 @@ struct VertexData {
 };
 
 
-/*
-normalize a 3D matrix A
-*/
-Eigen::MatrixXd normalize_3D_matrix(const Eigen::MatrixXd &A) {
-    Eigen::VectorXd row_norms_t = A.rowwise().norm(); // Compute row-wise Euclidean norms
-    Eigen::MatrixXd row_norms = row_norms_t.replicate(1, 3); // Repeat each norm for each column
-
-    return row_norms; // Normalize each row
-}
-
-
-/**
- * Calculate the cross product of two 3D matrices A and B.
- *
- * @param A The first input matrix.
- * @param B The second input matrix.
- *
- * @return The cross product of A and B, computed for each row of the matrices.
- */
-Eigen::MatrixXd calculate_3D_cross_product(
-    const Eigen::MatrixXd &A,
-    const Eigen::MatrixXd &B
-){ 
-    // Ensure that A and B have the correct size
-    assert(A.cols() == 3 && B.cols() == 3 && A.rows() == B.rows());
-
-    // Preallocate output matrix with the same size and type as A
-    const int num_rows = A.rows();
-    Eigen::MatrixXd new_A = Eigen::MatrixXd::Zero(num_rows, 3);
-
-    // Compute cross product for each row and directly assign the result to the output matrix
-    for (int i = 0; i < num_rows; ++i) {
-        // Get the i-th row of matrices A and B
-        Eigen::Vector3d A_row = A.row(i);
-        Eigen::Vector3d B_row = B.row(i);
-
-        // Compute the cross product of the i-th rows of A and B
-        new_A.row(i) = A_row.cross(B_row);
-    }
-
-    return new_A;
-}
-
-
-void calculate_order_parameter(
-    Eigen::VectorXd& v_order, 
-    Eigen::MatrixXd r, 
-    Eigen::MatrixXd r_dot, 
-    double tt,
-    double plotstep
-) {
-    int num_part = r.rows();
-    // Define a vector normal to position vector and velocity vector
-    Eigen::MatrixXd v_tp = calculate_3D_cross_product(r, r_dot);
-
-    // Normalize v_tp
-    Eigen::MatrixXd v_norm = v_tp.rowwise().normalized();
-
-    // Sum v_tp vectors and divide by number of particle to obtain order parameter of collective motion for spheroids
-    v_order((int)(tt / plotstep)) = (1.0 / num_part) * v_norm.colwise().sum().norm();
-}
-
-
-/*
-
-Visceck-type n correction adapted from "Phys. Rev. E 74, 061908"
-*/
-Eigen::MatrixXd correct_n(
-    const Eigen::MatrixXd& r_dot,
-    const Eigen::MatrixXd& n,
-    double τ,
-    double dt
-){
-    // cross product of n and r_dot
-    auto ncross = calculate_3D_cross_product(n, r_dot).cwiseQuotient(normalize_3D_matrix(r_dot));
-
-    Eigen::MatrixXd n_cross_correction = (1.0 / τ) * ncross * dt;
-
-    Eigen::MatrixXd new_n = n - calculate_3D_cross_product(n, n_cross_correction);
-
-    return new_n.rowwise().normalized();
-}
-
-
-std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
-    Eigen::MatrixXd &r_dot,
-    Eigen::MatrixXd &n
-){
-    // make a small correct for n according to Vicsek
-    n = correct_n(r_dot, n, 1, 1);
-
-    // Project the orientation of the corresponding faces using normal vectors
-    n = n.rowwise().normalized();
-    Eigen::MatrixXd nr_dot = r_dot.rowwise().normalized();
-
-    return std::pair(n, nr_dot);
-}
-
-
 Eigen::MatrixXd reshape_vertices_array(
     const JuliaArray2D& vertices_stl,
     int num_rows,
@@ -233,6 +136,25 @@ Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
     }
 
     return outputVector;
+}
+
+
+void calculate_order_parameter(
+    Eigen::VectorXd& v_order, 
+    Eigen::MatrixXd r, 
+    Eigen::MatrixXd r_dot, 
+    double tt,
+    double plotstep
+) {
+    int num_part = r.rows();
+    // Define a vector normal to position vector and velocity vector
+    Eigen::MatrixXd v_tp = calculate_3D_cross_product(r, r_dot);
+
+    // Normalize v_tp
+    Eigen::MatrixXd v_norm = v_tp.rowwise().normalized();
+
+    // Sum v_tp vectors and divide by number of particle to obtain order parameter of collective motion for spheroids
+    v_order((int)(tt / plotstep)) = (1.0 / num_part) * v_norm.colwise().sum().norm();
 }
 
 
@@ -280,9 +202,6 @@ std::vector<int> set_difference(int num_part, const std::vector<int>& inside_uv_
 
     return outside_uv_ids;
 }
-
-
-
 
 
 std::vector<VertexData> update_vertex_data(
