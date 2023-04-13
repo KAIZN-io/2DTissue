@@ -35,7 +35,6 @@
 #include <CGAL/boost/graph/Seam_mesh.h>
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/breadth_first_search.h>
-#include <CGAL/boost/graph/dijkstra_shortest_paths.h>
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
@@ -350,21 +349,6 @@ std::vector<my_edge_descriptor> calc_virtual_border(
 }
 
 
-my_vertex_descriptor get_new_start_vertice(
-    my_vertex_descriptor start_node,
-    SurfaceMesh sm,
-    const std::string& mesh_3D
-){
-    auto calc_edges = calc_virtual_border(mesh_3D, start_node);
-
-    // get the edge in the middle of the path
-    auto middle = calc_edges.size() / 2;
-    my_vertex_descriptor start_node_new = target(calc_edges[middle], sm);
-
-    return start_node_new;
-}
-
-
 // Helper function to create the seam mesh
 Mesh create_seam_mesh(
     SurfaceMesh& sm,
@@ -463,13 +447,12 @@ std::pair<std::vector<int64_t>, std::string> create_uv_surface_intern(
 
     int highest_mesh_creation = find_latest_mesh_creation_number(mesh_3D);
     my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-    // my_vertex_descriptor start_node_1 = get_new_start_vertice(start_node, sm, mesh_3D);
 
      // Calculate uv_mesh_number based on the value of start_node_int
     int uv_mesh_number = (start_node_int == 0) ? 0 : (highest_mesh_creation + 1);
-    auto mesh_file_path = meshmeta.mesh_path;
-
     const auto results = calculate_uv_surface(mesh_3D, start_node, uv_mesh_number);
+
+    const auto mesh_file_path = meshmeta.mesh_path;
 
     return std::make_pair(results, mesh_file_path);
 }

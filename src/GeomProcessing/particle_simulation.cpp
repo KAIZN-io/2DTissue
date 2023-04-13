@@ -191,11 +191,15 @@ std::vector<int> find_inside_uv_vertices_id(const Eigen::MatrixXd& r) {
 
 
 std::vector<int> set_difference(int num_part, const std::vector<int>& inside_uv_ids) {
-    std::set<int> inside_uv_set(inside_uv_ids.begin(), inside_uv_ids.end());
     std::vector<int> outside_uv_ids;
+    
+    // Create a copy of inside_uv_ids to sort without modifying the input
+    std::vector<int> sorted_inside_uv_ids = inside_uv_ids;
+    std::sort(sorted_inside_uv_ids.begin(), sorted_inside_uv_ids.end()); // Sort sorted_inside_uv_ids for efficient lookup
 
-    for (int i = 1; i <= num_part; ++i) {
-        if (inside_uv_set.find(i) == inside_uv_set.end()) {
+    for (int i = 0; i < num_part; ++i) {
+        // If i is not found in sorted_inside_uv_ids, add it to outside_uv_ids
+        if (std::binary_search(sorted_inside_uv_ids.begin(), sorted_inside_uv_ids.end(), i) == false) {
             outside_uv_ids.push_back(i);
         }
     }
@@ -270,7 +274,6 @@ void process_invalid_particle(
     double tt
 ) {
     int old_id = particle.old_id;
-    std::cout << "old_id: " << old_id << std::endl;
     static std::unordered_map<int, Mesh_UV_Struct> mesh_dict;
 
     Eigen::MatrixXd halfedges_uv;
@@ -312,6 +315,7 @@ void process_invalid_particle(
     // Simulate the flight of the particle
     auto [r_new_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids_int, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
 
+    // Get the new vertice id
     Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new_virtual, halfedges_uv, h_v_mapping);
 
     update_if_valid(vertex_data, r_new_virtual, vertice_3D_id, old_id);
@@ -367,14 +371,11 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     double k_adh,
     double dt,
     double tt,
-    int num_part = 10,
+    int num_part = 40,
     double plotstep = 0.1
 ){
     // Simulate the flight of the particle
     auto [r_new, r_dot, dist_length] = simulate_flight(r, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, dt);
-
-    // ! TEMP: multiply r_new with 1.3
-    r_new *= 1.3;
 
     std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_new);
     std::vector<int> outside_uv_ids = set_difference(num_part, inside_uv_ids);
@@ -392,10 +393,10 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     std::vector<VertexData> vertex_data = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids);
 
     bool all_valid = are_all_valid(vertex_data);
-    std::cout << "all valid: " << all_valid << std::endl;
 
-    // if (all_valid) {
-    process_if_not_valid(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+    if (!all_valid) {
+        process_if_not_valid(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+    }
 
     if (!are_all_valid(vertex_data)){
         std::cout << "Invalid vertices:\n";
@@ -412,25 +413,17 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
         vertices_next_id[i] = vertex_data[i].next_id;
     }
 
-    Eigen::MatrixXd r_new_temp(vertex_data.size(), halfedges_uv.cols());
     for (int i : outside_uv_ids) {
         std::vector<int64_t> single_vertex_next_id = {vertices_next_id[i]};
         std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(single_vertex_next_id, h_v_mapping);
 
         Eigen::MatrixXd r_new_temp_single_row = get_r_from_halfedge_id(halfedge_id, halfedges_uv);
-        std::cout << "r_new_temp_single_row:\n" << r_new_temp_single_row << std::endl;
-        r_new_temp.row(i) = r_new_temp_single_row.row(0);
+        r_new.row(i) = r_new_temp_single_row.row(0);
     }
 
-    // ! TODO BUG: r_new_temp is empty -> something goes wrong
-    std::cout << "r_new_temp:\n" << r_new_temp << std::endl;
-    std::cout << "r_new:\n" << r_new << std::endl;
-
-    // r_new = r_new_temp;
-
-    // if (find_inside_uv_vertices_id(r_new_temp).size() != num_part) {
-    //     throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
-    // }
+    if (find_inside_uv_vertices_id(r_new).size() != num_part) {
+        throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
+    }
 
     // Dye the particles based on distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
