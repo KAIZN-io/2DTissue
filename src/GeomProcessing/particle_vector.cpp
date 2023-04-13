@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <Eigen/Dense>
+#include <iostream>
 
 #include "matrix_algebra.h"
 #include "particle_vector.h"
@@ -19,8 +20,10 @@ Eigen::MatrixXd correct_n(
     double τ,
     double dt
 ){
-    // cross product of n and r_dot
-    auto ncross = calculate_3D_cross_product(n, r_dot).cwiseQuotient(normalize_3D_matrix(r_dot));
+    // cross product of n and r_dots
+    auto norm_3D = normalize_3D_matrix(r_dot);
+    auto cross_3D = calculate_3D_cross_product(n, r_dot);
+    auto ncross = cross_3D.cwiseQuotient(norm_3D);
 
     Eigen::MatrixXd n_cross_correction = (1.0 / τ) * ncross * dt;
 
@@ -32,10 +35,12 @@ Eigen::MatrixXd correct_n(
 
 std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
     Eigen::MatrixXd &r_dot,
-    Eigen::MatrixXd &n
+    Eigen::MatrixXd &n,
+    double dt
 ){
+    double τ = 1;
     // make a small correct for n according to Vicsek
-    n = correct_n(r_dot, n, 1, 1);
+    n = correct_n(r_dot, n, τ, dt);
 
     // Project the orientation of the corresponding faces using normal vectors
     n = n.rowwise().normalized();

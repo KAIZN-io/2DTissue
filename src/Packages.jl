@@ -13,6 +13,7 @@ using Logging
 using LinearAlgebra, SparseArrays
 using CSV
 using DataFrames
+using Tables
 
 GLMakie.activate!()
 GLMakie.set_window_config!(

@@ -356,6 +356,95 @@ void process_if_not_valid(
 }
 
 
+// TODO: eine kleine Steuung um die Koordinate einbauen -> wie in JuliaLang
+/*
+Invalid vertices:
+Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
+Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
+Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
+Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
+Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
+Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
+ERROR: There are still particles outside the mesh
+Stacktrace:
+ [1] particle_simulation(arg1::Function, arg2::Matrix{Float64}, arg3::Matrix{Float64}, arg4::Vector{Int64}, arg5::Matrix{Float64}, arg6::Base.RefValue{Int32}, arg7::Float64, arg8::Int64, arg9::Int64, arg10::Float64, arg11::Float64, arg12::Int64, arg13::Int64, arg14::Float64, arg15::Float64, arg16::Int64)
+   @ Main.ParticleSimulation ~/.julia/packages/CxxWrap/rxpzr/src/CxxWrap.jl:623
+ [2] (::var"#26#27")(tt::Int64)
+   @ Main ./REPL[109]:13
+ [3] Record(func::var"#26#27", figlike::Figure, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Any, Tuple{Symbol, Symbol}, NamedTuple{(:format, :framerate), Tuple{SubString{String}, Int64}}})
+   @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:167
+ [4] record(func::Function, figlike::Figure, path::String, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Int64, Tuple{Symbol}, NamedTuple{(:framerate,), Tuple{Int64}}})
+   @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:148
+ [5] top-level scope
+   @ REPL[109]:1
+
+
+wohl wegen: vertices_3D_active_id (achte auf die '13')
+ 2002
+ 1863
+ 2414
+  332
+  693
+ 3018
+ 3687
+ 4227
+   13
+    ⋮
+ 3301
+   13
+ 2866
+ 1563
+   13
+   13
+ 4348
+ 1980
+ 1455
+
+
+da: r
+40×3 Matrix{Float32}:
+   0.624178     0.275069  0.0
+   0.540449     0.478957  0.0
+   0.0438048    0.977854  0.0
+   0.338567     0.435456  0.0
+   0.624618     0.421143  0.0
+   0.338873     0.552037  0.0
+   0.228741     0.434764  0.0
+   0.485559     0.548774  0.0
+ NaN           Inf        0.0
+   ⋮                      
+   0.0879663    0.246806  0.0
+ NaN          -Inf        0.0
+   0.755694     0.332123  0.0
+   0.304719     0.43264   0.0
+ NaN           Inf        0.0
+ NaN           Inf        0.0
+   0.423665     0.274767  0.0
+   0.315264     0.341919  0.0
+   0.294346     0.310574  0.0
+
+oder n
+   0.974555      -0.000445482   -0.224147
+  -0.858919       0.498226       0.118447
+   0.891088       0.32874       -0.312878
+   0.869508      -0.422252       0.25624
+   0.588307      -0.275469      -0.76027
+   0.967388      -0.160711      -0.195786
+   0.339107      -0.919556       0.198555
+  -0.000558716    0.810987       0.585064
+ NaN            NaN            NaN
+   ⋮                           
+  -0.819288      -0.501948       0.277156
+ NaN            NaN            NaN
+  -0.822966      -0.537111      -0.185039
+   0.88587       -0.0432885     -0.46191
+ NaN            NaN            NaN
+ NaN            NaN            NaN
+  -0.951173       0.246553      -0.185694
+   0.58533       -0.810412       0.0249233
+   0.384614       0.900367      -0.203499
+*/
+
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
     Eigen::MatrixXd& r,
     Eigen::MatrixXd& n,
@@ -421,15 +510,15 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
         r_new.row(i) = r_new_temp_single_row.row(0);
     }
 
-    if (find_inside_uv_vertices_id(r_new).size() != num_part) {
-        throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
-    }
+    // if (find_inside_uv_vertices_id(r_new).size() != num_part) {
+    //     throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
+    // }
 
     // Dye the particles based on distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
     // Calculate the particle vectors
-    auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n);
+    auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n, dt);
 
     // Define the output vector v_order
     Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
@@ -457,6 +546,7 @@ void particle_simulation(
     double dt,
     double tt
 ){
+    double plotstep = 0.1;
 
     int num_entry = r_v.size();
     int num_rows = num_entry / 3;
@@ -469,8 +559,6 @@ void particle_simulation(
     // convert the active vertices to a vector -> only neccessary as long as the other functions of this script depend von std::vector
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
-    double plotstep = 0.1;
-
     // Simulate the particles
     auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, plotstep);
 
@@ -478,7 +566,7 @@ void particle_simulation(
     auto r_julia = jlcxx::ArrayRef<double, 2>(r_new.data(), r_new.rows(), r_new.cols());
     auto r_dot_julia = jlcxx::ArrayRef<double, 2>(r_dot.data(), r_dot.rows(), r_dot.cols());
     auto dist_length_julia = jlcxx::ArrayRef<double, 2>(dist_length.data(), dist_length.rows(), dist_length.cols());
-    auto ntest_julia = jlcxx::ArrayRef<double, 2>(ntest.data(), ntest.rows(), ntest.cols());
+    auto n_julia = jlcxx::ArrayRef<double, 2>(ntest.data(), ntest.rows(), ntest.cols());
     auto nr_dot_julia = jlcxx::ArrayRef<double, 2>(nr_dot.data(), nr_dot.rows(), nr_dot.cols());
     auto particles_color_julia = jlcxx::ArrayRef<double, 1>(particles_color.data(), particles_color.size());
     auto v_order_julia = jlcxx::ArrayRef<double, 1>(v_order.data(), v_order.size());
@@ -487,7 +575,7 @@ void particle_simulation(
     jlcxx::JuliaFunction fnClb(f);
 
     // Fill the Julia Function with the inputs
-    fnClb((jl_value_t*)r_julia.wrapped(), (jl_value_t*)r_dot_julia.wrapped(), (jl_value_t*)dist_length_julia.wrapped(), mesh_id, (jl_value_t*)v_order_julia.wrapped());
+    fnClb((jl_value_t*)r_julia.wrapped(), (jl_value_t*)r_dot_julia.wrapped(), (jl_value_t*)n_julia.wrapped(), (jl_value_t*)dist_length_julia.wrapped(), mesh_id, (jl_value_t*)v_order_julia.wrapped());
 }
 
 
@@ -505,10 +593,11 @@ int main()
     auto dt = 0.01;
     auto tt = 10;
 
-    Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data.csv");
-    Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data.csv");
-    Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
-    Eigen::MatrixXd vertices_3D_active_eigen = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/vertices_3D_active_id_data.csv");
+    Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data_1.csv");
+    Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data_1.csv");
+    Eigen::MatrixXd vertices_3D_active_eigen = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/vertices_3D_active_id_data_1.csv");
+
+    const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     // get_all_distances();

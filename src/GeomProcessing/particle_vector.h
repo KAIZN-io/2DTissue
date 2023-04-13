@@ -13,5 +13,6 @@ Eigen::MatrixXd correct_n(
 
 std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
     Eigen::MatrixXd &r_dot,
-    Eigen::MatrixXd &n
+    Eigen::MatrixXd &n,
+    double dt
 );

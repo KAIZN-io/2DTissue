@@ -18,19 +18,19 @@ Erfolg gegenüber 3D Simulation:
 - Methodik ist für n-Dimensionale Manifold anwendbar, die alle auf 2D visualsiert werden können
 """
 
-include("Packages.jl")
-include("Basic.jl")
-include("GeomProcessing.jl")
-include("SoftCondMatter.jl")
-# include("src/Packages.jl")
-# include("src/Basic.jl")
-# include("src/GeomProcessing.jl")
-# include("src/SoftCondMatter.jl")
-
+# include("Packages.jl")
+# include("Basic.jl")
+# include("GeomProcessing.jl")
+# include("SoftCondMatter.jl")
+include("src/Packages.jl")
+include("src/Basic.jl")
+include("src/GeomProcessing.jl")
+include("src/SoftCondMatter.jl")
 
 struct ParticleSimSolution
     r_new::Array{Float64,2}
     r_dot::Array{Float64,2}
+    n::Array{Float64,2}
     dist_length::Array{Float64, 2}
     v_order::Array{Float64, 1}
 end
@@ -52,7 +52,7 @@ module ParticleSimulation
 end
 
 
-function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2}, _dist_length::Array{Float64, 2}, _mesh_id::Ref{Int32}, _v_order::Array{Float64, 1})
+function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2}, _n::Array{Float64, 2}, _dist_length::Array{Float64, 2}, _mesh_id::Ref{Int32}, _v_order::Array{Float64, 1})
     GC.enable(true)
 
     # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
@@ -63,6 +63,10 @@ function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2
     r_dot_julia = Array{Float64, 2}
     r_dot = vcat(r_dot_julia, _r_dot)
     _r_dot = nothing
+
+    n_julia = Array{Float64, 2}
+    n = vcat(n_julia, _n)
+    _n = nothing
 
     dist_length_julia = Array{Float64, 2}
     dist_length = vcat(dist_length_julia, _dist_length)
@@ -75,7 +79,7 @@ function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2
     mesh_id = _mesh_id[]
 
     GC.gc()
-    particle_sim_sol[mesh_id] = ParticleSimSolution(r_new[2:end, :], r_dot[2:end, :], dist_length[2:end, :], v_order[2:end])
+    particle_sim_sol[mesh_id] = ParticleSimSolution(r_new[2:end, :], r_dot[2:end, :], n[2:end, :], dist_length[2:end, :], v_order[2:end])
 end
 
 
@@ -298,51 +302,12 @@ function active_particles_simulation(
     # update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
     # update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
 
-    # Step size
-    dt = 0.01 * τ
-
-    # Number of calculation between plot
-    plotstep = 0.1 / dt
-
-    # ! TODO: 0 und letzter Index sind das Problem 
-    """
-    ERROR: LoadError: BoundsError: attempt to access 4717-element Vector{Int64} at index [4718, 1:1]
-    Stacktrace:
-    [1] throw_boundserror(A::Vector{Int64}, I::Tuple{Int64, Base.Slice{Base.OneTo{Int64}}})
-        @ Base ./abstractarray.jl:703
-    [2] checkbounds
-        @ ./abstractarray.jl:668 [inlined]
-    [3] _getindex(::IndexLinear, ::Vector{Int64}, ::Int64, ::Base.Slice{Base.OneTo{Int64}})
-        @ Base ./multidimensional.jl:874
-    [4] getindex
-        @ ./abstractarray.jl:1241 [inlined]
-    [5] get_vertice_id(r::Matrix{Float64}, halfedges_uv::Matrix{Float32}, halfedge_vertices_mapping::Vector{Int64})
-        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:450
-    [6] process_invalid_particle!(df::DataFrame, particle::DataFrameRow{DataFrame, DataFrames.Index}, num_part::Int64, distance_matrix::Matrix{Float64}, n::Matrix{Float64}, v0::Float64, k::Int64, k_next::Int64, v0_next::Float64, σ::Float64, μ::Int64, r_adh::Int64, k_adh::Float64, dt::Float64, tt::Int64)
-        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:499
-    [7] process_if_not_valid(df::DataFrame, num_part::Int64, distance_matrix::Matrix{Float64}, n::Matrix{Float64}, v0::Float64, k::Int64, k_next::Int64, v0_next::Float64, σ::Float64, μ::Int64, r_adh::Int64, k_adh::Float64, dt::Float64, tt::Int64)
-        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:517
-    [8] (::var"#10#13"{Int64, Float64, Float64, Float64, Int64, Int64, Int64, Float64, Int64, Observable{Vector{Int64}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Int64})(tt::Int64)
-        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:344
-    [9] Record(func::var"#10#13"{Int64, Float64, Float64, Float64, Int64, Int64, Int64, Float64, Int64, Observable{Vector{Int64}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Observable{Vector{GeometryBasics.Point{3, Float32}}}, Int64}, figlike::Figure, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Any, Tuple{Symbol, Symbol}, NamedTuple{(:format, :framerate), Tuple{SubString{String}, Int64}}})
-        @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:167
-    [10] record(func::Function, figlike::Figure, path::String, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Int64, Tuple{Symbol}, NamedTuple{(:framerate,), Tuple{Int64}}})
-        @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:148
-    [11] active_particles_simulation(; num_part::Int64, v0::Float64, v0_next::Float64, num_step::Int64, σ::Float64, r_adh::Int64, k::Int64, k_next::Int64, k_adh::Float64, μ::Int64, τ::Int64, ρ::Int64)
-        @ Main ~/git_repos/Confined_active_particles/src/Confined_active_particles.jl:310
-    [12] top-level scope
-        @ ~/git_repos/Confined_active_particles/main.jl:4
-    """
-
     @info "Simulation started"
 
     record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate=8) do tt
         r = observe_r[] |> vec_of_vec_to_array
         n = observe_n[] |> vec_of_vec_to_array
         vertices_3D_active_id = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
-
-        df = DataFrame(old_id=vertices_3D_active_id, next_id=observe_active_vertice_3D_id[], valid=zeros(Bool, size(r, 1)), uv_mesh_id=0)
-        halfedges_uv = GeometryBasics.coordinates(mesh_dict[0].mesh_uv_name) |> vec_of_vec_to_array
 
         # transform r to type Array{Float64, 2}
         r = convert(Array{Float64}, r)
@@ -352,56 +317,88 @@ function active_particles_simulation(
         # Simulate the flight route
         # 0.744727 seconds (1.93 M allocations: 100.476 MiB, 23.27% gc time, 35.42% compilation time)
         ParticleSimulation.particle_simulation(get_cpp_data_helper, r, n, vertices_3D_active_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-        r_new_temp = particle_sim_sol[bases_id].r_new
-
-        # Find out which particles are inside the mesh
-        inside_uv_ids = find_inside_uv_vertices_id(r_new_temp)
-        vertice_3D_id = get_vertice_id(r_new_temp, halfedges_uv, mesh_dict[bases_id].h_v_mapping)
-
-        # Only update if valid = false
-        # für alle Partikel, die vorher auf dem Mesh blieben, darf sich die 3D mesh Vertices ID nicht verändern
-        for i in inside_uv_ids
-            if df.valid[i] == false
-                df.next_id[i] = vertice_3D_id[i]
-                df.uv_mesh_id[i] = bases_id
-                df.valid[i] = true
-            end
-        end
-
-        if false in df.valid
-            # 1.231166 seconds (3.53 M allocations: 136.961 MiB, 29.04% gc time, 35.25% compilation time)
-            process_if_not_valid(df, num_part, distance_matrix, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-        end
-
-        if all(df.valid) == false
-            @info df[df.valid .== false, :]
-            @info unique(df.uv_mesh_id)
-            @test_throws ErrorException "There are still particles outside the mesh"
-        end
-
-        # Get all the halfedges for the original UV mesh because the 3D vertices are conserved
-        # Only change the r_new_temp value, if df.uv_mesh_id != 0
-        outside_uv_ids = setdiff(1:num_part, inside_uv_ids)
-        vertices_id = df.next_id
-
-        for i in outside_uv_ids
-            halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(vertices_id[i], mesh_dict[bases_id].h_v_mapping)
-            # NOTE: halfedge_id kann auch 0 sein, da C++ bei 0 beginnt und es deshalb h0 gibt
-            r_new_temp[i, :] =  get_r_from_halfedge_id(halfedge_id, halfedges_uv)
-        end
-
-        r_new = r_new_temp
-
-        if length(find_inside_uv_vertices_id(r_new)) != num_part
-           @test_throws ErrorException "We lost particles after getting the original mesh halfedges coord"
-        end
+        r_new = particle_sim_sol[bases_id].r_new
+        n_new = particle_sim_sol[bases_id].n
 
         # # Graphic output if plotstep is a multiple of tt
         # if rem(tt,plotstep) == 0
         observe_r[] = array_to_vec_of_vec(r_new)
-        observe_n[] = array_to_vec_of_vec(n)
-        # maximum(particle_sim_sol[bases_id].v_order)  # TODO: fix this
+        observe_n[] = array_to_vec_of_vec(n_new)
     end
+    # r = CSV.read("r_data_1.csv", DataFrame; header=false) |> Matrix
+    # n = CSV.read("n_data_1.csv", DataFrame; header=false) |> Matrix
+    # vertices_3D_active_id = CSV.read("vertices_3D_active_id_data_1.csv", DataFrame; header=false) |> Matrix
+
+    # observe_r[] = array_to_vec_of_vec(r)
+    # observe_n[] = array_to_vec_of_vec(n)
+    # # transform vertices_3D_active_id into a vector 
+    # vertices_3D_active_id = vertices_3D_active_id[:, 1]
+    # record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate=8) do tt
+    #     r = observe_r[] |> vec_of_vec_to_array
+    #     n = observe_n[] |> vec_of_vec_to_array
+    #     vertices_3D_active_id = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
+
+    #     df = DataFrame(old_id=vertices_3D_active_id, next_id=observe_active_vertice_3D_id[], valid=zeros(Bool, size(r, 1)), uv_mesh_id=0)
+    #     halfedges_uv = GeometryBasics.coordinates(mesh_dict[0].mesh_uv_name) |> vec_of_vec_to_array
+
+    #     # transform r to type Array{Float64, 2}
+    #     r = convert(Array{Float64}, r)
+    #     n = convert(Array{Float64}, n)
+    #     mesh_id = Ref{Int32}(bases_id)
+
+    #     # Simulate the flight route
+    #     # 0.744727 seconds (1.93 M allocations: 100.476 MiB, 23.27% gc time, 35.42% compilation time)
+    #     ParticleSimulation.particle_simulation(get_cpp_data_helper, r, n, vertices_3D_active_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    #     r_new_temp = particle_sim_sol[bases_id].r_new
+
+    #     # Find out which particles are inside the mesh
+    #     inside_uv_ids = find_inside_uv_vertices_id(r_new_temp)
+    #     vertice_3D_id = get_vertice_id(r_new_temp, halfedges_uv, mesh_dict[bases_id].h_v_mapping)
+
+    #     # Only update if valid = false
+    #     # für alle Partikel, die vorher auf dem Mesh blieben, darf sich die 3D mesh Vertices ID nicht verändern
+    #     for i in inside_uv_ids
+    #         if df.valid[i] == false
+    #             df.next_id[i] = vertice_3D_id[i]
+    #             df.uv_mesh_id[i] = bases_id
+    #             df.valid[i] = true
+    #         end
+    #     end
+
+    #     if false in df.valid
+    #         # 1.231166 seconds (3.53 M allocations: 136.961 MiB, 29.04% gc time, 35.25% compilation time)
+    #         process_if_not_valid(df, num_part, distance_matrix, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    #     end
+
+    #     if all(df.valid) == false
+    #         @info df[df.valid .== false, :]
+    #         @info unique(df.uv_mesh_id)
+    #         @test_throws ErrorException "There are still particles outside the mesh"
+    #     end
+
+    #     # Get all the halfedges for the original UV mesh because the 3D vertices are conserved
+    #     # Only change the r_new_temp value, if df.uv_mesh_id != 0
+    #     outside_uv_ids = setdiff(1:num_part, inside_uv_ids)
+    #     vertices_id = df.next_id
+
+    #     for i in outside_uv_ids
+    #         halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(vertices_id[i], mesh_dict[bases_id].h_v_mapping)
+    #         # NOTE: halfedge_id kann auch 0 sein, da C++ bei 0 beginnt und es deshalb h0 gibt
+    #         r_new_temp[i, :] =  get_r_from_halfedge_id(halfedge_id, halfedges_uv)
+    #     end
+
+    #     r_new = r_new_temp
+
+    #     if length(find_inside_uv_vertices_id(r_new)) != num_part
+    #        @test_throws ErrorException "We lost particles after getting the original mesh halfedges coord"
+    #     end
+
+    #     # # Graphic output if plotstep is a multiple of tt
+    #     # if rem(tt,plotstep) == 0
+    #     observe_r[] = array_to_vec_of_vec(r_new)
+    #     observe_n[] = array_to_vec_of_vec(n)
+    #     # maximum(particle_sim_sol[bases_id].v_order)  # TODO: fix this
+    # end
 
     @info "Simulation finished"
 
