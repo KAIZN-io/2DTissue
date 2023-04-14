@@ -107,6 +107,18 @@ struct VertexData {
     int uv_mesh_id;
 };
 
+bool checkForInvalidValues(
+    const Eigen::MatrixXd& matrix
+) {
+    for (int i = 0; i < matrix.rows(); ++i) {
+        for (int j = 0; j < matrix.cols(); ++j) {
+            if (std::isnan(matrix(i, j)) || std::isinf(matrix(i, j))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 Eigen::MatrixXd reshape_vertices_array(
     const JuliaArray2D& vertices_stl,
@@ -356,95 +368,6 @@ void process_if_not_valid(
 }
 
 
-// TODO: eine kleine Steuung um die Koordinate einbauen -> wie in JuliaLang
-/*
-Invalid vertices:
-Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
-Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
-Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
-Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
-Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
-Old ID: 13, Next ID: 13, Valid: 0, UV Mesh ID: 0
-ERROR: There are still particles outside the mesh
-Stacktrace:
- [1] particle_simulation(arg1::Function, arg2::Matrix{Float64}, arg3::Matrix{Float64}, arg4::Vector{Int64}, arg5::Matrix{Float64}, arg6::Base.RefValue{Int32}, arg7::Float64, arg8::Int64, arg9::Int64, arg10::Float64, arg11::Float64, arg12::Int64, arg13::Int64, arg14::Float64, arg15::Float64, arg16::Int64)
-   @ Main.ParticleSimulation ~/.julia/packages/CxxWrap/rxpzr/src/CxxWrap.jl:623
- [2] (::var"#26#27")(tt::Int64)
-   @ Main ./REPL[109]:13
- [3] Record(func::var"#26#27", figlike::Figure, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Any, Tuple{Symbol, Symbol}, NamedTuple{(:format, :framerate), Tuple{SubString{String}, Int64}}})
-   @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:167
- [4] record(func::Function, figlike::Figure, path::String, iter::UnitRange{Int64}; kw_args::Base.Pairs{Symbol, Int64, Tuple{Symbol}, NamedTuple{(:framerate,), Tuple{Int64}}})
-   @ Makie ~/.julia/packages/Makie/gAmAB/src/recording.jl:148
- [5] top-level scope
-   @ REPL[109]:1
-
-
-wohl wegen: vertices_3D_active_id (achte auf die '13')
- 2002
- 1863
- 2414
-  332
-  693
- 3018
- 3687
- 4227
-   13
-    ⋮
- 3301
-   13
- 2866
- 1563
-   13
-   13
- 4348
- 1980
- 1455
-
-
-da: r
-40×3 Matrix{Float32}:
-   0.624178     0.275069  0.0
-   0.540449     0.478957  0.0
-   0.0438048    0.977854  0.0
-   0.338567     0.435456  0.0
-   0.624618     0.421143  0.0
-   0.338873     0.552037  0.0
-   0.228741     0.434764  0.0
-   0.485559     0.548774  0.0
- NaN           Inf        0.0
-   ⋮                      
-   0.0879663    0.246806  0.0
- NaN          -Inf        0.0
-   0.755694     0.332123  0.0
-   0.304719     0.43264   0.0
- NaN           Inf        0.0
- NaN           Inf        0.0
-   0.423665     0.274767  0.0
-   0.315264     0.341919  0.0
-   0.294346     0.310574  0.0
-
-oder n
-   0.974555      -0.000445482   -0.224147
-  -0.858919       0.498226       0.118447
-   0.891088       0.32874       -0.312878
-   0.869508      -0.422252       0.25624
-   0.588307      -0.275469      -0.76027
-   0.967388      -0.160711      -0.195786
-   0.339107      -0.919556       0.198555
-  -0.000558716    0.810987       0.585064
- NaN            NaN            NaN
-   ⋮                           
-  -0.819288      -0.501948       0.277156
- NaN            NaN            NaN
-  -0.822966      -0.537111      -0.185039
-   0.88587       -0.0432885     -0.46191
- NaN            NaN            NaN
- NaN            NaN            NaN
-  -0.951173       0.246553      -0.185694
-   0.58533       -0.810412       0.0249233
-   0.384614       0.900367      -0.203499
-*/
-
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
     Eigen::MatrixXd& r,
     Eigen::MatrixXd& n,
@@ -524,6 +447,18 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
     calculate_order_parameter(v_order, r, r_dot, tt, plotstep);
 
+    if (checkForInvalidValues(r_new)) {
+        std::cout << "Invalid values found in r: " << std::endl;
+        std::cout << r_new << std::endl;
+        std::exit(1);  // stop script execution
+    }
+    if (checkForInvalidValues(ntest)) {
+        std::cout << "Invalid values found in n: " << std::endl;
+        std::cout << ntest << std::endl;
+        std::exit(1);  // stop script execution
+    }
+
+
     return std::make_tuple(r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order);
 }
 
@@ -593,18 +528,49 @@ int main()
     auto dt = 0.01;
     auto tt = 10;
 
+    // // Seed the random number generator to get different random values each run
+    // std::srand(static_cast<unsigned int>(std::time(0)));
+
+    // int rows = 40;
+    // int cols = 3;
+
+    // Eigen::MatrixXd r(rows, cols);
+
+    // // Set the first two columns with random values between 0 and 1
+    // r.block(0, 0, rows, 2) = Eigen::MatrixXd::Random(rows, 2).array().abs();
+
+    // // Set the third column to 0
+    // r.col(2).setZero();
+    
     Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data_1.csv");
+    r.row(3) = r.row(2);
     Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data_1.csv");
-    Eigen::MatrixXd vertices_3D_active_eigen = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/vertices_3D_active_id_data_1.csv");
+    Eigen::MatrixXd halfedge_uv = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/halfedges_uv.csv");
+
+    Eigen::MatrixXd halfedge_vertices_mapping = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/halfedge_vertices_mapping.csv");
+    std::vector<int64_t> halfedge_vertices_mapping_vector(halfedge_vertices_mapping.data(), halfedge_vertices_mapping.data() + halfedge_vertices_mapping.size());
+
+    Eigen::VectorXd vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
+    std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
-    std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     // get_all_distances();
 
     std::clock_t start = std::clock();
-    // Time taken (30 MAR 2023): 1.15709 seconds
-    auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+
+    int num_frames = 1;
+
+    for (int tt = 1; tt <= num_frames; ++tt) {
+        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+
+        r = r_new;
+        n = ntest;
+
+        auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
+        std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
+        vertices_3D_active = new_vertices_3D_active;
+    }
 
     std::clock_t end = std::clock();
     double duration = (end - start) / (double) CLOCKS_PER_SEC;
