@@ -94,6 +94,9 @@ add_library(uv_surface_lib STATIC
     src/GeomProcessing/analytics.cpp
     src/GeomProcessing/csv_loader.cpp
     src/GeomProcessing/uv_operations.cpp
+    src/GeomProcessing/validity_check.cpp
+    src/GeomProcessing/process_invalid_particle.cpp
+    src/GeomProcessing/sim_structs.cpp
 )
 target_include_directories(uv_surface_lib PRIVATE src)
 target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
