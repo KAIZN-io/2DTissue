@@ -48,7 +48,7 @@
 #include "particle_vector.h"
 #include "julia_handler.h"
 #include "analytics.h"
-#include "load_csv.h"
+#include "csv_loader.h"
 
 
 // CGAL type aliases
@@ -67,25 +67,6 @@ using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Trian
 // Jlcxx type aliases
 using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
 using JuliaArray2D = jlcxx::ArrayRef<double, 2>;
-
-
-template<typename M>
-M load_csv (const std::string & path) {
-    std::ifstream indata;
-    indata.open(path);
-    std::string line;
-    std::vector<double> values;
-    uint rows = 0;
-    while (std::getline(indata, line)) {
-        std::stringstream lineStream(line);
-        std::string cell;
-        while (std::getline(lineStream, cell, ',')) {
-            values.push_back(std::stod(cell));
-        }
-        ++rows;
-    }
-    return Eigen::Map<const Eigen::Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, Eigen::RowMajor>>(values.data(), rows, values.size()/rows);
-}
 
 
 struct ParticleSimSolution {

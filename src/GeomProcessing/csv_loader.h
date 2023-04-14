@@ -1,7 +1,5 @@
-// author: @Jan-Piotraschke
-// date: 2023-04-14
-// license: Apache License 2.0
-// version: 0.1.0
+// csv_loader.h
+#pragma once
 
 #include <fstream>
 #include <sstream>
@@ -9,11 +7,9 @@
 #include <vector>
 #include <Eigen/Dense>
 
-#include "load_csv.h"
-
-
+// We need do define it in the header file or otherwise the template specialization will not be available at link time
 template<typename M>
-M load_csv (const std::string & path) {
+M load_csv(const std::string &path) {
     std::ifstream indata;
     indata.open(path);
     std::string line;
