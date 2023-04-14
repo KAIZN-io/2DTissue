@@ -6,15 +6,15 @@
 #include <Eigen/Dense>
 #include <vector>
 
-#include "sim_structs.h"
-#include "mesh_loader.h"
-#include "uv_surface.h"
-#include "mesh_analysis.h"
-#include "uv_operations.h"
-#include "flight_of_the_particle.h"
-#include "validity_check.h"
+#include <sim_structs.h>
+#include <mesh_loader.h>
+#include <uv_surface.h>
+#include <mesh_analysis.h>
+#include <uv_operations.h>
+#include <flight_of_the_particle.h>
+#include <validity_check.h>
 
-#include "process_invalid_particle.h"
+#include <process_invalid_particle.h>
 
 
 // TODO: move this function into a separate file

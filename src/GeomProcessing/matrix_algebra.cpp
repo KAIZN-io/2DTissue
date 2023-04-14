@@ -6,7 +6,7 @@
 #include <vector>
 #include <Eigen/Dense>
 
-#include "matrix_algebra.h"
+#include <matrix_algebra.h>
 
 /*
 normalize a 3D matrix A

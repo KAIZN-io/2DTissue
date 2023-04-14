@@ -53,7 +53,7 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_location}")
 message(STATUS "Found JlCxx at ${JlCxx_location}")
 
 # Include directories for local header files
-include_directories("${PROJECT_DIR}/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include(CGAL_Eigen3_support)
 
 
@@ -73,13 +73,13 @@ create_single_source_cgal_program("src/GeomProcessing/particle_simulation.cpp")
 add_library(particle_forces_lib STATIC
     src/GeomProcessing/particle_forces.cpp
 )
-target_include_directories(particle_forces_lib PRIVATE src)
+target_include_directories(particle_forces_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(particle_forces_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 add_library(matrix_algebra_lib STATIC
     src/GeomProcessing/matrix_algebra.cpp
 )
-target_include_directories(matrix_algebra_lib PRIVATE src)
+target_include_directories(matrix_algebra_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(matrix_algebra_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 add_library(uv_surface_lib STATIC
@@ -98,7 +98,7 @@ add_library(uv_surface_lib STATIC
     src/GeomProcessing/process_invalid_particle.cpp
     src/GeomProcessing/sim_structs.cpp
 )
-target_include_directories(uv_surface_lib PRIVATE src)
+target_include_directories(uv_surface_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 
 

@@ -1,10 +1,9 @@
 // author: @Jan-Piotraschke
-// date: 2023-04-11
+// date: 2023-04-14
 // license: Apache License 2.0
 // version: 0.1.0
 
 // CGAL
-#include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 
@@ -21,52 +20,36 @@
 #include "jlcxx/jlcxx.hpp"
 
 // Standard libraries
-#include <algorithm>
-#include <set>
 #include <atomic>
 #include <cmath>
 #include <cstddef>
-#include <ctime>
-#include <fstream>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <omp.h>
-#include <sstream>
 #include <stdexcept>
 #include <thread>
-#include <unordered_map>
 #include <vector>
 
-#include "sim_structs.h"
-#include "uv_surface.h"
-#include "mesh_loader.h"
-#include "mesh_analysis.h"
-#include "geo_distance.h"
-#include "flight_of_the_particle.h"
-#include "dye_particle.h"
-#include "matrix_algebra.h"
-#include "particle_vector.h"
-#include "julia_handler.h"
-#include "analytics.h"
-#include "csv_loader.h"
-#include "uv_operations.h"
-#include "process_invalid_particle.h"
-#include "validity_check.h"
-
+#include <analytics.h>
+#include <csv_loader.h>
+#include <dye_particle.h>
+#include <flight_of_the_particle.h>
+#include <geo_distance.h>
+#include <julia_handler.h>
+#include <matrix_algebra.h>
+#include <mesh_analysis.h>
+#include <mesh_loader.h>
+#include <particle_vector.h>
+#include <process_invalid_particle.h>
+#include <sim_structs.h>
+#include <uv_operations.h>
+#include <uv_surface.h>
+#include <validity_check.h>
 
 // CGAL type aliases
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_3 = Kernel::Point_3;
 using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
-
-using vertex_descriptor = boost::graph_traits<Triangle_mesh>::vertex_descriptor;
-using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, double>;
-
-// Heat method type aliases
-// The Intrinsic Delaunay Triangulation algorithm is switched off by the template parameter Heat_method_3::Direct.
-using Heat_method_idt = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CGAL::Heat_method_3::Direct>;
-using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh>;
 
 // Jlcxx type aliases
 using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;

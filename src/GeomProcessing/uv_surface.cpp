@@ -47,7 +47,7 @@
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
-#include "uv_surface.h"
+#include <uv_surface.h>
 
 
 using Kernel = CGAL::Simple_cartesian<double>;

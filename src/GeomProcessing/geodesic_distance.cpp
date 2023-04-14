@@ -6,7 +6,7 @@
 #include <iostream>
 #include <vector>
 
-#include "geo_distance.h"
+#include <geo_distance.h>
 #include "jlcxx/jlcxx.hpp"
 
 using JuliaArray = jlcxx::ArrayRef<double, 1>;

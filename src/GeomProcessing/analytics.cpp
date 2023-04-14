@@ -3,10 +3,10 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-#include "Eigen/Dense"
+#include <Eigen/Dense>
 
-#include "analytics.h"
-#include "matrix_algebra.h"
+#include <analytics.h>
+#include <matrix_algebra.h>
 
 
 void calculate_order_parameter(
