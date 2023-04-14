@@ -91,6 +91,7 @@ add_library(uv_surface_lib STATIC
     src/GeomProcessing/particle_vector.cpp
     src/GeomProcessing/julia_handler.cpp
     src/GeomProcessing/uv_surface.cpp
+    src/GeomProcessing/analytics.cpp
 )
 target_include_directories(uv_surface_lib PRIVATE src)
 target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)

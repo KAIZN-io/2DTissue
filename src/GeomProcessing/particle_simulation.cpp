@@ -47,6 +47,7 @@
 #include "matrix_algebra.h"
 #include "particle_vector.h"
 #include "julia_handler.h"
+#include "analytics.h"
 
 
 // CGAL type aliases
@@ -136,25 +137,6 @@ bool are_all_valid(const std::vector<VertexData>& vertex_data) {
 // Check if the given point r is inside the UV parametrization bounds
 bool is_inside_uv(const Eigen::Vector2d& r) {
     return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
-}
-
-
-void calculate_order_parameter(
-    Eigen::VectorXd& v_order, 
-    Eigen::MatrixXd r, 
-    Eigen::MatrixXd r_dot, 
-    double tt,
-    double plotstep
-) {
-    int num_part = r.rows();
-    // Define a vector normal to position vector and velocity vector
-    Eigen::MatrixXd v_tp = calculate_3D_cross_product(r, r_dot);
-
-    // Normalize v_tp
-    Eigen::MatrixXd v_norm = v_tp.rowwise().normalized();
-
-    // Sum v_tp vectors and divide by number of particle to obtain order parameter of collective motion for spheroids
-    v_order((int)(tt / plotstep)) = (1.0 / num_part) * v_norm.colwise().sum().norm();
 }
 
 
