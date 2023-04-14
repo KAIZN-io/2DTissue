@@ -48,6 +48,7 @@
 #include "particle_vector.h"
 #include "julia_handler.h"
 #include "analytics.h"
+#include "load_csv.h"
 
 
 // CGAL type aliases
