@@ -46,6 +46,7 @@
 #include "dye_particle.h"
 #include "matrix_algebra.h"
 #include "particle_vector.h"
+#include "julia_handler.h"
 
 
 // CGAL type aliases
@@ -107,6 +108,7 @@ struct VertexData {
     int uv_mesh_id;
 };
 
+
 bool checkForInvalidValues(
     const Eigen::MatrixXd& matrix
 ) {
@@ -120,34 +122,20 @@ bool checkForInvalidValues(
     return false;
 }
 
-Eigen::MatrixXd reshape_vertices_array(
-    const JuliaArray2D& vertices_stl,
-    int num_rows,
-    int num_cols
-) {
-    Eigen::MatrixXd vertices(num_rows, num_cols);
 
-    for (int i = 0; i < num_rows; ++i) {
-        for (int j = 0; j < num_cols; ++j) {
-            vertices(i, j) = vertices_stl[j * num_rows + i];
+bool are_all_valid(const std::vector<VertexData>& vertex_data) {
+    for (const VertexData& data : vertex_data) {
+        if (!data.valid) {
+            return false;
         }
     }
-
-    return vertices;
+    return true;
 }
 
 
-Eigen::VectorXd jlcxxArrayRefToEigenVectorXd(
-    const jlcxx::ArrayRef<int64_t, 1>& inputArray
-){
-    int arraySize = inputArray.size();
-    Eigen::VectorXd outputVector(arraySize);
-
-    for (int i = 0; i < arraySize; i++) {
-        outputVector(i) = static_cast<double>(inputArray[i]);
-    }
-
-    return outputVector;
+// Check if the given point r is inside the UV parametrization bounds
+bool is_inside_uv(const Eigen::Vector2d& r) {
+    return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
 }
 
 
@@ -167,22 +155,6 @@ void calculate_order_parameter(
 
     // Sum v_tp vectors and divide by number of particle to obtain order parameter of collective motion for spheroids
     v_order((int)(tt / plotstep)) = (1.0 / num_part) * v_norm.colwise().sum().norm();
-}
-
-
-bool are_all_valid(const std::vector<VertexData>& vertex_data) {
-    for (const VertexData& data : vertex_data) {
-        if (!data.valid) {
-            return false;
-        }
-    }
-    return true;
-}
-
-
-// Check if the given point r is inside the UV parametrization bounds
-bool is_inside_uv(const Eigen::Vector2d& r) {
-    return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
 }
 
 
