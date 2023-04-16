@@ -4,6 +4,21 @@
 # Set the minimum version of CMake required
 cmake_minimum_required(VERSION 3.14)
 
+# Set the Assimp path
+find_program(ASSIMP_EXECUTABLE NAMES assimp)
+if(ASSIMP_EXECUTABLE)
+  get_filename_component(ASSIMP_ROOT_DIR "${ASSIMP_EXECUTABLE}" DIRECTORY)
+  get_filename_component(ASSIMP_ROOT_DIR "${ASSIMP_ROOT_DIR}/.." ABSOLUTE)
+  message(STATUS "Found Assimp executable: ${ASSIMP_EXECUTABLE}")
+  message(STATUS "Assimp root directory: ${ASSIMP_ROOT_DIR}")
+else()
+  message(FATAL_ERROR "Assimp executable not found. Please install Assimp library.")
+endif()
+
+set(ASSIMP_ROOT "${ASSIMP_ROOT_DIR}")
+set(ASSIMP_INCLUDE_DIRS "${ASSIMP_ROOT}/include")
+set(ASSIMP_LIBRARY_DIRS "${ASSIMP_ROOT}/lib")
+
 # Set the project name and version
 project(PhysicsEngineBuilds VERSION 1.0)
 
@@ -22,15 +37,6 @@ find_package(Boost 1.80.0 REQUIRED)
 find_package(Eigen3 3.4.0 REQUIRED)
 find_package(JlCxx REQUIRED)
 find_package(OpenMP)
-
-# Set the Assimp path
-set(ASSIMP_ROOT "/opt/homebrew/Cellar/assimp/5.2.5")
-set(ASSIMP_INCLUDE_DIRS "${ASSIMP_ROOT}/include")
-set(ASSIMP_LIBRARY_DIRS "${ASSIMP_ROOT}/lib")
-
-# Include the Assimp headers and libraries
-include_directories(${ASSIMP_INCLUDE_DIRS})
-link_directories(${ASSIMP_LIBRARY_DIRS})
 
 
 # Check if Boost is found
@@ -55,6 +61,10 @@ message(STATUS "Found JlCxx at ${JlCxx_location}")
 # Include directories for local header files
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include(CGAL_Eigen3_support)
+
+# Include the Assimp headers and libraries
+include_directories(${ASSIMP_INCLUDE_DIRS})
+link_directories(${ASSIMP_LIBRARY_DIRS})
 
 
 # ##########################################################

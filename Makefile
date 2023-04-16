@@ -38,10 +38,13 @@ check_dependencies:
 		export CPPFLAGS="-I$$LLVM_PATH/include $$CPPFLAGS"; \
 		CMAKE_FLAGS="$$CMAKE_FLAGS -DCMAKE_C_COMPILER=$$LLVM_PATH/bin/clang -DCMAKE_CXX_COMPILER=$$LLVM_PATH/bin/clang++"; \
 		which emcc >/dev/null || (echo "Installing Emscripten via Homebrew..."; brew install emscripten); \
+		which julia >/dev/null || (echo "Installing Julia via Homebrew..."; brew install --cask julia); \
+		which assimp >/dev/null || (echo "Installing Assimp via Homebrew..."; brew install assimp); \
 	else \
-		@echo "Homebrew installation only works on macOS. Please install LLVM and Emscripten manually."; \
+		@echo "Homebrew installation only works on macOS. Please install LLVM, Emscripten, Julia and Assimp manually."; \
 	fi
 	@echo "Dependencies check complete."
+
 
 ########################################################################################################################
 # Dependencies                                                                                                         #
@@ -51,7 +54,7 @@ check_dependencies:
 init: clone
 	cd $(REPOSITORY)-build && \
 	cmake -DJulia_EXECUTABLE=$(shell which julia) ../$(REPOSITORY)
-	$(MAKE) -C $(REPOSITORY)-build -j $(shell nproc)
+	$(MAKE) -C $(REPOSITORY)-build -j $(shell sysctl -n hw.ncpu)
 
 .PHONY: clone
 clone:
@@ -67,7 +70,7 @@ build:
 	cmake -S $(PROJECT_DIR) \
 		  -B $(PROJECT_DIR)/build \
 		  $(CMAKE_FLAGS)
-	$(MAKE) -C $(PROJECT_DIR)/build -j $(shell nproc)
+	$(MAKE) -C $(PROJECT_DIR)/build -j $(shell sysctl -n hw.ncpu)
 	@echo "Build finished. The binaries are in $(PROJECT_DIR)/build/lib"
 
 
