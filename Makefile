@@ -11,13 +11,48 @@ JLCXX_PATH := $(shell julia --project=@. -e 'using Pkg; Pkg.instantiate(); using
 # CMake flags
 CMAKE_FLAGS := -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_CXX_FLAGS="-O2" \
-               -DCMAKE_PREFIX_PATH=$(JLCXX_PATH)
+			   -DCMAKE_C_COMPILER=$(shell brew --prefix llvm)/bin/clang \
+			   -DCMAKE_CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++ \
+               -DCMAKE_PREFIX_PATH=$(JLCXX_PATH);
 
 # Extern repository name
 REPOSITORY := libcxxwrap-julia
 
 .PHONY: all
-all: build
+all: check_dependencies build
+
+# Check if LLVM and Emscripten are installed, if not, install using Homebrew
+.PHONY: check_dependencies
+check_dependencies:
+	@echo "Checking dependencies..."
+	@OS=$$(uname -s); \
+	if [ "$$OS" == "Darwin" ]; then \
+		LLVM_PATH=$$(brew --prefix llvm); \
+		if [ -z "$$LLVM_PATH" ]; then \
+			echo "Installing LLVM via Homebrew..."; \
+			brew install llvm; \
+			LLVM_PATH=$$(brew --prefix llvm); \
+		fi; \
+		export PATH="$$LLVM_PATH/bin:$$PATH"; \
+		export LDFLAGS="-L$$LLVM_PATH/lib $$LDFLAGS"; \
+		export CPPFLAGS="-I$$LLVM_PATH/include $$CPPFLAGS"; \
+		CMAKE_FLAGS="$$CMAKE_FLAGS -DCMAKE_C_COMPILER=$$LLVM_PATH/bin/clang -DCMAKE_CXX_COMPILER=$$LLVM_PATH/bin/clang++"; \
+		which emcc >/dev/null || (echo "Installing Emscripten via Homebrew..."; brew install emscripten); \
+		which julia >/dev/null || (echo "Installing Julia via Homebrew..."; brew install --cask julia); \
+		which assimp >/dev/null || (echo "Installing Assimp via Homebrew..."; brew install assimp); \
+		which yarn >/dev/null || (echo "Installing Yarn via Homebrew..."; brew install yarn); \
+		pkg-config --exists opencv4 || (echo "Installing OpenCV via Homebrew..."; brew install opencv); \
+	elif [ "$$OS" == "Linux" ]; then \
+		MAKEFILE_DEPS="llvm clang emscripten julia assimp yarn opencv"; \
+		for DEP in $$MAKEFILE_DEPS; do \
+			which $$DEP >/dev/null || (echo "Installing $$DEP via package manager..."; sudo apt-get install -y $$DEP); \
+		done; \
+	elif [ "$$OS" == "MINGW64_NT-10.0" ]; then \
+		@echo "Please ensure you have installed LLVM, Emscripten, Julia, Assimp, OpenCV and Yarn manually, and they are available in the PATH."; \
+	else \
+		@echo "Homebrew installation only works on macOS. Please install LLVM, Emscripten, Julia, Assimp, OpenCV and Yarn manually."; \
+	fi
+	@echo "Dependencies check complete."
 
 
 ########################################################################################################################
@@ -28,7 +63,7 @@ all: build
 init: clone
 	cd $(REPOSITORY)-build && \
 	cmake -DJulia_EXECUTABLE=$(shell which julia) ../$(REPOSITORY)
-	$(MAKE) -C $(REPOSITORY)-build -j $(shell nproc)
+	$(MAKE) -C $(REPOSITORY)-build -j $(shell sysctl -n hw.ncpu)
 
 .PHONY: clone
 clone:
@@ -44,7 +79,7 @@ build:
 	cmake -S $(PROJECT_DIR) \
 		  -B $(PROJECT_DIR)/build \
 		  $(CMAKE_FLAGS)
-	$(MAKE) -C $(PROJECT_DIR)/build -j $(shell nproc)
+	$(MAKE) -C $(PROJECT_DIR)/build -j $(shell sysctl -n hw.ncpu)
 	@echo "Build finished. The binaries are in $(PROJECT_DIR)/build/lib"
 
 

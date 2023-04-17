@@ -1,7 +1,7 @@
 num_part = 40
 v0 = 0.1
 v0_next = 0.1
-num_step = 300
+num_step = 50
 σ = 5/12
 r_adh = 1
 k = 10
@@ -17,3 +17,4 @@ plotstep = 0.1/dt # Number of calculation between plot
 b = v0_next/(2*σ*μ*k_next) # for calculating coupling constant
 J = b/τ # Coupling constant of orientation vectors
 scale=0.1*ρ # Scale the vector for making movies
+bases_id = 0  # Starting mesh node id

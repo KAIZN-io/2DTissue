@@ -6,11 +6,14 @@ using FileIO
 using Meshes
 using GeometryBasics
 using Statistics
+using StaticArrays
 using LinearAlgebra
 using Base.Threads
 using Logging
 using LinearAlgebra, SparseArrays
+using CSV
 using DataFrames
+using Tables
 
 GLMakie.activate!()
 GLMakie.set_window_config!(
