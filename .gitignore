@@ -50,3 +50,5 @@ libcxxwrap-julia-build
 
 # uv meshes
 *_uv*.off
+
+*.csv

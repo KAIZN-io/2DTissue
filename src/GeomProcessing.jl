@@ -93,9 +93,6 @@ function create_uv_mesh(
     halfedge_vertices_mapping = test_dict[0].h_v_data
     mesh_file = test_dict[0].mesh_uv_path
 
-    num_vertices_mapped = maximum(halfedge_vertices_mapping)+1
-    @info "mapped " num_vertices_mapped "vertices to 2D mesh"
-
     mesh_loaded_uv = FileIO.load(mesh_file)  # planar equiareal parametrization
 
     return mesh_loaded_uv, halfedge_vertices_mapping
@@ -134,7 +131,7 @@ function get_first_uv_halfedge_from_3D_vertice_id(
     halfedge_id = zeros(Int, length(_vertice_3D_id))
 
     for i in 1:length(_vertice_3D_id)
-        halfedge_id[i] = findfirst(_halfedge_vertices_mapping .== _vertice_3D_id[i])
+        halfedge_id[i] = findfirst(_halfedge_vertices_mapping .== _vertice_3D_id[i]) - 1  # ? warum -1?
     end
 
     return halfedge_id
@@ -147,7 +144,7 @@ end
 (halfedge_id -> r[]) mapping
 """
 function get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
-    halfedge_uv_coord = halfedges_uv_test[halfedge_id, :]
+    halfedge_uv_coord = halfedges_uv_test[(halfedge_id .+ 1), :]
 
     return halfedge_uv_coord
 end
@@ -255,87 +252,216 @@ end
 
 
 """
-    get_nearest_uv_halfedges(r, halfedges_uv, num_part)
+    get_nearest_uv_halfedges(r, halfedges_uv)
 
 (r[] -> halfedges) mapping
 """
-function get_nearest_uv_halfedges(r, halfedges_uv, num_part)
-    halfedge_vec = zeros(Int32, size(r)[1])
-
-    for i in 1:num_part
-        distances = vec(mapslices(norm, halfedges_uv .- r[i,:]', dims=2))
-        halfedge_vec[i] = argmin(distances)
+function get_nearest_uv_halfedges(r, halfedges_uv)
+    num_r = size(r, 1)
+    halfedges_id = Vector{Int}(undef, num_r)
+    for i in 1:num_r
+        distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
+        halfedges_id[i] = argmin(distances_to_h)
     end
 
-    return halfedge_vec
+    return halfedges_id
 end
 
 
 """
-    find_face_neighbors(Faces, Faces_coord)
+    fill_distance_matrix(distance_matrix::SparseMatrixCSC, closest_vertice::Int64)
 
-Loop for to search all neighbours for each faces within a radius 
-"radius_search" centered around the isobarycenter of the face. 
-The face are considered within the radius if at least one of the
-vertex is within. radius_search = displacement of particle + distance
-between isobarcenter and verteces of face considered
-Search for faces around the particle before displacement in wich the
-cell could migrate. Only face with at least one vertex within the
-zone defined by the particle at its center and of radius r_dot*dt are
-candidates for projection
+Heat Method developed by Keenan Crane (http://doi.acm.org/10.1145/3131280)
 
-Create index matrix of neighbour faces to each face
+(r_3D[] -> distance_matrix)
 
-Tested time (17 MAR 2023): 1.882993 seconds (326.76 k allocations: 8.210 GiB, 18.27% gc time)
+closest 3D vertice to particle x
+particle 1 -> vertice 1
+particle 2 -> vertice 3
+particle 3 -> vertice 5
+...
+
+fill the distance matrix in-time
+that means that we solve the Heat Method from vertice X to all other vertices if a particle is on vertice X
+if a particle already was on vertice X, we don't need to solve the Heat Method again, because we already have the distance matrix
+after some time we complete the holes in the distance matrix
+with this approach we also get an indication which node where never visited by a particle.
+
+we only need to check the sum of two rows, because for each row only 1 value is allowed to be zero
+
 """
-function find_face_neighbors(Faces, Faces_coord)
-    num_faces = size(Faces, 1)
-    face_neighbors = Matrix{Union{Int, Missing}}(missing, num_faces, num_faces)    # matrix of neighbourg faces
-    maximum_neighbour = 0  # maximumimum number of neighbourg faces
-
-    for i = 1:num_faces
-        center_faces = vec(sum(Faces_coord[i, :, :], dims=1)') / 3
-        extra_dist = norm(Faces_coord[i, 1, :] .- center_faces)
-
-        # Set the search radius for neighboring faces
-        radius_search = extra_dist  # +dist_motion  # TODO: warum ist in dieser Gleichung dist_motion nicht definiert?
-
-        # Calculate the vectors from the face centers to the center of the current face
-        Faces2center = Faces_coord .- reshape(center_faces, 1, 1, :)
-
-        Faces2center .^= 2  # Norm^2 vector all faces verteces to vertex 1 of this face
-        Faces2center = sum(Faces2center, dims=3)[:, :, 1]   # Sum the squared components to obtain squared distances
-
-        # Assign the value zero if vertex too far form center
-        Faces2center[Faces2center .> radius_search^2] .= 0
-
-        # Sum the squared distance of vertices for each faces
-        Faces2center_sum = sum(Faces2center, dims=2)[:, 1]
-
-        # Create coefficient matrix for neighbourg of center of considered face.
-        # Only faces with non zero distances are valid.
-        index_row = find_nonzero_index(Faces2center_sum)
-
-        # Store the neighboring face indices in the face_neighbors array
-        face_neighbors[i, 1:length(index_row)] = index_row'
-        face_neighbors[i, 1 + length(index_row)] = i
-
-        # Update the maximum number of neighbors if necessary
-        if length(index_row) + 1 > maximum_neighbour
-            maximum_neighbour = length(index_row) + 1
-        end
+function fill_distance_matrix(distance_matrix, closest_vertice::Int64)
+    if sum(distance_matrix[closest_vertice, 1:2]) == 0
+        vertices_3D_distance_map = HeatMethod.geo_distance(closest_vertice)  # get the distance of all vertices to all other vertices
+        distance_matrix[closest_vertice, :] = vertices_3D_distance_map  # fill the distance matrix
     end
-
-    return face_neighbors[:, 1:maximum_neighbour]
+    return distance_matrix
 end
 
 
-"""
-    P_perp(a, b)
 
-Define perpendicular projection functions, adapted from "PhysRevE 91 022306"
-P_perp does a normal projection of the vector b on the plane normal to a
-"""
-function P_perp(a, b)
-    return (b-(sum(b.*a,dims=2)./(sqrt.(sum(a.^2,dims=2)).^2)*ones(1,3)).*a)
-end
+
+
+
+# """
+#     find_face_neighbors(Faces, Faces_coord)
+
+# Loop for to search all neighbours for each faces within a radius 
+# "radius_search" centered around the isobarycenter of the face. 
+# The face are considered within the radius if at least one of the
+# vertex is within. radius_search = displacement of particle + distance
+# between isobarcenter and verteces of face considered
+# Search for faces around the particle before displacement in wich the
+# cell could migrate. Only face with at least one vertex within the
+# zone defined by the particle at its center and of radius r_dot*dt are
+# candidates for projection
+
+# Create index matrix of neighbour faces to each face
+
+# Tested time (17 MAR 2023): 1.882993 seconds (326.76 k allocations: 8.210 GiB, 18.27% gc time)
+# """
+# function find_face_neighbors(Faces, Faces_coord)
+#     num_faces = size(Faces, 1)
+#     face_neighbors = Matrix{Union{Int, Missing}}(missing, num_faces, num_faces)    # matrix of neighbourg faces
+#     maximum_neighbour = 0  # maximumimum number of neighbourg faces
+
+#     for i = 1:num_faces
+#         center_faces = vec(sum(Faces_coord[i, :, :], dims=1)') / 3
+#         extra_dist = norm(Faces_coord[i, 1, :] .- center_faces)
+
+#         # Set the search radius for neighboring faces
+#         radius_search = extra_dist  # +dist_motion  # TODO: warum ist in dieser Gleichung dist_motion nicht definiert?
+
+#         # Calculate the vectors from the face centers to the center of the current face
+#         Faces2center = Faces_coord .- reshape(center_faces, 1, 1, :)
+
+#         Faces2center .^= 2  # Norm^2 vector all faces verteces to vertex 1 of this face
+#         Faces2center = sum(Faces2center, dims=3)[:, :, 1]   # Sum the squared components to obtain squared distances
+
+#         # Assign the value zero if vertex too far form center
+#         Faces2center[Faces2center .> radius_search^2] .= 0
+
+#         # Sum the squared distance of vertices for each faces
+#         Faces2center_sum = sum(Faces2center, dims=2)[:, 1]
+
+#         # Create coefficient matrix for neighbourg of center of considered face.
+#         # Only faces with non zero distances are valid.
+#         index_row = find_nonzero_index(Faces2center_sum)
+
+#         # Store the neighboring face indices in the face_neighbors array
+#         face_neighbors[i, 1:length(index_row)] = index_row'
+#         face_neighbors[i, 1 + length(index_row)] = i
+
+#         # Update the maximum number of neighbors if necessary
+#         if length(index_row) + 1 > maximum_neighbour
+#             maximum_neighbour = length(index_row) + 1
+#         end
+#     end
+
+#     return face_neighbors[:, 1:maximum_neighbour]
+# end
+
+
+# """
+#     get_face_in_and_out(particle, face_coord_temp)
+
+# """
+# function get_face_in_and_out(particle, face_coord_temp)
+
+#     # Check what face in which the projection is
+#     p1p2 = reshape(face_coord_temp[:,2,:]-face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
+#     p1p3 = reshape(face_coord_temp[:,3,:]-face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
+#     p1p0 = particle - reshape(face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
+#     p1p3crossp1p2 = [p1p3[:,2].*p1p2[:,3]-p1p3[:,3].*p1p2[:,2],-p1p3[:,1].*p1p2[:,3]+p1p3[:,3].*p1p2[:,1],p1p3[:,1].*p1p2[:,2]-p1p3[:,2].*p1p2[:,1]] |> vec_of_vec_to_array |> Transpose
+#     p1p3crossp1p0 = [p1p3[:,2].*p1p0[:,3]-p1p3[:,3].*p1p0[:,2],-p1p3[:,1].*p1p0[:,3]+p1p3[:,3].*p1p0[:,1],p1p3[:,1].*p1p0[:,2]-p1p3[:,2].*p1p0[:,1]] |> vec_of_vec_to_array |> Transpose
+#     p1p2crossp1p0 = [p1p2[:,2].*p1p0[:,3]-p1p2[:,3].*p1p0[:,2],-p1p2[:,1].*p1p0[:,3]+p1p2[:,3].*p1p0[:,1],p1p2[:,1].*p1p0[:,2]-p1p2[:,2].*p1p0[:,1]] |> vec_of_vec_to_array |> Transpose
+#     p1p2crossp1p3 = [p1p2[:,2].*p1p3[:,3]-p1p2[:,3].*p1p3[:,2],-p1p2[:,1].*p1p3[:,3]+p1p2[:,3].*p1p3[:,1],p1p2[:,1].*p1p3[:,2]-p1p2[:,2].*p1p3[:,1]] |> vec_of_vec_to_array |> Transpose
+
+#     len_p1p3crossp1p2 = length(p1p3crossp1p2[:,1])
+
+#     # "index_face_out" are the row index(es) of face_coord_temp in which a
+#     # particle cannot be projected. 
+#     # "index_binary(index_face_in)" are the faces number(s) in which the 
+#     # particle cannot be projected
+#     index_face_out = (sum(p1p3crossp1p0.*p1p3crossp1p2,dims=2).<0) .|
+#         (sum(p1p2crossp1p0.*p1p2crossp1p3,dims=2).<0) .|
+#         ((sqrt.(sum(p1p3crossp1p0.^2,dims=2))+sqrt.(sum(p1p2crossp1p0.^2,dims=2)))./
+#         sqrt.(sum(p1p2crossp1p3.^2,dims=2)) .> 1) |> Array |> findall 
+#     index_face_out= first.(Tuple.(index_face_out))
+
+#     # % "index_face_in" are the row index(es) of face_coord_temp in which a
+#     # % particle can be projected. 
+#     # "index_binary(index_face_in)" are the faces number(s) in which the 
+#     # particle can be projected
+#     index_face_in = setdiff(reshape([1:len_p1p3crossp1p2;], :, 1), index_face_out)  # Note: links muss die vollständige Liste stehen!
+
+#     return index_face_in, index_face_out
+# end 
+
+
+# """
+#     get_index_binary(_Dist2faces::Array)
+
+# Faces with closest point to r(i,:) and associated normal vectors
+# Finds the neighbour faces of the particle i
+# """
+# function get_index_binary(_Dist2faces::Array)
+#     return first.(Tuple.(sum(findall(x->x==minimum(_Dist2faces), _Dist2faces), dims=2)))
+# end
+
+
+# """
+#     calculcate_norm_vector(_Faces_coord, _N, _r, _i)
+
+# """
+# function calculcate_norm_vector(_Faces_coord, _N, _r, _i)
+#     # Vector of particle to faces
+#     face_coord_temp = _Faces_coord - cat(ones(size(_Faces_coord[:,:,3]))*_r[_i,1],
+#         ones(size(_Faces_coord[:,:,3]))*_r[_i,2],
+#         ones(size(_Faces_coord[:,:,3]))*_r[_i,3],
+#         dims=3)
+
+#     # Distance of particle to faces
+#     Dist2faces = sqrt.(sum(face_coord_temp.^2,dims=3)[:,:,1])   # ! Check if it shouldnt be  sqrt.(sum(face_coord_temp.^2,dims=3))[:,:,1]
+
+#     # Faces with closest point to r[i,:] and associated normal vectors
+#     index_binary = get_index_binary(Dist2faces)
+#     face_coord_temp = _Faces_coord[index_binary,:,:]
+#     N_temp = _N[index_binary,:]
+
+#     A = zeros(size(face_coord_temp, 1), 3)
+#     A .= _r[_i,:]'
+#     index_face_in, index_face_out = get_face_in_and_out(A , face_coord_temp)
+
+#     return update_norm_vect!(N_temp, index_face_in, index_face_out, _i)
+# end
+
+
+# """
+#     update_norm_vect!(
+#     N_temp,
+#     index_face_in,
+#     index_face_out,
+#     i
+# )
+
+# """
+# function update_norm_vect!(
+#     N_temp,
+#     index_face_in,
+#     index_face_out,
+#     i
+# )
+#     # If the projections are in no face, take the average projection and
+#     # normal vectors. Save the faces number used
+#     if isempty(index_face_in) == 1
+#         return mean(N_temp[index_face_out,:],dims=1)
+
+#     # If the projections are in a face, save its number, normal vector and
+#     # projected point
+#     else
+#         index_face_in = index_face_in[1]  # because first particle can be
+#         # projected in different faces in this initial projection
+#         return N_temp[index_face_in,:]
+#     end
+# end

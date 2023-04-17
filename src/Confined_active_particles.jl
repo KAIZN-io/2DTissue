@@ -1,6 +1,3 @@
-# ? maybe use https://juliaimages.org/stable/function_reference/#ImageFiltering.padarray for perodic boundary conditions
-# TODO: 2 überlappende Koordinatensystem vlt verwenden
-
 """
 Bedingung: Partikel darf sich auf jeden Punkt des 3D und des 2D Meshes befinden.
 
@@ -24,12 +21,66 @@ Erfolg gegenüber 3D Simulation:
 # include("Packages.jl")
 # include("Basic.jl")
 # include("GeomProcessing.jl")
+# include("SoftCondMatter.jl")
 include("src/Packages.jl")
 include("src/Basic.jl")
 include("src/GeomProcessing.jl")
+include("src/SoftCondMatter.jl")
+
+struct ParticleSimSolution
+    r_new::Array{Float64,2}
+    r_dot::Array{Float64,2}
+    n::Array{Float64,2}
+    dist_length::Array{Float64, 2}
+    v_order::Array{Float64, 1}
+end
+
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_dict = Dict{Int64, Mesh_UV_Struct}()
+particle_sim_sol = Dict{Int64, ParticleSimSolution}()
+
+
+module ParticleSimulation
+    using CxxWrap
+
+    @wrapmodule(joinpath(pwd(), "build", "main"))
+
+    function __init__()
+        @initcxx
+    end
+end
+
+
+function get_cpp_data_helper(_r_new::Array{Float64, 2}, _r_dot::Array{Float64, 2}, _n::Array{Float64, 2}, _dist_length::Array{Float64, 2}, _mesh_id::Ref{Int32}, _v_order::Array{Float64, 1})
+    GC.enable(true)
+
+    # NOTE: we have memory issues for the C++ vector, so we create another Julia vector and empty the old vector
+    r_julia = Array{Float64, 2}
+    r_new = vcat(r_julia, _r_new)
+    _r_new = nothing
+
+    r_dot_julia = Array{Float64, 2}
+    r_dot = vcat(r_dot_julia, _r_dot)
+    _r_dot = nothing
+
+    n_julia = Array{Float64, 2}
+    n = vcat(n_julia, _n)
+    _n = nothing
+
+    dist_length_julia = Array{Float64, 2}
+    dist_length = vcat(dist_length_julia, _dist_length)
+    _dist_length = nothing
+
+    v_order_julia = Array{Float64, 1}
+    v_order = vcat(v_order_julia, _v_order)
+    _v_order = nothing
+
+    mesh_id = _mesh_id[]
+
+    GC.gc()
+    particle_sim_sol[mesh_id] = ParticleSimSolution(r_new[2:end, :], r_dot[2:end, :], n[2:end, :], dist_length[2:end, :], v_order[2:end])
+end
 
 
 ########################################################################################
@@ -70,7 +121,7 @@ function active_particles_simulation(
     v0 = 0.1, # velocity of particles
     v0_next = 0.1, # if velocity is to be changed after a certain number of timesteps
 
-    num_step = 300, # Number of timesteps
+    num_step = 50, # Number of timesteps
 
     σ = 5/12, # particle radius
 
@@ -94,7 +145,7 @@ function active_particles_simulation(
     b = v0_next/(2*σ*μ*k_next) # for calculating coupling constant
     J = b/τ # Coupling constant of orientation vectors
     scale=0.1*ρ # Scale the vector for making movies
-
+    bases_id = 0  # Starting mesh node id
 
     ########################################################################################
     # Step 0.: Initialize the Observables for the visualization
@@ -103,10 +154,7 @@ function active_particles_simulation(
     observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))  # position of particles
     observe_n = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized orientation of particles
     observe_nr_dot = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized velocity vector
-    observe_nr_dot_cross = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized binormal vector of the plane normal to the orientation vector
     observe_order = Makie.Observable(Vector{Float64}(undef, Int(num_step / plotstep)))
-
-    Norm_vect = ones(num_part, 3) # Initialisation of normal vector of each faces
 
 
     ########################################################################################
@@ -122,7 +170,8 @@ function active_particles_simulation(
 
     vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
     halfedges_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
-
+    # CSV.write("halfedge_vertices_mapping.csv",  Tables.table(halfedge_vertices_mapping), writeheader=false)
+    
     faces_3D = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
     faces_uv = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_uv) |> vec_of_vec_to_array  # return the faces of the mesh
 
@@ -130,17 +179,26 @@ function active_particles_simulation(
     N = zeros(size(faces_uv))  # create empty vector for the normal vectors
 
     # calculate normal vectors for each face
+    # 0.054420 seconds (204.05 k allocations: 9.343 MiB, 45.48% gc time, 38.46% compilation time)
     for i in 1:size(faces_uv)[1]
-        N[i, :] = calculate_vertex_normals(faces_uv, halfedges_uv, i)
+        N[i, :] = calculate_vertex_normals(faces_uv[i, :], halfedges_uv)
     end
 
-    # Sparse arrays are arrays that contain enough zeros that storing them in a special data structure leads to savings in space and execution time, compared to dense arrays.
-    distance_matrix = sparse(zeros(vertices_length, vertices_length))  # initialize the distance matrix
+    # testing that the normal vectors only have a z component
+    @test N[:, 1] == zeros(size(N)[1])
+    @test N[:, 2] == zeros(size(N)[1])
 
-    @info "running mesh analysis tests for the 2D <-> 3D mapping..."
+    # Load the distance matrix from the csv file if it exists
+    distance_matrix_path = "meshes/data/ellipsoid_x4_distance_matrix_static.csv"
+    if isfile(distance_matrix_path)
+        distance_matrix = CSV.read(distance_matrix_path, DataFrame; header=false) |> Matrix
+    else
+        ParticleSimulation.get_all_distance()
+        distance_matrix = CSV.read(distance_matrix_path, DataFrame; header=false) |> Matrix
+    end
+
     @test length(faces_3D) == length(N)
     @test vertices_length <= size(halfedges_uv)[1]
-    @info "mesh analysis tests passed. 2D <-> 3D mapping is valid."
 
 
     ########################################################################################
@@ -153,7 +211,6 @@ function active_particles_simulation(
     # mesh_dict[splay_state_vertices[4]] = Mesh_UV_Struct(splay_state_vertices[4], mesh_loaded_uv_test, halfedge_vertices_mapping_test)
 
 
-
     ########################################################################################
     # Step 2.: Link the 2D mesh to the 3D mesh
     # see https://docs.makie.org/v0.19/documentation/nodes/index.html#the_observable_structure
@@ -162,14 +219,7 @@ function active_particles_simulation(
     # '$' is used for the Observable reference
     observe_active_vertice_3D_id = @lift begin
         r = reduce(vcat, transpose.($observe_r))
-        vertice_3D_id = zeros(Int, num_part)
-
-        # @threads for i in 1:num_part
-        for i in 1:num_part
-            distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
-            halfedges_id = argmin(distances_to_h)
-            vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id, :][1] + 1  # +1 because the first vertice v0 has index 1 in a Julia array
-        end
+        vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
         vertice_3D_id
     end
 
@@ -177,104 +227,181 @@ function active_particles_simulation(
 
 
     ########################################################################################
-    # Step 3.: 3D Mesh Face Geometry für 2D nehmen (= Einführung einer "periodischen Grenze")
-    ########################################################################################
-
-    Faces_coord = cat(dim_data(vertices_3D, faces_3D, 1), dim_data(vertices_3D, faces_3D, 2), dim_data(vertices_3D, faces_3D, 3), dims=3)
-    face_neighbors = find_face_neighbors(faces_3D, Faces_coord)
-    num_face = fill(NaN, num_part, length(face_neighbors[1,:])^2)   # Initialisation of face on which is the particle
-
-
-    ########################################################################################
-    # Step 4.: Spread the particles on the UV mesh faces
+    # Step 3.: Spread the particles on the UV mesh faces
     ########################################################################################
 
     r = observe_r[] |> vec_of_vec_to_array  # transform the Observable vector to our used Matrix notation
     n = observe_n[] |> vec_of_vec_to_array
 
     # initialize the particle position and orientation
-    r, n, Norm_vect, num_face = init_particle_position(faces_uv, Faces_coord, halfedges_uv, num_part, r, n, Norm_vect, N, num_face)
+    r, n = init_particle_position(faces_uv, halfedges_uv, num_part, r, n)
 
     observe_r[] = array_to_vec_of_vec(r)
     observe_n[] = array_to_vec_of_vec(n)
-    vertices_3D_active = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
 
-    for i in 1:num_part
-    # @threads for i in 1:num_part
-        distance_matrix = fill_distance_matrix(distance_matrix, vertices_3D_active[i])
-    end
+    # # Test the mapping before running the simulation
+    # # 1. (halfedge_id -> 3D vertice) mapping
+    # vertice_3D_id_test = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
 
+    # # 2. (3D vertice -> halfedge_id) mapping
+    # halfedge_id_test = get_first_uv_halfedge_from_3D_vertice_id(vertice_3D_id_test, halfedge_vertices_mapping)
+
+    # # 3. (halfedge_id -> r[]) mapping
+    # r_test = halfedges_uv[halfedge_id_test, :]
+
+    # const tolerance = 0.05   # Toleranzwert
+    # if compare_arrays(r, r_test, tolerance) == false
+    #     @error "r[] and r_test[] are not equal. The mapping between the r coordinates and their corresponding halfedge is not correct."
+    # end
+
+    # @info "Mapping between the r coordinates and their corresponding halfedge is correct."
+    @info "Initialization of the particle position and orientation done."
 
     ########################################################################################
-    # Step 5.: Simulate and visualize
+    # Step 4.: Simulate and visualize
     ########################################################################################
 
     scene = GLMakie.Scene(resolution = (400,400), show_axis = false);
 
-    figure = GLMakie.Figure(resolution=(1400, 2100))
-    ax1 = Makie.Axis3(figure[1, 1]; aspect=(1, 1, 1), perspectiveness=0.5)
+    figure = GLMakie.Figure(resolution=(2100, 2400))
+    ax1 = Makie.Axis3(figure[1, :]; aspect=(1, 1, 1), perspectiveness=0.5)
     ax1.title = "3D-Plot"
 
-    ax2 = Makie.Axis(figure[2, 2]; aspect=(1))
-    ax3 = Makie.Axis(figure[2, 1]; aspect=(1))  # NOTE: remove the aspect ratio to dynamically size the plot
+    # ax2 = Makie.Axis(figure[1, 2]; aspect=(1))
+    # ax2.title = "Order Parameter"
+    # ax2.xlabel = "t"
+    # ax2.ylabel = "n"
+
+    ax3 = Makie.Axis(figure[2,:]; aspect=(2))  # NOTE: remove the aspect ratio to dynamically size the plot
     ax3.title = "UV-Plot"
     ax3.xlabel = "u"
     ax3.ylabel = "v"
 
     colsize!(figure.layout, 1, Relative(2 / 3))
 
-    mesh!(ax1, mesh_loaded)
-    wireframe!(ax1, mesh_loaded, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
-
-    mesh!(ax3, mesh_loaded_uv)
-    wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.2), linewidth=2, transparency=true)  # only for the asthetic
-
-    # Plot the particles
-    meshscatter!(ax1, observe_r_3D, color = :black, markersize = 0.08)  # overgive the Observable the plotting function to TRACK it
-    meshscatter!(ax3, observe_r, color = :black, markersize = 0.01)  # overgive the Observable the plotting function to TRACK it
-
-
-    # # NOTE: for a planar system it is more difficult to visualize the height of the vertices
-    # arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
-    # arrows!(ax3, observe_r, observe_nr_dot, arrowsize = 0.01, linecolor = (:red, 0.7), linewidth = 0.02, lengthscale = scale)
-    # arrows!(ax3, observe_r, observe_nr_dot_cross, arrowsize = 0.01, linecolor = (:blue, 0.7), linewidth = 0.02, lengthscale = scale)
+    mesh!(ax1, mesh_loaded, color = :black)
+    wireframe!(ax1, mesh_loaded, color=(:white, 0.1), linewidth=2, transparency=true)  # only for the asthetic
 
     # Colorbar(fig[1, 4], hm, label="values", height=Relative(0.5))
     # ylims!(ax2, 0, 1)
     # lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
 
-    # Project the orientation of the corresponding faces using normal vectors
-    n = P_perp(Norm_vect,n)
+    mesh!(ax3, mesh_loaded_uv, color = :black)
+    wireframe!(ax3, mesh_loaded_uv, color=(:white, 0.1), linewidth=4, transparency=true)  # only for the asthetic
+
+    # Plot the particles
+    meshscatter!(ax1, observe_r_3D, color = :red, markersize = 0.08)  # overgive the Observable the plotting function to TRACK it
+    meshscatter!(ax3, observe_r, color = :red, markersize = 0.008)  # overgive the Observable the plotting function to TRACK it
+
+    # # NOTE: for a planar system it is more difficult to visualize the height of the vertices
+    # arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
+    # arrows!(ax3, observe_r, observe_nr_dot, arrowsize = 0.01, linecolor = (:red, 0.7), linewidth = 0.02, lengthscale = scale)
+
     n = n ./ normalize_3D_matrix(n)
 
     # cam = cameracontrols(scene)
     # update_cam!(scene, cam, Vec3f0(3000, 200, 20_000), cam.lookat[])
     # update_cam!(scene, FRect3D(Vec3f0(0), Vec3f0(1)))
-    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate = 24) do tt
-        simulate_next_step(
-            tt,
-            observe_r,
-            observe_active_vertice_3D_id,
-            distance_matrix,
-            num_part,
-            observe_n,
-            observe_nr_dot,
-            observe_nr_dot_cross,
-            observe_order,
-            Norm_vect;
-            v0,
-            v0_next,
-            k,
-            k_next,
-            σ,
-            μ,
-            τ,
-            r_adh,
-            k_adh,
-            halfedges_uv,
-            halfedge_vertices_mapping
-        )
+
+    @info "Simulation started"
+
+    record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate=8) do tt
+        r = observe_r[] |> vec_of_vec_to_array
+        n = observe_n[] |> vec_of_vec_to_array
+        vertices_3D_active_id = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
+
+        # transform r to type Array{Float64, 2}
+        r = convert(Array{Float64}, r)
+        n = convert(Array{Float64}, n)
+        mesh_id = Ref{Int32}(bases_id)
+
+        # Simulate the flight route
+        # 0.744727 seconds (1.93 M allocations: 100.476 MiB, 23.27% gc time, 35.42% compilation time)
+        ParticleSimulation.particle_simulation(get_cpp_data_helper, r, n, vertices_3D_active_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+        r_new = particle_sim_sol[bases_id].r_new
+        n_new = particle_sim_sol[bases_id].n
+
+        # # Graphic output if plotstep is a multiple of tt
+        # if rem(tt,plotstep) == 0
+        observe_r[] = array_to_vec_of_vec(r_new)
+        observe_n[] = array_to_vec_of_vec(n_new)
     end
+    # r = CSV.read("r_data_1.csv", DataFrame; header=false) |> Matrix
+    # n = CSV.read("n_data_1.csv", DataFrame; header=false) |> Matrix
+    # vertices_3D_active_id = CSV.read("vertices_3D_active_id_data_1.csv", DataFrame; header=false) |> Matrix
+
+    # observe_r[] = array_to_vec_of_vec(r)
+    # observe_n[] = array_to_vec_of_vec(n)
+    # # transform vertices_3D_active_id into a vector 
+    # vertices_3D_active_id = vertices_3D_active_id[:, 1]
+    # record(figure, "assets/confined_active_particles.mp4", 1:num_step; framerate=8) do tt
+    #     r = observe_r[] |> vec_of_vec_to_array
+    #     n = observe_n[] |> vec_of_vec_to_array
+    #     vertices_3D_active_id = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
+
+    #     df = DataFrame(old_id=vertices_3D_active_id, next_id=observe_active_vertice_3D_id[], valid=zeros(Bool, size(r, 1)), uv_mesh_id=0)
+    #     halfedges_uv = GeometryBasics.coordinates(mesh_dict[0].mesh_uv_name) |> vec_of_vec_to_array
+
+    #     # transform r to type Array{Float64, 2}
+    #     r = convert(Array{Float64}, r)
+    #     n = convert(Array{Float64}, n)
+    #     mesh_id = Ref{Int32}(bases_id)
+
+    #     # Simulate the flight route
+    #     # 0.744727 seconds (1.93 M allocations: 100.476 MiB, 23.27% gc time, 35.42% compilation time)
+    #     ParticleSimulation.particle_simulation(get_cpp_data_helper, r, n, vertices_3D_active_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    #     r_new_temp = particle_sim_sol[bases_id].r_new
+
+    #     # Find out which particles are inside the mesh
+    #     inside_uv_ids = find_inside_uv_vertices_id(r_new_temp)
+    #     vertice_3D_id = get_vertice_id(r_new_temp, halfedges_uv, mesh_dict[bases_id].h_v_mapping)
+
+    #     # Only update if valid = false
+    #     # für alle Partikel, die vorher auf dem Mesh blieben, darf sich die 3D mesh Vertices ID nicht verändern
+    #     for i in inside_uv_ids
+    #         if df.valid[i] == false
+    #             df.next_id[i] = vertice_3D_id[i]
+    #             df.uv_mesh_id[i] = bases_id
+    #             df.valid[i] = true
+    #         end
+    #     end
+
+    #     if false in df.valid
+    #         # 1.231166 seconds (3.53 M allocations: 136.961 MiB, 29.04% gc time, 35.25% compilation time)
+    #         process_if_not_valid(df, num_part, distance_matrix, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    #     end
+
+    #     if all(df.valid) == false
+    #         @info df[df.valid .== false, :]
+    #         @info unique(df.uv_mesh_id)
+    #         @test_throws ErrorException "There are still particles outside the mesh"
+    #     end
+
+    #     # Get all the halfedges for the original UV mesh because the 3D vertices are conserved
+    #     # Only change the r_new_temp value, if df.uv_mesh_id != 0
+    #     outside_uv_ids = setdiff(1:num_part, inside_uv_ids)
+    #     vertices_id = df.next_id
+
+    #     for i in outside_uv_ids
+    #         halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(vertices_id[i], mesh_dict[bases_id].h_v_mapping)
+    #         # NOTE: halfedge_id kann auch 0 sein, da C++ bei 0 beginnt und es deshalb h0 gibt
+    #         r_new_temp[i, :] =  get_r_from_halfedge_id(halfedge_id, halfedges_uv)
+    #     end
+
+    #     r_new = r_new_temp
+
+    #     if length(find_inside_uv_vertices_id(r_new)) != num_part
+    #        @test_throws ErrorException "We lost particles after getting the original mesh halfedges coord"
+    #     end
+
+    #     # # Graphic output if plotstep is a multiple of tt
+    #     # if rem(tt,plotstep) == 0
+    #     observe_r[] = array_to_vec_of_vec(r_new)
+    #     observe_n[] = array_to_vec_of_vec(n)
+    #     # maximum(particle_sim_sol[bases_id].v_order)  # TODO: fix this
+    # end
+
+    @info "Simulation finished"
 
 end
 
@@ -284,121 +411,13 @@ end
 ########################################################################################
 
 
-# TODO: improve the performance of the function
 """
-    init_particle_position(
-    faces_uv::Array{Int,2},
-    Faces_coord,
-    halfedges_uv::Array{Float32,2},
-    num_part::Int,
-    r,
-    n,
-    Norm_vect,
-    num_face
-)
+    is_inside_uv(r)
 
-Julia supports parallel loops using the Threads.@threads macro. 
-This macro is affixed in front of a for loop to indicate to Julia that the loop is a multi-threaded region
-the order of assigning the values to the particles isn't important, so we can use parallel loops
-
-old tested time (17 MAR 2023): 22.900224 seconds (12.51 M allocations: 781.494 MiB, 0.28% gc time, 11.32% compilation time)
+Check if the given point r is inside the UV parametrization bounds.
 """
-function init_particle_position(
-    faces_uv::Array{Int,2},
-    Faces_coord,
-    halfedges_uv::Array{Float32,2},
-    num_part::Int,
-    r,
-    n,
-    Norm_vect,
-    N,
-    num_face
-)
-    faces_length = length(faces_uv[:,1])
-    faces_list = range(1, faces_length, step=1)
-
-    for i=1:num_part
-    # @threads for i=1:num_part
-
-        # Randomly position of particles on the mesh
-        random_face = rand(faces_list)
-        faces_list = filter(!=(random_face), faces_list)  # remove the random vertice from the vertice list so that it won't be chosen again
-
-        r_face_uv = faces_uv[random_face, :]  # get the random face
-
-        """ project the random particle into the center of the random face
-
-        We don't project the particle directly on a vertice, because we increased the number of vertices in the UV mesh, by transforming
-        the 3D mesh into a 3D seam mesh before cutting it along the now "virtual" border edges.
-        """
-        r[i,:] = get_face_gravity_center_coord(halfedges_uv, r_face_uv)
-
-        # random particle orientation
-        n[i,:] = [-1+2*rand(1)[1],-1+2*rand(1)[1],-1+2*rand(1)[1]]
-
-        # TODO: the following two lines are the bootle-neck
-        p0s, N_temp, index_binary, index_face_in, index_face_out = next_face_for_the_particle(Faces_coord, N, r, i)
-        # TODO ? warum ist num_face so eine breites array?
-        r[i,:], Norm_vect[i,:], num_face[i,1] = update_initial_particle!(p0s, N_temp, index_binary, index_face_in, index_face_out, i, r, Norm_vect, num_face)
-
-    end
-
-    r[:,3] .= 0  # set the third column to 0, because we are only interested in the 2D plot
-
-    return r, n, Norm_vect, num_face
-end
-
-
-"""
-    get_particle(_face_coord_temp::Array, i::Int)
-
-Getestete Funktion, 05 JAN 2023
-"""
-function get_particle(_face_coord_temp::Array, r, i::Int)
-    particle = cat(dims=2,ones(size(_face_coord_temp[:,1,3]))*r[i,1],
-        ones(size(_face_coord_temp[:,1,3]))*r[i,2],
-        ones(size(_face_coord_temp[:,1,3]))*r[i,3]
-        )
-    return particle
-end
-
-
-"""
-get_particle_position(_face_coord_temp::Array, N_temp, r, i::Int)
-
-Getestete Funktion, 05 JAN 2023
-"""
-function get_particle_position(_face_coord_temp::Array, N_temp, r, i::Int)
-    particle = get_particle(_face_coord_temp, r, i)
-    len_face_coord = length(_face_coord_temp[:,1,1])
-    reshape_it = reshape(_face_coord_temp[:,1,:],len_face_coord,3)
-    placeholder = sum((particle-reshape_it).*N_temp,dims=2)
-    p0s = particle - cat(placeholder, placeholder, placeholder, dims=2).*N_temp
-    return p0s
-end
-
-
-"""
-    next_face_for_the_particle(_Faces_coord, _N, _r, _i)
-
-"""
-function next_face_for_the_particle(_Faces_coord, _N, _r, _i)
-    # Vector of particle to faces
-    face_coord_temp = _Faces_coord - cat(ones(size(_Faces_coord[:,:,3]))*_r[_i,1],
-        ones(size(_Faces_coord[:,:,3]))*_r[_i,2],
-        ones(size(_Faces_coord[:,:,3]))*_r[_i,3],
-        dims=3)
-    # Distance of particle to faces
-    Dist2faces = sqrt.(sum(face_coord_temp.^2,dims=3)[:,:,1])   # ! Check if it shouldnt be  sqrt.(sum(face_coord_temp.^2,dims=3))[:,:,1]
-
-    # Faces with closest point to r[i,:] and associated normal vectors
-    index_binary = get_index_binary(Dist2faces)
-    face_coord_temp = _Faces_coord[index_binary,:,:]
-    N_temp = _N[index_binary,:] # OLD: |> vec_of_vec_to_array  # transform the vec of vec into array
-
-    p0s = get_particle_position(face_coord_temp, N_temp, _r, _i)
-    index_face_in, index_face_out = get_face_in_and_out(p0s, face_coord_temp) 
-    return p0s, N_temp, index_binary, index_face_in, index_face_out
+function is_inside_uv(r)
+    return (0 <= r[1] <= 1) && (0 <= r[2] <= 1)
 end
 
 
@@ -413,8 +432,8 @@ function find_inside_uv_vertices_id(r)
     inside_id = Int[]
 
     for i in 1:nrows
-        # Conditions for a Square UV parametrization
-        if 0 <= r[i, 1] <= 1 && 0 <= r[i, 2] <= 1
+        # Check if the point is inside the UV parametrization bounds
+        if is_inside_uv(r[i, :])
             push!(inside_id, i)
         end
     end
@@ -424,521 +443,140 @@ end
 
 
 """
-    get_face_in_and_out(particle, face_coord_temp)
+update_if_valid(r_new, df, vertice_id, start_id)
 
+Tested time (23 MAR 2023): 0.140408 seconds (385.12 k allocations: 21.163 MiB, 99.87% compilation time)
 """
-function get_face_in_and_out(particle, face_coord_temp)
+function update_if_valid!(df, r_new, vertice_3D_id, start_id)
+    # Find out which particles are inside the mesh
+    inside_uv_ids = find_inside_uv_vertices_id(r_new)
 
-    # Check what face in which the projection is
-    p1p2 = reshape(face_coord_temp[:,2,:]-face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
-    p1p3 = reshape(face_coord_temp[:,3,:]-face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
-    p1p0 = particle - reshape(face_coord_temp[:,1,:],length(face_coord_temp[:,1,1]),3);
-    p1p3crossp1p2 = [p1p3[:,2].*p1p2[:,3]-p1p3[:,3].*p1p2[:,2],-p1p3[:,1].*p1p2[:,3]+p1p3[:,3].*p1p2[:,1],p1p3[:,1].*p1p2[:,2]-p1p3[:,2].*p1p2[:,1]] |> vec_of_vec_to_array |> Transpose
-    p1p3crossp1p0 = [p1p3[:,2].*p1p0[:,3]-p1p3[:,3].*p1p0[:,2],-p1p3[:,1].*p1p0[:,3]+p1p3[:,3].*p1p0[:,1],p1p3[:,1].*p1p0[:,2]-p1p3[:,2].*p1p0[:,1]] |> vec_of_vec_to_array |> Transpose
-    p1p2crossp1p0 = [p1p2[:,2].*p1p0[:,3]-p1p2[:,3].*p1p0[:,2],-p1p2[:,1].*p1p0[:,3]+p1p2[:,3].*p1p0[:,1],p1p2[:,1].*p1p0[:,2]-p1p2[:,2].*p1p0[:,1]] |> vec_of_vec_to_array |> Transpose
-    p1p2crossp1p3 = [p1p2[:,2].*p1p3[:,3]-p1p2[:,3].*p1p3[:,2],-p1p2[:,1].*p1p3[:,3]+p1p2[:,3].*p1p3[:,1],p1p2[:,1].*p1p3[:,2]-p1p2[:,2].*p1p3[:,1]] |> vec_of_vec_to_array |> Transpose
-
-    len_p1p3crossp1p2 = length(p1p3crossp1p2[:,1])
-
-    # "index_face_out" are the row index(es) of face_coord_temp in which a
-    # particle cannot be projected. 
-    # "index_binary(index_face_in)" are the faces number(s) in which the 
-    # particle cannot be projected
-    index_face_out = (sum(p1p3crossp1p0.*p1p3crossp1p2,dims=2).<0) .|
-        (sum(p1p2crossp1p0.*p1p2crossp1p3,dims=2).<0) .|
-        ((sqrt.(sum(p1p3crossp1p0.^2,dims=2))+sqrt.(sum(p1p2crossp1p0.^2,dims=2)))./
-        sqrt.(sum(p1p2crossp1p3.^2,dims=2)) .> 1) |> Array |> findall 
-    index_face_out= first.(Tuple.(index_face_out))
-
-    # % "index_face_in" are the row index(es) of face_coord_temp in which a
-    # % particle can be projected. 
-    # "index_binary(index_face_in)" are the faces number(s) in which the 
-    # particle can be projected
-    index_face_in = setdiff(reshape([1:len_p1p3crossp1p2;], :, 1), index_face_out)  # Note: links muss die vollständige Liste stehen!
-
-    return index_face_in, index_face_out
-end 
-
-
-"""
-    get_index_binary(_Dist2faces::Array)
-
-Faces with closest point to r(i,:) and associated normal vectors
-Finds the neighbour faces of the particle i
-"""
-function get_index_binary(_Dist2faces::Array)
-    return first.(Tuple.(sum(findall(x->x==minimum(_Dist2faces), _Dist2faces), dims=2)))
-end
-
-
-"""
-    update_initial_particle!(
-    p0s,
-    N_temp,
-    index_binary,
-    index_face_in,
-    index_face_out,
-    i,
-    r,
-    Norm_vect,
-    num_face,
-)
-
-"""
-function update_initial_particle!(
-    p0s,
-    N_temp,
-    index_binary,
-    index_face_in,
-    index_face_out,
-    i,
-    r,
-    Norm_vect,
-    num_face,
-)
-    # If the projections are in no face, take the average projection and
-    # normal vectors. Save the faces number used
-    if isempty(index_face_in) == 1
-        r[i,:] = mean(p0s[index_face_out,:],dims=1)
-        Norm_vect[i,:] = mean(N_temp[index_face_out,:],dims=1)
-        num_face[i,1:length(index_face_out)] = index_binary[index_face_out]'
-
-    # If the projections are in a face, save its number, normal vector and
-    # projected point
-    else
-        index_face_in = index_face_in[1]  # because first particle can be
-        # projected in different faces in this initial projection
-        r[i,:] = p0s[index_face_in,:]
-        Norm_vect[i,:] = N_temp[index_face_in,:]
-        num_face[i,1] = index_binary[index_face_in]
-    end
-    return r[i,:], Norm_vect[i,:], num_face[i,1]
-end
-
-
-"""
-    fill_distance_matrix(distance_matrix::SparseMatrixCSC, closest_vertice::Int64)
-
-Heat Method developed by Keenan Crane (http://doi.acm.org/10.1145/3131280)
-
-(r_3D[] -> distance_matrix)
-
-closest 3D vertice to particle x
-particle 1 -> vertice 1
-particle 2 -> vertice 3
-particle 3 -> vertice 5
-...
-
-fill the distance matrix in-time
-that means that we solve the Heat Method from vertice X to all other vertices if a particle is on vertice X
-if a particle already was on vertice X, we don't need to solve the Heat Method again, because we already have the distance matrix
-after some time we complete the holes in the distance matrix
-with this approach we also get an indication which node where never visited by a particle.
-
-we only need to check the sum of two rows, because for each row only 1 value is allowed to be zero
-
-"""
-function fill_distance_matrix(distance_matrix::SparseMatrixCSC, closest_vertice::Int64)
-    if sum(distance_matrix[closest_vertice, 1:2]) == 0
-        vertices_3D_distance_map = HeatMethod.geo_distance(closest_vertice)  # get the distance of all vertices to all other vertices
-        distance_matrix[closest_vertice, :] = vertices_3D_distance_map  # fill the distance matrix
-    end
-    return distance_matrix
-end
-
-
-"""
-    calculate_forces_between_particles(
-        dist_vect,
-        dist_length,
-        k,
-        σ,
-        r_adh,
-        k_adh
-    )
-
-"""
-function calculate_forces_between_particles(
-        dist_vect,
-        dist_length,
-        k,
-        σ,
-        r_adh,
-        k_adh
-    )
-    Fij_rep = (-k * (2 * σ .- dist_length)) ./ (2 * σ)
-    Fij_adh = (k_adh * (2 *σ .- dist_length)) ./ (2 *σ -r_adh)
-
-    # No force if particles too far from each other or if particle itself
-    no_force_condition = (dist_length .>= 2 * σ) .| (dist_length .== 0)
-    Fij_rep[no_force_condition] .= 0
-
-    adhesion_force_condition = (dist_length .< 2 * σ) .| (dist_length .> r_adh) .| (dist_length .== 0)
-    Fij_adh[adhesion_force_condition] .= 0
-
-    # Fij is the force between particles
-    Fij = Fij_rep .+ Fij_adh
-    # Fij = cat(dims=3,Fij,Fij,Fij).*(dist_vect./(cat(dims=3,dist_length,dist_length,dist_length)))
-    Fij = Fij .* (dist_vect ./ repeat(dist_length, outer=(1, 1, 3)))
-
-    # Actual force felt by each particle
-    return reshape(sum(replace!(Fij, NaN => 0), dims=1), : ,size(Fij, 3))
-end
-
-
-"""
-    calculate_3D_cross_product(A, B)
-
-Column based cross product of two 3D matrices A and B
-"""
-function calculate_3D_cross_product(A, B)
-    num_rows = size(A, 1)
-    new_A = similar(A)  # Preallocate output matrix with the same size and type as A
-
-    # Compute cross product for each row and directly assign the result to the output matrix
-    for i in 1:num_rows
-        new_A[i, :] = cross(A[i, :], B[i, :])
-    end
-
-    return new_A
-end
-
-
-"""
-    normalize_3D_matrix(A)
-
-Denormalize a 3D matrix A by dividing each row by its norm
-"""
-function normalize_3D_matrix(A)
-    return sqrt.(sum(A .^ 2, dims=2)) * ones(1, 3)
-end
-
-
-"""
-    correct_n(r_dot, n, τ, dt)
-
-Visceck-type n correction adapted from "Phys. Rev. E 74, 061908"
-"""
-function correct_n(r_dot, n, τ, dt)
-    # cross product of n and r_dot
-    ncross = calculate_3D_cross_product(n, r_dot)  ./ normalize_3D_matrix(r_dot)
-
-    n_cross_correction = (1 / τ) * ncross * dt
-
-    new_n = n - calculate_3D_cross_product(n, n_cross_correction)
-
-    return new_n ./ normalize_3D_matrix(new_n)
-end
-
-
-"""
-    calculate_order_parameter!(v_order, r, r_dot, num_part, tt, plotstep)
-
-Tested time (16 MAR 2023): 0.041690 seconds (35.46 k allocations: 1.676 MiB, 99.86% compilation time)
-"""
-function calculate_order_parameter!(v_order, r, r_dot, num_part, tt, plotstep)
-    # Define a vector normal to position vector and velocity vector
-    v_tp = calculate_3D_cross_product(r, r_dot)
-
-    # Normalize v_tp
-    v_norm = v_tp ./ normalize_3D_matrix(v_tp)
-
-    # Sum v_tp vectors and devide by number of particle to obtain order
-    # parameter of collective motion for spheroids
-    v_order[Int(tt / plotstep)] = (1 / num_part) * norm(sum(v_norm, dims=1))
-
-    return v_order
-end
-
-
-"""
-    get_distances_between_particles(r, distance_matrix, vertice_3D_id, num_part)
-
-"""
-function get_distances_between_particles(r, distance_matrix, vertice_3D_id, num_part)
-    # % Vector between all particles (1->2; 1->3; 1->4;... 641->1; 641->2;
-    # % 641->3; 641->4;...641->640...)
-    dist_vect = cat(dims=3,
-        r[:,1]*ones(1,num_part)-ones(num_part,1)*r[:,1]',
-        r[:,2]*ones(1,num_part)-ones(num_part,1)*r[:,2]',
-        r[:,3]*ones(1,num_part)-ones(num_part,1)*r[:,3]'
-        )
-
-    # get the distances from the distance matrix
-    dist_length = zeros(num_part, num_part)
-
-    # ! BUG: it is interesting that using the heat method the distance from a -> b is not the same as b -> a
-    for i in 1:num_part
-        for j in 1:num_part
-            dist_length[i, j] = distance_matrix[vertice_3D_id[i], vertice_3D_id[j]]
+    for i in inside_uv_ids
+        if df.valid[i] == false
+            df.next_id[i] = vertice_3D_id[i]
+            df.uv_mesh_id[i] = start_id
+            df.valid[i] = true
         end
     end
-    dist_length[diagind(dist_length)] .= 0.0
-
-    return dist_vect, dist_length
 end
 
 
 """
-    calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
+    get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
 
-Calculate particle velocity r_dot and the next position r_new of each particle
+(2D coordinates -> 3D vertice id) mapping
 """
-function calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
+function get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+    num_r = size(r, 1)
+    vertice_3D_id = Vector{Int}(undef, num_r)
 
-    F_track = calculate_forces_between_particles(
-        dist_vect,
-        dist_length,
-        k,
-        σ,
-        r_adh,
-        k_adh
-    )  # calculate the force between particles
-
-    r_dot = P_perp(Norm_vect, v0 .* n + μ .* F_track)  # velocity of each particle
-    r_dot[:, 3] .= 0.0
-
-    r_new = r + r_dot * dt
-    r_new[:, 3] .= 0.0
-
-    return r_new, r_dot
-end
-
-
-"""
-    dye_particles(dist_length, num_part)
-
-Color the particles based on the number of neighbours
-"""
-function dye_particles(dist_length, num_part, σ)
-    # evaluate number of neighbours within 2.4 sigma cut off
-    num_partic = ones(size(dist_length))
-    num_partic[(dist_length .== 0) .| (dist_length .> 2.4*σ)] .= 0
-    number_neighbours=sum(num_partic, dims=2)  # list of nearest neighbour to each particle
-
-    N_color=[]
-
-    for i=1:num_part
-        append!(N_color, Int.(number_neighbours[i,:]))
-    end
-
-    return N_color
-end
-
-
-"""
-    calculate_particle_vectors!(r_dot, n, dt, τ, Norm_vect)
-
-Calculates the particles vectors n, nr_dot and nr_dot_cross
-"""
-function calculate_particle_vectors!(r_dot, n, dt, τ, Norm_vect)
-    # make a small correct for n according to Vicsek
-    n = correct_n(r_dot, n, τ, dt)
-
-    # Project the orientation of the corresponding faces using normal vectors
-    n = P_perp(Norm_vect, n)
-    n = n ./ normalize_3D_matrix(n)
-    nr_dot = r_dot ./ normalize_3D_matrix(r_dot)
-
-    cross_Nrdot = calculate_3D_cross_product(n, Norm_vect)
-    nr_dot_cross = cross_Nrdot ./ normalize_3D_matrix(cross_Nrdot)
-
-    return n, nr_dot, nr_dot_cross
-end
-
-
-"""
-    simulate_next_step(
-    tt,
-    observe_r,
-    observe_active_vertice_3D_id,
-    distance_matrix,
-    num_part,
-    observe_n,
-    observe_nr_dot,
-    observe_nr_dot_cross,
-    observe_order,
-    Norm_vect;
-    v0,
-    v0_next,
-    k,
-    k_next,
-    σ,
-    μ,
-    τ,
-    r_adh,
-    k_adh
-)
-
-calculate force, displacement and reorientation for all particles. In the second
-part, for each particle project them on closest face. In the third part,
-we sometimes plot the position and orientation of the cells
-
-wenn ein Partikel außerhalb des Meshes fliegen würde, berechne den Flug jenes Meshes auf einen der virtuellen Meshes solange,
-bis es auf dem Mesh landet und entnehme von dort dann die vertice_3D_id
-"""
-function simulate_next_step(
-    tt,
-    observe_r,
-    observe_active_vertice_3D_id,
-    distance_matrix,
-    num_part,
-    observe_n,
-    observe_nr_dot,
-    observe_nr_dot_cross,
-    observe_order,
-    Norm_vect;
-    v0,
-    v0_next,
-    k,
-    k_next,
-    σ,
-    μ,
-    τ,
-    r_adh,
-    k_adh,
-    halfedges_uv,
-    halfedge_vertices_mapping
-)
-    # Step size
-    dt = 0.01 * τ
-
-    # Number of calculation between plot
-    plotstep = 0.1 / dt
-
-    r = observe_r[] |> vec_of_vec_to_array
-    n = observe_n[] |> vec_of_vec_to_array
-    vertices_3D_active = observe_active_vertice_3D_id[] |> vec_of_vec_to_array
-
-    r_new, r_dot, dist_length, dist_vect, distance_matrix = flight_simulation(r, n, vertices_3D_active, num_part, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-
-    bool_inside_mesh = zeros(Bool, size(r, 1))
-
-    df = DataFrame(old_id=vertices_3D_active, next_id = observe_active_vertice_3D_id[], valid=bool_inside_mesh, uv_mesh_id=0)
-
-    vertice_id = get_vertice_id(r, num_part, halfedges_uv, Int.(halfedge_vertices_mapping))
-
-    df = check_validity(r_new, df, vertice_id, 0)
-
-    # If there are particles outside the mesh, we create a new mesh for each of them and simulate there the flight
-    if false in df.valid
-
-        # get the invalid ids and the the dataframe num_rows
-        invalid_ids_rows = df[df.valid .== false, :]
-
-        # particle = eachrow(invalid_ids_rows)[1]
-        for particle in eachrow(invalid_ids_rows)
-
-            if filter(row -> row.old_id == particle.old_id, df).valid[1] == false
-
-                old_id = particle.old_id
-                mesh_loaded_uv_test, halfedge_vertices_mapping_test = create_uv_mesh("Ellipsoid", old_id)
-                mesh_dict[old_id] = Mesh_UV_Struct(old_id, mesh_loaded_uv_test, halfedge_vertices_mapping_test)
-
-                halfedges_uv_test = GeometryBasics.coordinates(mesh_loaded_uv_test) |> vec_of_vec_to_array  # return the vertices of the mesh
-
-                # Get the halfedges based on the choosen h-v mapping
-                halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(df.old_id, mesh_dict[old_id].h_v_mapping)
-
-                # vertice_id = get_vertice_id(r, num_part, halfedges_uv_test, Int.(halfedge_vertices_mapping_test))
-
-                # Get the coordinates of the halfedges
-                r_active = get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
-
-                # Simulate the flight of the particle
-                r_new2, r_dot2, dist_length2, dist_vect2, distance_matrix = flight_simulation(r_active, n, df.old_id, num_part, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-
-                vertice_id = get_vertice_id(r_new2, num_part, halfedges_uv_test, Int.(halfedge_vertices_mapping_test))
-
-                df = check_validity(r_new2, df, vertice_id, old_id)
-            end
-        end
-    end
-
-    # Get all the halfeddges for the original UV mesh based on the df.next_id 3D vertice id
-    # You only have to do this, if there are particles outside the mesh
-    for i in unique(df.uv_mesh_id)
-        if i != 0
-            vertices_id = df[df.uv_mesh_id .== i, :next_id]
-            halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(vertices_id, mesh_dict[i].h_v_mapping)
-            halfedges_uv_test = GeometryBasics.coordinates(mesh_dict[i].mesh_uv_name) |> vec_of_vec_to_array  # return the vertices of the mesh
-
-            # Update all the r_new values if applicable
-            r_new[df.uv_mesh_id .== i, :] = get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
-        end
-    end
-
-    nr_dot = observe_nr_dot[] |> vec_of_vec_to_array
-    nr_dot_cross = observe_nr_dot_cross[] |> vec_of_vec_to_array
-    v_order = observe_order[] |> vec_of_vec_to_array
-
-    # Graphic output if plotstep is a multiple of tt
-    if rem(tt,plotstep)==0
-
-        particles_color = dye_particles(dist_length, num_part, σ)
-        n, nr_dot, nr_dot_cross = calculate_particle_vectors!(r_dot, n, dt, τ, Norm_vect)  # TODO: r_dot is not updated in the virtual meshes
-        v_order = calculate_order_parameter!(v_order, r_new, r_dot, num_part, tt, plotstep)
-
-        observe_order[] = v_order
-        observe_r[] = array_to_vec_of_vec(r_new)
-        observe_n[] = array_to_vec_of_vec(n)
-        observe_nr_dot[] = array_to_vec_of_vec(nr_dot)
-        observe_nr_dot_cross[] = array_to_vec_of_vec(nr_dot_cross)
-    end
-end
-
-
-function simulation_next_flight(r, n, vertices_3D_active, num_part, distance_matrix, Norm_vect, v0, k, σ, μ, r_adh, k_adh, dt)
-    # calculate the distance between particles
-    dist_vect, dist_length = get_distances_between_particles(r, distance_matrix, vertices_3D_active, num_part)
-
-    # calculate the next position and velocity of each particle based on the distances
-    r_new, r_dot = calculate_next_position!(dist_vect, dist_length, r, n, v0, k, σ, μ, r_adh, k_adh, dt, Norm_vect)
-
-    return r_new, r_dot, dist_length, dist_vect
-end
-
-
-function flight_simulation(r, n, vertices_3D_active, num_part, distance_matrix, Norm_vect, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
-    # if loop to change forces and velocity after some time because in
-    # first time steps, just repulsive force for homogeneisation of
-    # particle repartition
-    if tt > 500
-        v0 = v0_next
-        k = k_next
-    end
-
-    for i in 1:size(r,1)
-        distance_matrix = fill_distance_matrix(distance_matrix, vertices_3D_active[i])
-    end
-
-    r_new, r_dot, dist_length, dist_vect = simulation_next_flight(r, n, vertices_3D_active, num_part, distance_matrix, Norm_vect, v0, k, σ, μ, r_adh, k_adh, dt)
-    
-    return r_new, r_dot, dist_length, dist_vect, distance_matrix
-end
-
-
-function get_vertice_id(r, num_part, halfedges_uv_test, halfedge_vertices_mapping)
-
-    vertice_3D_id = zeros(Int, num_part)
-
-    # @threads for i in 1:num_part
-    for i in 1:num_part
-        distances_to_h = vec(mapslices(norm, halfedges_uv_test .- r[i, :]', dims=2))
+    # @threads for i in 1:num_r
+    for i in 1:num_r
+        distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
         halfedges_id = argmin(distances_to_h)
-        vertice_3D_id[i] = halfedge_vertices_mapping[halfedges_id, :][1]
+        vertice_3D_id[i] = halfedge_vertices_mapping[(halfedges_id .+ 1), :][1]  # +1 because the first vertice v0 has index 1 in a Julia array
     end
-
     return vertice_3D_id
 end
 
 
-function check_validity(r_new, df, vertice_id, start_id)
-    # find out which particles are inside the mesh
-    inside_uv_ids = find_inside_uv_vertices_id(r_new)
-    df.valid[inside_uv_ids] .= true
-    df.next_id[inside_uv_ids] .= vertice_id[inside_uv_ids]
-    df.uv_mesh_id[inside_uv_ids] .= start_id
+"""
 
+Tested time (23 MAR 2023): 0.218366 seconds (3.26 M allocations: 95.062 MiB, 57.10% compilation time)
+"""
+function update_dataframe!(df, r_new, start_id, halfedges_uv, halfedge_vertices_mapping)
+    vertice_id = get_vertice_id(r_new, halfedges_uv, Int.(halfedge_vertices_mapping))
+    update_if_valid!(df, r_new, vertice_id, start_id)
+    return 0
+end
+
+
+"""
+
+Tested time (23 MAR 2023): 0.388274 seconds (2.81 M allocations: 73.512 MiB, 48.81% gc time)
+"""
+function process_invalid_particle!(df, particle, num_part, distance_matrix, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    old_id = particle.old_id
+
+    if haskey(mesh_dict, old_id)
+        # Load the mesh
+        mesh_loaded_uv_test = mesh_dict[old_id].mesh_uv_name
+        halfedge_vertices_mapping_test = mesh_dict[old_id].h_v_mapping
+    else
+        # Create the mesh
+        mesh_loaded_uv_test, halfedge_vertices_mapping_test = create_uv_mesh("Ellipsoid", old_id)
+        mesh_dict[old_id] = Mesh_UV_Struct(old_id, mesh_loaded_uv_test, halfedge_vertices_mapping_test)
+    end
+
+    halfedges_uv_test = GeometryBasics.coordinates(mesh_loaded_uv_test) |> vec_of_vec_to_array  # return the vertices of the mesh
+
+    # Get the halfedges based on the choosen h-v mapping
+    halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(df.old_id, mesh_dict[old_id].h_v_mapping)
+
+    # Get the coordinates of the halfedges
+    r_active = get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
+
+    # Simulate the flight of the particle
+    r_active = convert(Array{Float64}, r_active)
+    n = convert(Array{Float64}, n)
+    mesh_id = Ref{Int32}(old_id)
+    ParticleSimulation.particle_simulation(get_cpp_data_helper, r_active, n, df.old_id, distance_matrix, mesh_id, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    r_new_virtual = particle_sim_sol[old_id].r_new
+
+    vertice_id = get_vertice_id(r_new_virtual, halfedges_uv_test, Int.(halfedge_vertices_mapping_test)) .- 1   # NOTE: keine Ahnung warum, aber der Unterschied scheint immer 1 zu sein zu den Base Mesh
+    update_if_valid!(df, r_new_virtual, vertice_id, old_id)
+
+    return 0
+end
+
+
+"""
+
+If there are particles outside the mesh, we create a new mesh for each of them and simulate there the flight
+Tested time (23 MAR 2023): 0.562082 seconds (1.88 M allocations: 107.416 MiB, 99.86% compilation time)
+"""
+function process_if_not_valid(df, num_part, distance_matrix, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+    # get the invalid ids and the the dataframe num_rows
+    invalid_ids_rows = df[df.valid .== false, :]
+
+    # particle = invalid_ids_rows[1,:]
+    for particle in eachrow(invalid_ids_rows)
+        process_invalid_particle!(df, particle, num_part, distance_matrix, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt)
+
+        test_invalid_ids_rows = df[df.valid .== false, :]
+        if size(test_invalid_ids_rows, 1) == 0
+            break
+        end
+    end
     return df
+end
+
+
+"""
+    get_original_mesh_halfedges_coord(df, i)
+
+Tested time (23 MAR 2023): 0.029823 seconds (33.03 k allocations: 2.702 MiB, 98.14% compilation time)
+"""
+function get_original_mesh_halfedges_coord(df, i, r_new)
+    vertices_id = df[df.uv_mesh_id .== i, :next_id]
+    @test i in keys(mesh_dict)
+    halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(vertices_id, mesh_dict[i].h_v_mapping)
+    halfedges_uv_test = GeometryBasics.coordinates(mesh_dict[i].mesh_uv_name) |> vec_of_vec_to_array  # return the vertices of the mesh
+
+    # Update all the r_new values if applicable
+    r_new[df.uv_mesh_id .== i, :] = get_r_from_halfedge_id(halfedge_id, halfedges_uv_test)
+    return r_new
+end
+
+
+# Funktion, die prüft, ob alle Elemente von array1 und array2 innerhalb der Toleranz liegen
+function compare_arrays(array1, array2, tolerance)
+    for i in 1:size(array1, 1)
+        for j in 1:size(array1, 2)
+            if !isapprox(array1[i, j], array2[i, j]; atol=tolerance)
+                return false
+            end
+        end
+    end
+    return true
 end
