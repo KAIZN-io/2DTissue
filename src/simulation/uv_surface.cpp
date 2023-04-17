@@ -47,6 +47,12 @@
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
+// OpenCV
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include <uv_surface.h>
 
 
@@ -186,20 +192,6 @@ int find_latest_mesh_creation_number(
         }
     }
     return highest_number;
-}
-
-
-/*
-save the STL file as an OFF file
-*/
-int save_stl_as_off(
-    const SurfaceMesh& sm
-){
-    std::ofstream out_OFF(MESH_FOLDER / "ellipsoid_x4.off");
-    CGAL::IO::write_OFF(out_OFF, sm);
-    out_OFF.close();
-
-    return 0;
 }
 
 
@@ -385,16 +377,14 @@ SMP::Error_code perform_parameterization(
     using Border_parameterizer = SMP::Square_border_uniform_parameterizer_3<Mesh>;
     Border_parameterizer border_parameterizer;
 
-    // Iterative Authalic Parameterization:
+    // Minimize Area Distortion: Iterative Authalic Parameterization
     // from https://doi.org/10.1109/ICCVW.2019.00508
-    // This parameterization is a fixed border parameterization and is part of the authalic parameterization family,
-    // meaning that it aims to Minimize Area Distortion between the input surface mesh and the parameterized output.
     // using Parameterizer = SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer>;
 
     // Parameterizer parameterizer(border_parameterizer);
     // return parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
 
-    // Minimize Angle Distortion
+    // Minimize Angle Distortion: Discrete Conformal Map Parameterization
     // from https://doi.org/10.1145/218380.218440
     using Parameterizer = SMP::Discrete_conformal_map_parameterizer_3<Mesh, Border_parameterizer>;
 

@@ -37,7 +37,7 @@ find_package(Boost 1.80.0 REQUIRED)
 find_package(Eigen3 3.4.0 REQUIRED)
 find_package(JlCxx REQUIRED)
 find_package(OpenMP)
-
+find_package(OpenCV REQUIRED)
 
 # Check if Boost is found
 if(NOT Boost_FOUND)
@@ -66,6 +66,8 @@ include(CGAL_Eigen3_support)
 include_directories(${ASSIMP_INCLUDE_DIRS})
 link_directories(${ASSIMP_LIBRARY_DIRS})
 
+include_directories(${OpenCV_INCLUDE_DIRS})
+
 
 # ##########################################################
 # Creating entries for all C++ files with "main" routine
@@ -74,52 +76,52 @@ link_directories(${ASSIMP_LIBRARY_DIRS})
 # ##########################################################
 
 # Add C++ source files
-create_single_source_cgal_program("src/GeomProcessing/geodesic_distance.cpp")
-create_single_source_cgal_program("src/GeomProcessing/create_uv_surface.cpp")
-create_single_source_cgal_program("src/GeomProcessing/basic.cpp")
-create_single_source_cgal_program("src/GeomProcessing/particle_simulation.cpp")
+create_single_source_cgal_program("src/simulation/geodesic_distance.cpp")
+create_single_source_cgal_program("src/simulation/create_uv_surface.cpp")
+create_single_source_cgal_program("src/simulation/basic.cpp")
+create_single_source_cgal_program("src/simulation/main.cpp")
 
 
 add_library(particle_forces_lib STATIC
-    src/GeomProcessing/particle_forces.cpp
+    src/simulation/particle_forces.cpp
 )
 target_include_directories(particle_forces_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(particle_forces_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 add_library(matrix_algebra_lib STATIC
-    src/GeomProcessing/matrix_algebra.cpp
+    src/simulation/matrix_algebra.cpp
 )
 target_include_directories(matrix_algebra_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(matrix_algebra_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 add_library(uv_surface_lib STATIC
-    src/GeomProcessing/dye_particle.cpp
-    src/GeomProcessing/flight_of_the_particle.cpp
-    src/GeomProcessing/geo_distance.cpp
-    src/GeomProcessing/mesh_analysis.cpp
-    src/GeomProcessing/mesh_loader.cpp
-    src/GeomProcessing/particle_vector.cpp
-    src/GeomProcessing/julia_handler.cpp
-    src/GeomProcessing/uv_surface.cpp
-    src/GeomProcessing/analytics.cpp
-    src/GeomProcessing/csv_loader.cpp
-    src/GeomProcessing/uv_operations.cpp
-    src/GeomProcessing/validity_check.cpp
-    src/GeomProcessing/process_invalid_particle.cpp
-    src/GeomProcessing/sim_structs.cpp
+    src/simulation/dye_particle.cpp
+    src/simulation/flight_of_the_particle.cpp
+    src/simulation/geo_distance.cpp
+    src/simulation/mesh_analysis.cpp
+    src/simulation/mesh_loader.cpp
+    src/simulation/particle_vector.cpp
+    src/simulation/julia_handler.cpp
+    src/simulation/uv_surface.cpp
+    src/simulation/analytics.cpp
+    src/simulation/csv_loader.cpp
+    src/simulation/uv_operations.cpp
+    src/simulation/validity_check.cpp
+    src/simulation/process_invalid_particle.cpp
+    src/simulation/sim_structs.cpp
 )
 target_include_directories(uv_surface_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
+target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl ${OpenCV_LIBS})
 
 
 # Link required libraries to the targets
 target_link_libraries(geodesic_distance PRIVATE uv_surface_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(create_uv_surface PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(basic PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
-target_link_libraries(particle_simulation PRIVATE uv_surface_lib particle_forces_lib matrix_algebra_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
+target_link_libraries(main PRIVATE uv_surface_lib particle_forces_lib matrix_algebra_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
 
 # Install the target
-install(TARGETS geodesic_distance create_uv_surface basic particle_simulation
+install(TARGETS geodesic_distance create_uv_surface basic main
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

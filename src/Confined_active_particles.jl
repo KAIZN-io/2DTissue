@@ -44,7 +44,7 @@ particle_sim_sol = Dict{Int64, ParticleSimSolution}()
 module ParticleSimulation
     using CxxWrap
 
-    @wrapmodule(joinpath(pwd(), "build", "particle_simulation"))
+    @wrapmodule(joinpath(pwd(), "build", "main"))
 
     function __init__()
         @initcxx
@@ -170,7 +170,8 @@ function active_particles_simulation(
 
     vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
     halfedges_uv = GeometryBasics.coordinates(mesh_loaded_uv) |> vec_of_vec_to_array  # return the vertices of the mesh
-
+    # CSV.write("halfedge_vertices_mapping.csv",  Tables.table(halfedge_vertices_mapping), writeheader=false)
+    
     faces_3D = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded) |> vec_of_vec_to_array  # return the faces of the mesh
     faces_uv = GeometryBasics.decompose(TriangleFace{Int}, mesh_loaded_uv) |> vec_of_vec_to_array  # return the faces of the mesh
 
@@ -278,19 +279,19 @@ function active_particles_simulation(
 
     colsize!(figure.layout, 1, Relative(2 / 3))
 
-    mesh!(ax1, mesh_loaded)
-    wireframe!(ax1, mesh_loaded, color=(:black, 0.1), linewidth=2, transparency=true)  # only for the asthetic
+    mesh!(ax1, mesh_loaded, color = :black)
+    wireframe!(ax1, mesh_loaded, color=(:white, 0.1), linewidth=2, transparency=true)  # only for the asthetic
 
     # Colorbar(fig[1, 4], hm, label="values", height=Relative(0.5))
     # ylims!(ax2, 0, 1)
     # lines!(ax2, plotstep:plotstep:num_step, observe_order, color = :red, linewidth = 2, label = "Order parameter")
 
-    mesh!(ax3, mesh_loaded_uv)
-    wireframe!(ax3, mesh_loaded_uv, color=(:black, 0.1), linewidth=2, transparency=true)  # only for the asthetic
+    mesh!(ax3, mesh_loaded_uv, color = :black)
+    wireframe!(ax3, mesh_loaded_uv, color=(:white, 0.1), linewidth=4, transparency=true)  # only for the asthetic
 
     # Plot the particles
-    meshscatter!(ax1, observe_r_3D, color = :black, markersize = 0.08)  # overgive the Observable the plotting function to TRACK it
-    meshscatter!(ax3, observe_r, color = :black, markersize = 0.008)  # overgive the Observable the plotting function to TRACK it
+    meshscatter!(ax1, observe_r_3D, color = :red, markersize = 0.08)  # overgive the Observable the plotting function to TRACK it
+    meshscatter!(ax3, observe_r, color = :red, markersize = 0.008)  # overgive the Observable the plotting function to TRACK it
 
     # # NOTE: for a planar system it is more difficult to visualize the height of the vertices
     # arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
