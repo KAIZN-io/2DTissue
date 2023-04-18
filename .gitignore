@@ -52,3 +52,6 @@ libcxxwrap-julia-build
 *_uv*.off
 
 *.csv
+
+!n_data_860.csv
+!r_data_860.csv

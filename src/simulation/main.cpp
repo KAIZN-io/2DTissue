@@ -23,6 +23,8 @@
 #include <atomic>
 #include <cmath>
 #include <cstddef>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <omp.h>
@@ -54,6 +56,28 @@ using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
 // Jlcxx type aliases
 using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
 using JuliaArray2D = jlcxx::ArrayRef<double, 2>;
+
+
+void save_matrix_to_csv(const Eigen::MatrixXd& matrix, const std::string& file_name) {
+    std::ofstream file(file_name);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << file_name << std::endl;
+        return;
+    }
+
+    for (int i = 0; i < matrix.rows(); ++i) {
+        for (int j = 0; j < matrix.cols(); ++j) {
+            file << std::setprecision(15) << matrix(i, j);
+            if (j < matrix.cols() - 1) {
+                file << ",";
+            }
+        }
+        file << "\n";
+    }
+
+    file.close();
+}
 
 
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
@@ -229,10 +253,9 @@ int main()
 
     // // Set the third column to 0
     // r.col(2).setZero();
-    
-    Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data_1.csv");
-    r.row(3) = r.row(2);
-    Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data_1.csv");
+
+    Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data_860.csv");
+    Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data_860.csv");
     Eigen::MatrixXd halfedge_uv = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/halfedges_uv.csv");
 
     Eigen::MatrixXd halfedge_vertices_mapping = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/halfedge_vertices_mapping.csv");
@@ -242,8 +265,6 @@ int main()
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
-
-    // get_all_distances();
 
     std::clock_t start = std::clock();
 
@@ -258,6 +279,9 @@ int main()
         auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
         std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
         vertices_3D_active = new_vertices_3D_active;
+
+        std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
+        save_matrix_to_csv(r, file_name);
     }
 
     std::clock_t end = std::clock();
