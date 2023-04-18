@@ -3,6 +3,8 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
+// ? BUG: warum wird das Grund Mesh überschrieben?
+
 // CGAL
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
@@ -95,7 +97,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     double k_adh,
     double dt,
     double tt,
-    int num_part = 40,
+    int num_part,
     double plotstep = 0.1
 ){
     // Simulate the flight of the particle
@@ -145,9 +147,9 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
         r_new.row(i) = r_new_temp_single_row.row(0);
     }
 
-    // if (find_inside_uv_vertices_id(r_new).size() != num_part) {
-    //     throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
-    // }
+    if (find_inside_uv_vertices_id(r_new).size() != num_part) {
+        throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
+    }
 
     // Dye the particles based on distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
@@ -207,7 +209,7 @@ void particle_simulation(
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     // Simulate the particles
-    auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, plotstep);
+    auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_rows, plotstep);
 
     // transform the data into a Julia array
     auto r_julia = jlcxx::ArrayRef<double, 2>(r_new.data(), r_new.rows(), r_new.cols());
@@ -240,20 +242,6 @@ int main()
     auto dt = 0.01;
     auto tt = 10;
 
-    // // Seed the random number generator to get different random values each run
-    // std::srand(static_cast<unsigned int>(std::time(0)));
-
-    // int rows = 40;
-    // int cols = 3;
-
-    // Eigen::MatrixXd r(rows, cols);
-
-    // // Set the first two columns with random values between 0 and 1
-    // r.block(0, 0, rows, 2) = Eigen::MatrixXd::Random(rows, 2).array().abs();
-
-    // // Set the third column to 0
-    // r.col(2).setZero();
-
     Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data_860.csv");
     Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data_860.csv");
     Eigen::MatrixXd halfedge_uv = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/halfedges_uv.csv");
@@ -267,12 +255,11 @@ int main()
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
     std::clock_t start = std::clock();
-
+    int num_part = r.rows();
     int num_frames = 1;
 
     for (int tt = 1; tt <= num_frames; ++tt) {
-        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
-
+        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part);
         r = r_new;
         n = ntest;
 
