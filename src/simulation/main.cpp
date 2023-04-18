@@ -3,8 +3,6 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-// ? BUG: warum wird das Grund Mesh überschrieben?
-
 // CGAL
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
@@ -82,11 +80,11 @@ void save_matrix_to_csv(const Eigen::MatrixXd& matrix, const std::string& file_n
 }
 
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::MatrixXd> perform_particle_simulation(
-    Eigen::MatrixXd& r,
-    Eigen::MatrixXd& n,
-    std::vector<int>& vertices_3D_active,
+std::vector<int64_t> get_next_vertice_id(
+    std::vector<VertexData>& vertex_data,
+    int num_part,
     Eigen::MatrixXd distance_matrix_v,
+    Eigen::MatrixXd n,
     double v0,
     double k,
     double k_next,
@@ -96,7 +94,47 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     double r_adh,
     double k_adh,
     double dt,
-    double tt,
+    double tt
+){
+    if (!are_all_valid(vertex_data)) {
+        process_if_not_valid(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+    }
+
+    if (!are_all_valid(vertex_data)) {
+        std::cout << "Invalid vertices:\n";
+        for (const VertexData& vd : vertex_data) {
+            if (!vd.valid) {
+                std::cout << "Old ID: " << vd.old_id << ", Next ID: " << vd.next_id << ", Valid: " << vd.valid << ", UV Mesh ID: " << vd.uv_mesh_id << '\n';
+            }
+        }
+        throw std::runtime_error("There are still particles outside the mesh");
+    }
+
+    std::vector<int64_t> vertices_next_id(vertex_data.size());
+    for (size_t i = 0; i < vertex_data.size(); ++i) {
+        vertices_next_id[i] = vertex_data[i].next_id;
+    }
+
+    return vertices_next_id;
+}
+
+
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd> perform_particle_simulation(
+    Eigen::MatrixXd& r,
+    Eigen::MatrixXd& n,
+    std::vector<int>& vertices_3D_active,
+    Eigen::MatrixXd distance_matrix_v,
+    Eigen::VectorXd& v_order,
+    double v0,
+    double k,
+    double k_next,
+    double v0_next,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh,
+    double dt,
+    int tt,
     int num_part,
     double plotstep = 0.1
 ){
@@ -118,26 +156,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 
     std::vector<VertexData> vertex_data = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids);
 
-    bool all_valid = are_all_valid(vertex_data);
-
-    if (!all_valid) {
-        process_if_not_valid(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
-    }
-
-    if (!are_all_valid(vertex_data)){
-        std::cout << "Invalid vertices:\n";
-        for (const VertexData& vd : vertex_data) {
-            if (!vd.valid) {
-                std::cout << "Old ID: " << vd.old_id << ", Next ID: " << vd.next_id << ", Valid: " << vd.valid << ", UV Mesh ID: " << vd.uv_mesh_id << '\n';
-            }
-        }
-        throw std::runtime_error("There are still particles outside the mesh");
-    }
-
-    std::vector<int64_t> vertices_next_id(vertex_data.size());
-    for (size_t i = 0; i < vertex_data.size(); ++i) {
-        vertices_next_id[i] = vertex_data[i].next_id;
-    }
+    auto vertices_next_id = get_next_vertice_id(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
 
     for (int i : outside_uv_ids) {
         std::vector<int64_t> single_vertex_next_id = {vertices_next_id[i]};
@@ -157,23 +176,16 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Calculate the particle vectors
     auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n, dt);
 
-    // Define the output vector v_order
-    Eigen::VectorXd v_order((int)(tt / plotstep) + 1);
-    calculate_order_parameter(v_order, r, r_dot, tt, plotstep);
+    // Calculate the output vector v_order
+    calculate_order_parameter(v_order, r, r_dot, tt);
 
     if (checkForInvalidValues(r_new)) {
         std::cout << "Invalid values found in r: " << std::endl;
         std::cout << r_new << std::endl;
         std::exit(1);  // stop script execution
     }
-    if (checkForInvalidValues(ntest)) {
-        std::cout << "Invalid values found in n: " << std::endl;
-        std::cout << ntest << std::endl;
-        std::exit(1);  // stop script execution
-    }
 
-
-    return std::make_tuple(r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order);
+    return std::make_tuple(r_new, r_dot, dist_length, ntest, nr_dot, particles_color);
 }
 
 
@@ -193,7 +205,7 @@ void particle_simulation(
     double r_adh,
     double k_adh,
     double dt,
-    double tt
+    int tt
 ){
     double plotstep = 0.1;
 
@@ -204,12 +216,13 @@ void particle_simulation(
     Eigen::MatrixXd n = reshape_vertices_array(n_v, num_rows, 3);
     Eigen::MatrixXd distance_matrix = reshape_vertices_array(distance_matrix_v, num_rows_dist, num_rows_dist);
     Eigen::VectorXd vertices_3D_active_eigen = jlcxxArrayRefToEigenVectorXd(vertices_3D_active_id);
+    Eigen::VectorXd v_order(1);
 
     // convert the active vertices to a vector -> only neccessary as long as the other functions of this script depend von std::vector
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     // Simulate the particles
-    auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_rows, plotstep);
+    auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_rows, plotstep);
 
     // transform the data into a Julia array
     auto r_julia = jlcxx::ArrayRef<double, 2>(r_new.data(), r_new.rows(), r_new.cols());
@@ -254,12 +267,14 @@ int main()
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
+
     std::clock_t start = std::clock();
     int num_part = r.rows();
-    int num_frames = 1;
+    int num_frames = 3;
+    Eigen::VectorXd v_order(num_frames);
 
     for (int tt = 1; tt <= num_frames; ++tt) {
-        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color, v_order] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part);
+        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part);
         r = r_new;
         n = ntest;
 
@@ -270,6 +285,7 @@ int main()
         std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
         save_matrix_to_csv(r, file_name);
     }
+    std::cout << "Order parameter: " << v_order << std::endl;
 
     std::clock_t end = std::clock();
     double duration = (end - start) / (double) CLOCKS_PER_SEC;

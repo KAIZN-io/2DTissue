@@ -435,12 +435,8 @@ std::pair<std::vector<int64_t>, std::string> create_uv_surface_intern(
     auto filename = get_mesh_obj(mesh_3D);
     filename >> sm;
 
-    int highest_mesh_creation = find_latest_mesh_creation_number(mesh_3D);
     my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-
-     // Calculate uv_mesh_number based on the value of start_node_int
-    int uv_mesh_number = (start_node_int == 0) ? 0 : (highest_mesh_creation + 1);
-    const auto results = calculate_uv_surface(mesh_3D, start_node, uv_mesh_number);
+    const auto results = calculate_uv_surface(mesh_3D, start_node, start_node_int);
 
     const auto mesh_file_path = meshmeta.mesh_path;
 
