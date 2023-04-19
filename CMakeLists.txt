@@ -76,9 +76,6 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 # ##########################################################
 
 # Add C++ source files
-create_single_source_cgal_program("src/simulation/geodesic_distance.cpp")
-create_single_source_cgal_program("src/simulation/create_uv_surface.cpp")
-create_single_source_cgal_program("src/simulation/basic.cpp")
 create_single_source_cgal_program("src/simulation/main.cpp")
 
 
@@ -116,13 +113,10 @@ target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost J
 
 
 # Link required libraries to the targets
-target_link_libraries(geodesic_distance PRIVATE uv_surface_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
-target_link_libraries(create_uv_surface PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
-target_link_libraries(basic PRIVATE CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl)
 target_link_libraries(main PRIVATE uv_surface_lib particle_forces_lib matrix_algebra_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
 
 # Install the target
-install(TARGETS geodesic_distance create_uv_surface basic main
+install(TARGETS main
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
