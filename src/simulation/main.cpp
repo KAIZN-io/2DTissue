@@ -145,7 +145,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     std::vector<int> outside_uv_ids = set_difference(num_part, inside_uv_ids);
 
     // Specify the file path of the 3D model you want to load
-    Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off");
+    Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
 
     auto result = create_uv_surface_intern("Ellipsoid", 0);
     std::vector<int64_t> h_v_mapping = std::get<0>(result);
@@ -254,21 +254,20 @@ int main()
     auto k_adh = 0.75;
     auto dt = 0.001;
 
-    Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data_860.csv");
-    Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data_860.csv");
-    Eigen::MatrixXd halfedge_uv = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/halfedges_uv.csv");
+    Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/r_data_860.csv");
+    Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/n_data_860.csv");
+    Eigen::MatrixXd halfedge_uv = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/halfedges_uv.csv");
 
-    Eigen::MatrixXd halfedge_vertices_mapping = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/halfedge_vertices_mapping.csv");
+    Eigen::MatrixXd halfedge_vertices_mapping = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/halfedge_vertices_mapping.csv");
     std::vector<int64_t> halfedge_vertices_mapping_vector(halfedge_vertices_mapping.data(), halfedge_vertices_mapping.data() + halfedge_vertices_mapping.size());
 
     Eigen::VectorXd vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
-    const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
+    const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
     
     // ! TODO: completly make this project initiable within C++. Especially the n and r matrices
-
 
     std::clock_t start = std::clock();
 

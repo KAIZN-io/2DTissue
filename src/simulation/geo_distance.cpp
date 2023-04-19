@@ -33,7 +33,7 @@ using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Trian
 
 
 std::vector<double> geo_distance(int32_t start_node){
-    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off"));
     Triangle_mesh tm;
     filename >> tm;
 
@@ -74,7 +74,7 @@ void fill_distance_matrix(
 
 
 int get_all_distances(){
-    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/ellipsoid_x4.off"));
+    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off"));
     Triangle_mesh tm;
     filename >> tm;
 
@@ -88,7 +88,7 @@ int get_all_distances(){
 
     // save the distance matrix to a csv file using comma as delimiter
     const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-    std::ofstream file("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
+    std::ofstream file("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
     file << distance_matrix_v.format(CSVFormat);
     file.close();
 
