@@ -1,4 +1,4 @@
-name = "Confined_active_particles"
+name = "2DTissue"
 uuid = "5873afcb-7942-4a00-993a-99030ef10841"
 authors = ["jan-piotraschke "]
 version = "0.1.0"

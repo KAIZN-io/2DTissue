@@ -20,7 +20,7 @@ set(ASSIMP_INCLUDE_DIRS "${ASSIMP_ROOT}/include")
 set(ASSIMP_LIBRARY_DIRS "${ASSIMP_ROOT}/lib")
 
 # Set the project name and version
-project(PhysicsEngineBuilds VERSION 1.0)
+project(2DTissue VERSION 1.0)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
