@@ -47,6 +47,7 @@
 #include <utilities/matrix_algebra.h>
 #include <utilities/mesh_analysis.h>
 #include <utilities/sim_structs.h>
+#include <utilities/splay_state.h>
 #include <utilities/uv_operations.h>
 #include <utilities/uv_surface.h>
 #include <utilities/validity_check.h>
@@ -222,6 +223,8 @@ void particle_simulation(
 }
 
 
+
+
 int main()
 {
     // For testing purposes
@@ -251,28 +254,31 @@ int main()
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
+    
+    auto [splay_state_coord, splay_state_vertices] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
 
-    std::clock_t start = std::clock();
+    std::cout << splay_state_coord << std::endl;
+    // std::clock_t start = std::clock();
 
-    Eigen::VectorXd v_order(num_frames);
+    // Eigen::VectorXd v_order(num_frames);
 
-    for (int tt = 1; tt <= num_frames; ++tt) {
-        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part);
-        r = r_new;
-        n = ntest;
+    // for (int tt = 1; tt <= num_frames; ++tt) {
+    //     auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part);
+    //     r = r_new;
+    //     n = ntest;
 
-        auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
-        std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
-        vertices_3D_active = new_vertices_3D_active;
+    //     auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
+    //     std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
+    //     vertices_3D_active = new_vertices_3D_active;
 
-        std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
-        save_matrix_to_csv(r, file_name);
-    }
-    std::cout << "Order parameter: " << v_order << std::endl;
+    //     std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
+    //     save_matrix_to_csv(r, file_name);
+    // }
+    // std::cout << "Order parameter: " << v_order << std::endl;
 
-    std::clock_t end = std::clock();
-    double duration = (end - start) / (double) CLOCKS_PER_SEC;
-    std::cout << "Time taken: " << duration << " seconds" << std::endl;
+    // std::clock_t end = std::clock();
+    // double duration = (end - start) / (double) CLOCKS_PER_SEC;
+    // std::cout << "Time taken: " << duration << " seconds" << std::endl;
 
     return 0;
 }
