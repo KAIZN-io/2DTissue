@@ -79,6 +79,7 @@ create_single_source_cgal_program("src/simulation/main.cpp")
 add_library(io_lib STATIC
     src/simulation/io/csv.cpp
     src/simulation/io/mesh_loader.cpp
+    src/simulation/utilities/sim_structs.cpp
 )
 target_include_directories(io_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost)

@@ -14,11 +14,6 @@
 #include <Eigen/Geometry>
 #include <Eigen/Sparse>
 
-// Jlcxx
-#include "jlcxx/array.hpp"
-#include "jlcxx/functions.hpp"
-#include "jlcxx/jlcxx.hpp"
-
 // Standard libraries
 #include <atomic>
 #include <cmath>
@@ -56,10 +51,6 @@
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_3 = Kernel::Point_3;
 using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
-
-// Jlcxx type aliases
-using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
-using JuliaArray2D = jlcxx::ArrayRef<double, 2>;
 
 
 std::vector<int64_t> get_next_vertice_id(
@@ -118,6 +109,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     double dt,
     int tt,
     int num_part,
+    std::unordered_map<int, Mesh_UV_Struct>& mesh_dict,
     double plotstep = 0.1
 ){
     // Simulate the flight of the particle
@@ -129,10 +121,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Specify the file path of the 3D model you want to load
     Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
 
-    auto result = create_uv_surface_intern("Ellipsoid", 0);
-    std::vector<int64_t> h_v_mapping = std::get<0>(result);
-    std::string mesh_file_path = std::get<1>(result);
-    Eigen::MatrixXd halfedges_uv = loadMeshVertices(mesh_file_path);
+    auto [halfedges_uv, h_v_mapping] = get_mesh_data(mesh_dict, 0);
 
     Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new, halfedges_uv, h_v_mapping);
 
@@ -171,60 +160,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 }
 
 
-void particle_simulation(
-    jl_function_t* f,
-    JuliaArray2D r_v,
-    JuliaArray2D n_v,
-    JuliaArray vertices_3D_active_id,
-    JuliaArray2D distance_matrix_v,
-    int& mesh_id,
-    double v0,
-    double k,
-    double k_next,
-    double v0_next,
-    double σ,
-    double μ,
-    double r_adh,
-    double k_adh,
-    double dt,
-    int tt
-){
-    double plotstep = 0.1;
-
-    int num_entry = r_v.size();
-    int num_rows = num_entry / 3;
-    int num_rows_dist = sqrt(distance_matrix_v.size());
-    Eigen::MatrixXd r = reshape_vertices_array(r_v, num_rows, 3);
-    Eigen::MatrixXd n = reshape_vertices_array(n_v, num_rows, 3);
-    Eigen::MatrixXd distance_matrix = reshape_vertices_array(distance_matrix_v, num_rows_dist, num_rows_dist);
-    Eigen::VectorXd vertices_3D_active_eigen = jlcxxArrayRefToEigenVectorXd(vertices_3D_active_id);
-    Eigen::VectorXd v_order(1);
-
-    // convert the active vertices to a vector -> only neccessary as long as the other functions of this script depend von std::vector
-    std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
-
-    // Simulate the particles
-    auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_rows, plotstep);
-
-    // transform the data into a Julia array
-    auto r_julia = jlcxx::ArrayRef<double, 2>(r_new.data(), r_new.rows(), r_new.cols());
-    auto r_dot_julia = jlcxx::ArrayRef<double, 2>(r_dot.data(), r_dot.rows(), r_dot.cols());
-    auto dist_length_julia = jlcxx::ArrayRef<double, 2>(dist_length.data(), dist_length.rows(), dist_length.cols());
-    auto n_julia = jlcxx::ArrayRef<double, 2>(ntest.data(), ntest.rows(), ntest.cols());
-    auto nr_dot_julia = jlcxx::ArrayRef<double, 2>(nr_dot.data(), nr_dot.rows(), nr_dot.cols());
-    auto particles_color_julia = jlcxx::ArrayRef<double, 1>(particles_color.data(), particles_color.size());
-    auto v_order_julia = jlcxx::ArrayRef<double, 1>(v_order.data(), v_order.size());
-
-    // Prepare to call the function defined in Julia
-    jlcxx::JuliaFunction fnClb(f);
-
-    // Fill the Julia Function with the inputs
-    fnClb((jl_value_t*)r_julia.wrapped(), (jl_value_t*)r_dot_julia.wrapped(), (jl_value_t*)n_julia.wrapped(), (jl_value_t*)dist_length_julia.wrapped(), mesh_id, (jl_value_t*)v_order_julia.wrapped());
-}
-
-
-
-
 int main()
 {
     // For testing purposes
@@ -238,17 +173,22 @@ int main()
     auto k_adh = 0.75;
     auto dt = 0.001;
     int num_part = 40;
-    int num_frames = 5;
+    int num_frames = 1;
 
-    Eigen::MatrixXd halfedge_uv = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/Ellipsoid_uv.off");
-    Eigen::MatrixXi faces_uv = loadMeshFaces("/Users/jan-piotraschke/git_repos/2DTissue/meshes/Ellipsoid_uv.off");
+    static std::unordered_map<int, Mesh_UV_Struct> mesh_dict;
+
+    auto result = create_uv_surface_intern("Ellipsoid", 0);
+    std::vector<int64_t> halfedge_vertices_mapping_vector = std::get<0>(result);
+    std::string mesh_file_path = std::get<1>(result);
+
+    Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
+    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
     Eigen::MatrixXd r(num_part, 3);
     Eigen::MatrixXd n(num_part, 3);
 
-    init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
+    mesh_dict[0] = Mesh_UV_Struct{0, halfedge_uv, halfedge_vertices_mapping_vector};
 
-    Eigen::MatrixXd halfedge_vertices_mapping = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/halfedge_vertices_mapping.csv");
-    std::vector<int64_t> halfedge_vertices_mapping_vector(halfedge_vertices_mapping.data(), halfedge_vertices_mapping.data() + halfedge_vertices_mapping.size());
+    init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
 
     Eigen::VectorXd vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
@@ -257,36 +197,38 @@ int main()
     
     auto [splay_state_coord, splay_state_vertices] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
 
-    std::cout << splay_state_coord << std::endl;
-    // std::clock_t start = std::clock();
+    for (int i = 0; i < splay_state_vertices.size(); ++i) {
+        int splay_vertice = splay_state_vertices[i];
+        create_uv_surface_intern("Ellipsoid", splay_vertice);
+        std::vector<int64_t> halfedge_vertices_mapping_vector_virtual = std::get<0>(result);
+        std::string mesh_file_path_virtual = std::get<1>(result);
+        Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path);
 
-    // Eigen::VectorXd v_order(num_frames);
+        // Store the virtual meshes
+        mesh_dict[splay_vertice] = Mesh_UV_Struct{splay_vertice, halfedge_uv_virtual, halfedge_vertices_mapping_vector_virtual};
+    }
 
-    // for (int tt = 1; tt <= num_frames; ++tt) {
-    //     auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part);
-    //     r = r_new;
-    //     n = ntest;
+    std::clock_t start = std::clock();
 
-    //     auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
-    //     std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
-    //     vertices_3D_active = new_vertices_3D_active;
+    Eigen::VectorXd v_order(num_frames);
 
-    //     std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
-    //     save_matrix_to_csv(r, file_name);
-    // }
-    // std::cout << "Order parameter: " << v_order << std::endl;
+    for (int tt = 1; tt <= num_frames; ++tt) {
+        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, mesh_dict);
+        r = r_new;
+        n = ntest;
 
-    // std::clock_t end = std::clock();
-    // double duration = (end - start) / (double) CLOCKS_PER_SEC;
-    // std::cout << "Time taken: " << duration << " seconds" << std::endl;
+        auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
+        std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
+        vertices_3D_active = new_vertices_3D_active;
+
+        std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
+        save_matrix_to_csv(r, file_name);
+    }
+    std::cout << "Order parameter: " << v_order << std::endl;
+
+    std::clock_t end = std::clock();
+    double duration = (end - start) / (double) CLOCKS_PER_SEC;
+    std::cout << "Time taken: " << duration << " seconds" << std::endl;
 
     return 0;
-}
-
-
-JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
-{
-    // Register a standard C++ function
-    mod.method("particle_simulation", particle_simulation);
-    mod.method("get_all_distances", get_all_distances);
 }

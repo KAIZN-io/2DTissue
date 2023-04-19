@@ -4,13 +4,17 @@
 // version: 0.1.0
 
 #include <iostream>
+#include <cstdint>
+#include <map>
 #include <string>
+#include <vector>
 #include <Eigen/Dense>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
 #include <io/mesh_loader.h>
+#include <utilities/sim_structs.h>
 
 Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {
     // Create an instance of the Importer class
@@ -81,4 +85,22 @@ Eigen::MatrixXi loadMeshFaces(const std::string& filepath) {
     importer.FreeScene();
 
     return faces;
+}
+
+
+std::pair<Eigen::MatrixXd, std::vector<int64_t>> get_mesh_data(
+    std::unordered_map<int, Mesh_UV_Struct> mesh_dict,
+    int mesh_id
+){
+    Eigen::MatrixXd halfedges_uv;
+    std::vector<int64_t> h_v_mapping;
+
+    auto it = mesh_dict.find(mesh_id);
+    if (it != mesh_dict.end()) {
+        // Load the mesh
+        halfedges_uv = it->second.mesh;
+        h_v_mapping = it->second.h_v_mapping;
+    }
+
+    return std::pair(halfedges_uv, h_v_mapping);
 }
