@@ -32,7 +32,7 @@
 #include <thread>
 #include <vector>
 
-#include <io/csv_loader.h>
+#include <io/csv.h>
 #include <io/mesh_loader.h>
 
 #include <particle_simulation/motion.h>
@@ -59,28 +59,6 @@ using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
 // Jlcxx type aliases
 using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;
 using JuliaArray2D = jlcxx::ArrayRef<double, 2>;
-
-
-void save_matrix_to_csv(const Eigen::MatrixXd& matrix, const std::string& file_name) {
-    std::ofstream file(file_name);
-
-    if (!file.is_open()) {
-        std::cerr << "Error opening file: " << file_name << std::endl;
-        return;
-    }
-
-    for (int i = 0; i < matrix.rows(); ++i) {
-        for (int j = 0; j < matrix.cols(); ++j) {
-            file << std::setprecision(15) << matrix(i, j);
-            if (j < matrix.cols() - 1) {
-                file << ",";
-            }
-        }
-        file << "\n";
-    }
-
-    file.close();
-}
 
 
 std::vector<int64_t> get_next_vertice_id(

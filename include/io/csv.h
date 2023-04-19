@@ -1,4 +1,4 @@
-// csv_loader.h
+// csv.h
 #pragma once
 
 #include <fstream>
@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 #include <Eigen/Dense>
+#include <iomanip>
+#include <iostream>
+
 
 // We need do define it in the header file or otherwise the template specialization will not be available at link time
 template<typename M>
@@ -24,4 +27,26 @@ M load_csv(const std::string &path) {
         ++rows;
     }
     return Eigen::Map<const Eigen::Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, Eigen::RowMajor>>(values.data(), rows, values.size()/rows);
+}
+
+
+void save_matrix_to_csv(const Eigen::MatrixXd& matrix, const std::string& file_name) {
+    std::ofstream file(file_name);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << file_name << std::endl;
+        return;
+    }
+
+    for (int i = 0; i < matrix.rows(); ++i) {
+        for (int j = 0; j < matrix.cols(); ++j) {
+            file << std::setprecision(15) << matrix(i, j);
+            if (j < matrix.cols() - 1) {
+                file << ",";
+            }
+        }
+        file << "\n";
+    }
+
+    file.close();
 }

@@ -77,7 +77,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 create_single_source_cgal_program("src/simulation/main.cpp")
 
 add_library(io_lib STATIC
-    src/simulation/io/csv_loader.cpp
+    src/simulation/io/csv.cpp
     src/simulation/io/mesh_loader.cpp
 )
 target_include_directories(io_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
