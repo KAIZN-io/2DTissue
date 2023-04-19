@@ -32,22 +32,22 @@
 #include <thread>
 #include <vector>
 
-#include <analytics.h>
-#include <csv_loader.h>
-#include <dye_particle.h>
-#include <flight_of_the_particle.h>
-#include <geo_distance.h>
-#include <init_particle_position.h>
-#include <julia_handler.h>
-#include <matrix_algebra.h>
-#include <mesh_analysis.h>
-#include <mesh_loader.h>
-#include <particle_vector.h>
-#include <process_invalid_particle.h>
-#include <sim_structs.h>
-#include <uv_operations.h>
-#include <uv_surface.h>
-#include <validity_check.h>
+#include <utilities/analytics.h>
+#include <io/csv_loader.h>
+#include <utilities/dye_particle.h>
+#include <particle_simulation/flight_of_the_particle.h>
+#include <utilities/geo_distance.h>
+#include <utilities/init_particle_position.h>
+#include <utilities/julia_handler.h>
+#include <utilities/matrix_algebra.h>
+#include <utilities/mesh_analysis.h>
+#include <io/mesh_loader.h>
+#include <particle_simulation/particle_vector.h>
+#include <particle_simulation/process_invalid_particle.h>
+#include <utilities/sim_structs.h>
+#include <utilities/uv_operations.h>
+#include <utilities/uv_surface.h>
+#include <utilities/validity_check.h>
 
 // CGAL type aliases
 using Kernel = CGAL::Simple_cartesian<double>;

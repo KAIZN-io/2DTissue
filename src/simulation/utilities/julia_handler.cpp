@@ -8,7 +8,7 @@
 #include "jlcxx/jlcxx.hpp"
 #include <Eigen/Dense>
 
-#include <julia_handler.h>
+#include <utilities/julia_handler.h>
 
 // Jlcxx type aliases
 using JuliaArray = jlcxx::ArrayRef<int64_t, 1>;

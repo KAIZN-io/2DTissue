@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "sim_structs.h"
+#include "utilities/sim_structs.h"
 
 bool are_all_valid(const std::vector<VertexData>& vertex_data);
 

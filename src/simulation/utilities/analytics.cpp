@@ -5,8 +5,8 @@
 
 #include <Eigen/Dense>
 
-#include <analytics.h>
-#include <matrix_algebra.h>
+#include <utilities/analytics.h>
+#include <utilities/matrix_algebra.h>
 
 
 void calculate_order_parameter(

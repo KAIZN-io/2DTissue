@@ -6,7 +6,7 @@
 #include <Eigen/Core>
 #include <vector>
 
-#include <dye_particle.h>
+#include <utilities/dye_particle.h>
 
 Eigen::VectorXd count_particle_neighbours(const Eigen::VectorXd& dist_length, double σ) {
     Eigen::VectorXd num_partic(dist_length.size()); // create an empty vector

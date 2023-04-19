@@ -8,7 +8,7 @@
 #include <random>
 #include <algorithm>
 
-#include <init_particle_position.h>
+#include <utilities/init_particle_position.h>
 
 
 Eigen::Vector3d get_face_gravity_center_coord(

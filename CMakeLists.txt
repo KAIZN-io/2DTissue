@@ -51,7 +51,6 @@ else()
   message(WARNING "OpenMP not found. Some parts of the project might run slower without OpenMP support.")
 endif()
 
-
 # Get JlCxx location and set install RPATH
 get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)
 get_filename_component(JlCxx_location ${JlCxx_location} DIRECTORY)
@@ -68,7 +67,6 @@ link_directories(${ASSIMP_LIBRARY_DIRS})
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-
 # ##########################################################
 # Creating entries for all C++ files with "main" routine
 # Use target_link_libraries() to express direct dependencies!
@@ -78,42 +76,41 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 # Add C++ source files
 create_single_source_cgal_program("src/simulation/main.cpp")
 
-
-add_library(particle_forces_lib STATIC
-    src/simulation/particle_forces.cpp
+add_library(io_lib STATIC
+    src/simulation/io/csv_loader.cpp
+    src/simulation/io/mesh_loader.cpp
 )
-target_include_directories(particle_forces_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(particle_forces_lib PRIVATE CGAL::Eigen3_support Boost::boost)
+target_include_directories(io_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
-add_library(matrix_algebra_lib STATIC
-    src/simulation/matrix_algebra.cpp
+add_library(particle_simulation_lib STATIC
+    src/simulation/particle_simulation/flight_of_the_particle.cpp
+    src/simulation/particle_simulation/particle_forces.cpp
+    src/simulation/particle_simulation/particle_vector.cpp
+    src/simulation/particle_simulation/process_invalid_particle.cpp
 )
-target_include_directories(matrix_algebra_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(matrix_algebra_lib PRIVATE CGAL::Eigen3_support Boost::boost)
+target_include_directories(particle_simulation_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
-add_library(uv_surface_lib STATIC
-    src/simulation/dye_particle.cpp
-    src/simulation/flight_of_the_particle.cpp
-    src/simulation/geo_distance.cpp
-    src/simulation/mesh_analysis.cpp
-    src/simulation/mesh_loader.cpp
-    src/simulation/particle_vector.cpp
-    src/simulation/julia_handler.cpp
-    src/simulation/uv_surface.cpp
-    src/simulation/analytics.cpp
-    src/simulation/csv_loader.cpp
-    src/simulation/uv_operations.cpp
-    src/simulation/validity_check.cpp
-    src/simulation/process_invalid_particle.cpp
-    src/simulation/sim_structs.cpp
-    src/simulation/init_particle_position.cpp
+add_library(utilities_lib STATIC
+    src/simulation/utilities/analytics.cpp
+    src/simulation/utilities/geo_distance.cpp
+    src/simulation/utilities/init_particle_position.cpp
+    src/simulation/utilities/julia_handler.cpp
+    src/simulation/utilities/matrix_algebra.cpp
+    src/simulation/utilities/mesh_analysis.cpp
+    src/simulation/utilities/sim_structs.cpp
+    src/simulation/utilities/uv_operations.cpp
+    src/simulation/utilities/uv_surface.cpp
+    src/simulation/utilities/validity_check.cpp
+    src/simulation/utilities/dye_particle.cpp
+
 )
-target_include_directories(uv_surface_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl ${OpenCV_LIBS})
-
+target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl ${OpenCV_LIBS})
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE uv_surface_lib particle_forces_lib matrix_algebra_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
+target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
 
 # Install the target
 install(TARGETS main
@@ -121,3 +118,4 @@ install(TARGETS main
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
 )
+

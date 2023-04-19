@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 #include <vector>
 
-#include "sim_structs.h"
+#include "utilities/sim_structs.h"
 
 std::vector<VertexData> update_vertex_data(
     const std::vector<int>& vertices_3D_active,

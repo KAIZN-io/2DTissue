@@ -10,7 +10,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <mesh_loader.h>
+#include <io/mesh_loader.h>
 
 Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {
     // Create an instance of the Importer class

@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <Eigen/Dense>
 
-#include <mesh_analysis.h>
+#include <utilities/mesh_analysis.h>
 
 
 // (3D Vertice id -> Halfedge id) mapping

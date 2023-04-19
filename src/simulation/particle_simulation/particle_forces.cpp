@@ -6,7 +6,7 @@
 #include <vector>
 #include <Eigen/Dense>
 
-#include <particle_forces.h>
+#include <particle_simulation/particle_forces.h>
 
 
 Eigen::MatrixXd calculate_forces_between_particles(

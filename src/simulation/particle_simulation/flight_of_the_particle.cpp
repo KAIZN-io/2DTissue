@@ -7,8 +7,8 @@
 #include <vector>
 #include <Eigen/Dense>
 
-#include <particle_forces.h>
-#include <flight_of_the_particle.h>
+#include <particle_simulation/particle_forces.h>
+#include <particle_simulation/flight_of_the_particle.h>
 
 
 /*

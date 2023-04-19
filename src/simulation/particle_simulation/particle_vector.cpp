@@ -7,8 +7,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 
-#include <matrix_algebra.h>
-#include <particle_vector.h>
+#include <utilities/matrix_algebra.h>
+#include <particle_simulation/particle_vector.h>
 
 /*
 
