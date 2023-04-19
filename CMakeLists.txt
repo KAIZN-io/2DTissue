@@ -109,6 +109,7 @@ add_library(uv_surface_lib STATIC
     src/simulation/validity_check.cpp
     src/simulation/process_invalid_particle.cpp
     src/simulation/sim_structs.cpp
+    src/simulation/init_particle_position.cpp
 )
 target_include_directories(uv_surface_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(uv_surface_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl ${OpenCV_LIBS})

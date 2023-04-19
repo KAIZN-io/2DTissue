@@ -37,6 +37,7 @@
 #include <dye_particle.h>
 #include <flight_of_the_particle.h>
 #include <geo_distance.h>
+#include <init_particle_position.h>
 #include <julia_handler.h>
 #include <matrix_algebra.h>
 #include <mesh_analysis.h>
@@ -253,12 +254,15 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
+    int num_part = 40;
+    int num_frames = 5;
 
-    Eigen::MatrixXd faces_uv = loadMeshFaces("/Users/jan-piotraschke/git_repos/2DTissue/meshes/Ellipsoid_uv.off");
+    Eigen::MatrixXd halfedge_uv = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/Ellipsoid_uv.off");
+    Eigen::MatrixXi faces_uv = loadMeshFaces("/Users/jan-piotraschke/git_repos/2DTissue/meshes/Ellipsoid_uv.off");
+    Eigen::MatrixXd r(num_part, 3);
+    Eigen::MatrixXd n(num_part, 3);
 
-    Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/r_data_860.csv");
-    Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/n_data_860.csv");
-    Eigen::MatrixXd halfedge_uv = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/halfedges_uv.csv");
+    init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
 
     Eigen::MatrixXd halfedge_vertices_mapping = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/halfedge_vertices_mapping.csv");
     std::vector<int64_t> halfedge_vertices_mapping_vector(halfedge_vertices_mapping.data(), halfedge_vertices_mapping.data() + halfedge_vertices_mapping.size());
@@ -268,13 +272,8 @@ int main()
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
-    
-    // ! TODO: completly make this project initiable within C++. Especially the n and r matrices
-
     std::clock_t start = std::clock();
 
-    int num_part = r.rows();
-    int num_frames = 4;
     Eigen::VectorXd v_order(num_frames);
 
     for (int tt = 1; tt <= num_frames; ++tt) {

@@ -10,4 +10,4 @@
 
 Eigen::MatrixXd loadMeshVertices(const std::string& filepath);
 
-Eigen::MatrixXd loadMeshFaces(const std::string& filepath);
+Eigen::MatrixXi loadMeshFaces(const std::string& filepath);
