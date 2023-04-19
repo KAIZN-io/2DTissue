@@ -252,8 +252,7 @@ int main()
     auto μ = 1;
     auto r_adh = 1;
     auto k_adh = 0.75;
-    auto dt = 0.01;
-    auto tt = 10;
+    auto dt = 0.001;
 
     Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/r_data_860.csv");
     Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/n_data_860.csv");
@@ -267,10 +266,14 @@ int main()
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/Confined_active_particles/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
+    
+    // ! TODO: completly make this project initiable within C++. Especially the n and r matrices
+
 
     std::clock_t start = std::clock();
+
     int num_part = r.rows();
-    int num_frames = 3;
+    int num_frames = 4;
     Eigen::VectorXd v_order(num_frames);
 
     for (int tt = 1; tt <= num_frames; ++tt) {
