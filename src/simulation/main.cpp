@@ -254,6 +254,8 @@ int main()
     auto k_adh = 0.75;
     auto dt = 0.001;
 
+    Eigen::MatrixXd faces_uv = loadMeshFaces("/Users/jan-piotraschke/git_repos/2DTissue/meshes/Ellipsoid_uv.off");
+
     Eigen::MatrixXd r = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/r_data_860.csv");
     Eigen::MatrixXd n = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/n_data_860.csv");
     Eigen::MatrixXd halfedge_uv = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/halfedges_uv.csv");

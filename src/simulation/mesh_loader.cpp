@@ -40,3 +40,40 @@ Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {
 
     return vertices;
 }
+
+
+Eigen::MatrixXd loadMeshFaces(const std::string& filepath) {
+    // Create an instance of the Importer class
+    Assimp::Importer importer;
+
+    // Load the 3D model
+    // We pass several post-processing flags to this function, including aiProcess_Triangulate to convert all the geometry to triangles,
+    // aiProcess_FlipUVs to flip the texture coordinates along the y-axis, and aiProcess_GenNormals to generate normals if they are not present in the model
+    const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+
+    if (!scene) {
+        std::cerr << "Failed to load model: " << filepath << std::endl;
+        return Eigen::MatrixXd(0, 0);
+    }
+
+    // Get the first mesh in the scene
+    const aiMesh* mesh = scene->mMeshes[0];
+
+        // Create an Eigen matrix to store the face indices
+    Eigen::MatrixXd faces(mesh->mNumFaces, 3);
+
+    // Copy the face indices from the mesh to the Eigen matrix
+    for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+        const aiFace& face = mesh->mFaces[i];
+        if (face.mNumIndices == 3) {
+            faces(i, 0) = face.mIndices[0];
+            faces(i, 1) = face.mIndices[1];
+            faces(i, 2) = face.mIndices[2];
+        }
+    }
+
+    // Free the memory allocated by the importer
+    importer.FreeScene();
+
+    return faces;
+}

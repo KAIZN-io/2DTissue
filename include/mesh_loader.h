@@ -9,3 +9,5 @@
 #include <assimp/postprocess.h>
 
 Eigen::MatrixXd loadMeshVertices(const std::string& filepath);
+
+Eigen::MatrixXd loadMeshFaces(const std::string& filepath);
