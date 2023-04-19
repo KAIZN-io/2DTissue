@@ -1,4 +1,4 @@
-// flight_of_the_particle.h
+// motion.h
 #pragma once
 
 #include <tuple>

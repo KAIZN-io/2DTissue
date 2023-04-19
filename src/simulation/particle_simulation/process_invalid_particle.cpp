@@ -6,14 +6,14 @@
 #include <Eigen/Dense>
 #include <vector>
 
-#include <utilities/sim_structs.h>
 #include <io/mesh_loader.h>
-#include <utilities/uv_surface.h>
 #include <utilities/mesh_analysis.h>
+#include <utilities/sim_structs.h>
 #include <utilities/uv_operations.h>
-#include <particle_simulation/flight_of_the_particle.h>
+#include <utilities/uv_surface.h>
 #include <utilities/validity_check.h>
 
+#include <particle_simulation/motion.h>
 #include <particle_simulation/process_invalid_particle.h>
 
 
