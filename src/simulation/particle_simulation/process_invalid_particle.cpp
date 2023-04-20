@@ -8,7 +8,9 @@
 
 #include <io/mesh_loader.h>
 #include <utilities/mesh_analysis.h>
+#include <utilities/nearest_map.h>
 #include <utilities/sim_structs.h>
+#include <utilities/splay_state.h>
 #include <utilities/uv_operations.h>
 #include <utilities/uv_surface.h>
 #include <utilities/validity_check.h>
@@ -67,6 +69,7 @@ void update_if_valid(
 
 
 void process_invalid_particle(
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     std::vector<VertexData>& vertex_data,
     const VertexData& particle,
     int num_part,
@@ -84,24 +87,27 @@ void process_invalid_particle(
     double tt
 ) {
     int old_id = particle.old_id;
-    static std::unordered_map<int, Mesh_UV_Struct> mesh_dict;
 
-    Eigen::MatrixXd halfedges_uv;
-    std::vector<int64_t> h_v_mapping;
+    auto [halfedges_uv, h_v_mapping] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
 
-    auto it = mesh_dict.find(old_id);
-    if (it != mesh_dict.end()) {
-        // Load the mesh
-        halfedges_uv = it->second.mesh;
-        h_v_mapping = it->second.h_v_mapping;
-    } else {
-        auto result = create_uv_surface_intern("Ellipsoid", old_id);
-        h_v_mapping = std::get<0>(result);
-        std::string mesh_file_path = std::get<1>(result);
-        halfedges_uv = loadMeshVertices(mesh_file_path);
+    // TODO: implement the option if this approach fails, then we need to create a new 2D mesh
 
-        mesh_dict[old_id] = Mesh_UV_Struct{old_id, halfedges_uv, h_v_mapping};
-    }
+    // Eigen::MatrixXd halfedges_uv;
+    // std::vector<int64_t> h_v_mapping;
+
+    // auto it = vertices_2DTissue_map.find(old_id);
+    // if (it != vertices_2DTissue_map.end()) {
+    //     // Load the mesh
+    //     halfedges_uv = it->second.mesh;
+    //     h_v_mapping = it->second.h_v_mapping;
+    // } else {
+    //     auto result = create_uv_surface_intern("Ellipsoid", old_id);
+    //     h_v_mapping = std::get<0>(result);
+    //     std::string mesh_file_path = std::get<1>(result);
+    //     halfedges_uv = loadMeshVertices(mesh_file_path);
+
+    //     vertices_2DTissue_map[old_id] = Mesh_UV_Struct{old_id, halfedges_uv, h_v_mapping};
+    // }
 
     std::vector<int64_t> old_ids(vertex_data.size());
     for (size_t i = 0; i < vertex_data.size(); ++i) {
@@ -133,6 +139,7 @@ void process_invalid_particle(
 
 
 void process_if_not_valid(
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     std::vector<VertexData>& vertex_data,
     int num_part,
     Eigen::MatrixXd& distance_matrix_v,
@@ -157,7 +164,7 @@ void process_if_not_valid(
     }
 
     for (int invalid_id : invalid_ids) {
-        process_invalid_particle(vertex_data, vertex_data[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+        process_invalid_particle(vertices_2DTissue_map, vertex_data, vertex_data[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
 
         if (are_all_valid(vertex_data)) {
             break;

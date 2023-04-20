@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <thread>
 #include <vector>
+#include <limits>
 
 #include <io/csv.h>
 #include <io/mesh_loader.h>
@@ -53,7 +54,8 @@ using Point_3 = Kernel::Point_3;
 using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
 
 
-std::vector<int64_t> get_next_vertice_id(
+std::vector<int64_t> find_next_position(
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     std::vector<VertexData>& vertex_data,
     int num_part,
     Eigen::MatrixXd distance_matrix_v,
@@ -70,7 +72,7 @@ std::vector<int64_t> get_next_vertice_id(
     double tt
 ){
     if (!are_all_valid(vertex_data)) {
-        process_if_not_valid(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+        process_if_not_valid(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
     }
 
     if (!are_all_valid(vertex_data)) {
@@ -109,7 +111,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     double dt,
     int tt,
     int num_part,
-    std::unordered_map<int, Mesh_UV_Struct>& mesh_dict,
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     double plotstep = 0.1
 ){
     // Simulate the flight of the particle
@@ -121,13 +123,15 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Specify the file path of the 3D model you want to load
     Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
 
-    auto [halfedges_uv, h_v_mapping] = get_mesh_data(mesh_dict, 0);
+    // Get the mesh from the dictionary
+    auto [halfedges_uv, h_v_mapping] = get_mesh_data(vertices_2DTissue_map, 0);
 
+    // Find the new 3D vertex ids
     Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new, halfedges_uv, h_v_mapping);
 
     std::vector<VertexData> vertex_data = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids);
 
-    auto vertices_next_id = get_next_vertice_id(vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+    auto vertices_next_id = find_next_position(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
 
     for (int i : outside_uv_ids) {
         std::vector<int64_t> single_vertex_next_id = {vertices_next_id[i]};
@@ -172,13 +176,13 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_part = 40;
-    int num_frames = 1;
+    int num_part = 200;
+    int num_frames = 20;
 
-    static std::unordered_map<int, Mesh_UV_Struct> mesh_dict;
+    static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
     auto result = create_uv_surface_intern("Ellipsoid", 0);
-    std::vector<int64_t> halfedge_vertices_mapping_vector = std::get<0>(result);
+    std::vector<int64_t> h_v_mapping_vector = std::get<0>(result);  // halfedge-vertice mapping
     std::string mesh_file_path = std::get<1>(result);
 
     Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
@@ -186,26 +190,28 @@ int main()
     Eigen::MatrixXd r(num_part, 3);
     Eigen::MatrixXd n(num_part, 3);
 
-    mesh_dict[0] = Mesh_UV_Struct{0, halfedge_uv, halfedge_vertices_mapping_vector};
+    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping_vector};
 
     init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
 
-    Eigen::VectorXd vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
+    Eigen::VectorXd vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
     std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
-    
-    auto [splay_state_coord, splay_state_vertices] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
+
+    auto [splay_state_coord, splay_state_halfedges] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
+    auto splay_state_vertices = get_vertice_id(splay_state_coord, halfedge_uv, h_v_mapping_vector);
 
     for (int i = 0; i < splay_state_vertices.size(); ++i) {
-        int splay_vertice = splay_state_vertices[i];
-        create_uv_surface_intern("Ellipsoid", splay_vertice);
-        std::vector<int64_t> halfedge_vertices_mapping_vector_virtual = std::get<0>(result);
+        int splay_state_v = splay_state_vertices[i];
+
+        create_uv_surface_intern("Ellipsoid", splay_state_v);
+        std::vector<int64_t> h_v_mapping_vector_virtual = std::get<0>(result);
         std::string mesh_file_path_virtual = std::get<1>(result);
         Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path);
 
         // Store the virtual meshes
-        mesh_dict[splay_vertice] = Mesh_UV_Struct{splay_vertice, halfedge_uv_virtual, halfedge_vertices_mapping_vector_virtual};
+        vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
 
     std::clock_t start = std::clock();
@@ -213,11 +219,11 @@ int main()
     Eigen::VectorXd v_order(num_frames);
 
     for (int tt = 1; tt <= num_frames; ++tt) {
-        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, mesh_dict);
+        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
         r = r_new;
         n = ntest;
 
-        auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, halfedge_vertices_mapping_vector);
+        auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
         std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
         vertices_3D_active = new_vertices_3D_active;
 
