@@ -41,7 +41,7 @@ function get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
     for i in 1:num_r
         distances_to_h = vec(mapslices(norm, halfedges_uv .- r[i, :]', dims=2))
         halfedges_id = argmin(distances_to_h)
-        vertice_3D_id[i] = halfedge_vertices_mapping[(halfedges_id .+ 1), :][1]  # +1 because the first vertice v0 has index 1 in a Julia array
+        vertice_3D_id[i] = halfedge_vertices_mapping[(halfedges_id), :][1]  # +1 because the first vertice v0 has index 1 in a Julia array
     end
     return vertice_3D_id
 end
@@ -62,8 +62,8 @@ vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # 
 halfedges_uv = CSV.read("halfedges_uv.csv", DataFrame; header=false) |> Matrix
 halfedge_vertices_mapping = CSV.read("halfedge_vertices_mapping.csv", DataFrame; header=false) |> Matrix
 
-observe_r = Makie.Observable(fill(Point3f0(NaN), 859))
-observe_r_3D =  Makie.Observable(fill(Point3f0(NaN), 859))
+observe_r = Makie.Observable(fill(Point3f0(NaN), 1999))
+observe_r_3D =  Makie.Observable(fill(Point3f0(NaN), 1999))
 
 
 figure = GLMakie.Figure(resolution=(2100, 2400))
@@ -86,9 +86,9 @@ wireframe!(ax3, mesh_loaded_uv, color=(:white, 0.1), linewidth=4, transparency=t
 meshscatter!(ax1, observe_r_3D, color = :red, markersize = 0.08)
 meshscatter!(ax3, observe_r, color = :red, markersize = 0.008)
 
-record(figure, "assets/confined_active_particles.mp4", 1:10; framerate=6) do tt
+record(figure, "assets/confined_active_particles.mp4", 1:14; framerate=6) do tt
     r = read_data("data", "r_data_$(tt).csv")
     vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
-    observe_r_3D[] = vertices_3D[vertice_3D_id, :] |> array_to_vec_of_vec
+    observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
     observe_r[] = array_to_vec_of_vec(r)
 end
