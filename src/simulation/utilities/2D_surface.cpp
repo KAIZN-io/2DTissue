@@ -53,7 +53,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include <utilities/uv_surface.h>
+#include <utilities/2D_surface.h>
 
 
 using Kernel = CGAL::Simple_cartesian<double>;

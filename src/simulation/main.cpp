@@ -46,7 +46,7 @@
 #include <utilities/splay_state.h>
 #include <utilities/update.h>
 #include <utilities/boundary_check.h>
-#include <utilities/uv_surface.h>
+#include <utilities/2D_surface.h>
 #include <utilities/validity_check.h>
 
 // CGAL type aliases

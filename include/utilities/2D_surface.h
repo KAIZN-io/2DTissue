@@ -1,4 +1,4 @@
-// uv_surface.h
+// 2D_surface.h
 #pragma once
 #include <string>
 #include <utility>

@@ -105,7 +105,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/splay_state.cpp
     src/simulation/utilities/update.cpp
     src/simulation/utilities/boundary_check.cpp
-    src/simulation/utilities/uv_surface.cpp
+    src/simulation/utilities/2D_surface.cpp
     src/simulation/utilities/validity_check.cpp
     src/simulation/utilities/dye_particle.cpp
 )
