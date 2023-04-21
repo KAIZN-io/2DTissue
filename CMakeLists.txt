@@ -96,7 +96,7 @@ target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost
 add_library(utilities_lib STATIC
     src/simulation/utilities/analytics.cpp
     src/simulation/utilities/nearest_map.cpp
-    src/simulation/utilities/geo_distance.cpp
+    src/simulation/utilities/distance.cpp
     src/simulation/utilities/init_particle_position.cpp
     src/simulation/utilities/julia_handler.cpp
     src/simulation/utilities/matrix_algebra.cpp
@@ -104,7 +104,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/splay_state.cpp
     src/simulation/utilities/update.cpp
-    src/simulation/utilities/uv_operations.cpp
+    src/simulation/utilities/boundary_check.cpp
     src/simulation/utilities/uv_surface.cpp
     src/simulation/utilities/validity_check.cpp
     src/simulation/utilities/dye_particle.cpp

@@ -1,4 +1,4 @@
-// geo_distance.h
+// distance.h
 #pragma once
 #include <vector>
 

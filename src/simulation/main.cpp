@@ -37,7 +37,7 @@
 
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
-#include <utilities/geo_distance.h>
+#include <utilities/distance.h>
 #include <utilities/init_particle_position.h>
 #include <utilities/julia_handler.h>
 #include <utilities/matrix_algebra.h>
@@ -45,7 +45,7 @@
 #include <utilities/sim_structs.h>
 #include <utilities/splay_state.h>
 #include <utilities/update.h>
-#include <utilities/uv_operations.h>
+#include <utilities/boundary_check.h>
 #include <utilities/uv_surface.h>
 #include <utilities/validity_check.h>
 

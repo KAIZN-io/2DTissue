@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <utilities/update.h>
-#include <utilities/uv_operations.h>
+#include <utilities/boundary_check.h>
 
 
 std::vector<VertexData> update_vertex_data(
