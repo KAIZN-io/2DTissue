@@ -14,7 +14,8 @@
 std::vector<VertexData> update_vertex_data(
     const std::vector<int>& vertices_3D_active,
     const Eigen::VectorXd& vertice_3D_id,
-    const std::vector<int>& inside_uv_ids
+    const std::vector<int>& inside_uv_ids,
+    int start_id
 ){
     int num_r = vertices_3D_active.size();
     std::vector<VertexData> vertex_data(num_r);
@@ -24,14 +25,14 @@ std::vector<VertexData> update_vertex_data(
         vertex_data[i].old_id = vertices_3D_active[i];
         vertex_data[i].next_id = vertices_3D_active[i];
         vertex_data[i].valid = false;
-        vertex_data[i].uv_mesh_id = 0;
+        vertex_data[i].uv_mesh_id = start_id;
     }
 
     // Update the vertex data based on inside_uv_ids
     for (int i : inside_uv_ids) {
         if (!vertex_data[i].valid) {
             vertex_data[i].next_id = static_cast<int>(vertice_3D_id(i));
-            vertex_data[i].uv_mesh_id = 0;
+            vertex_data[i].uv_mesh_id = start_id;
             vertex_data[i].valid = true;
         }
     }

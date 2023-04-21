@@ -10,7 +10,8 @@
 std::vector<VertexData> update_vertex_data(
     const std::vector<int>& vertices_3D_active,
     const Eigen::VectorXd& vertice_3D_id,
-    const std::vector<int>& inside_uv_ids
+    const std::vector<int>& inside_uv_ids,
+    int start_id
 );
 
 void update_if_valid(
