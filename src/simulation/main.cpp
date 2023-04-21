@@ -178,7 +178,7 @@ int main()
     auto k_adh = 0.75;
     auto dt = 0.001;
     int num_part = 200;
-    int num_frames = 20;
+    int num_frames = 10;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -206,9 +206,9 @@ int main()
     for (int i = 0; i < splay_state_vertices.size(); ++i) {
         int splay_state_v = splay_state_vertices[i];
 
-        create_uv_surface_intern("Ellipsoid", splay_state_v);
-        std::vector<int64_t> h_v_mapping_vector_virtual = std::get<0>(result);
-        std::string mesh_file_path_virtual = std::get<1>(result);
+        auto result_virtual = create_uv_surface_intern("Ellipsoid", splay_state_v);
+        std::vector<int64_t> h_v_mapping_vector_virtual = std::get<0>(result_virtual);
+        std::string mesh_file_path_virtual = std::get<1>(result_virtual);
         Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path);
 
         // Store the virtual meshes
