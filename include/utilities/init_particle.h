@@ -1,4 +1,4 @@
-// init_particle_position.h
+// init_particle.h
 #pragma once
 
 #include <Eigen/Dense>

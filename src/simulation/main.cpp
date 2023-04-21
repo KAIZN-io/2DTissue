@@ -38,7 +38,7 @@
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/distance.h>
-#include <utilities/init_particle_position.h>
+#include <utilities/init_particle.h>
 #include <utilities/julia_handler.h>
 #include <utilities/matrix_algebra.h>
 #include <utilities/mesh_analysis.h>
