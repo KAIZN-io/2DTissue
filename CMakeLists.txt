@@ -103,6 +103,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/mesh_analysis.cpp
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/splay_state.cpp
+    src/simulation/utilities/update.cpp
     src/simulation/utilities/uv_operations.cpp
     src/simulation/utilities/uv_surface.cpp
     src/simulation/utilities/validity_check.cpp

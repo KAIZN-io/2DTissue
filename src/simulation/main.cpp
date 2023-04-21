@@ -44,6 +44,7 @@
 #include <utilities/mesh_analysis.h>
 #include <utilities/sim_structs.h>
 #include <utilities/splay_state.h>
+#include <utilities/update.h>
 #include <utilities/uv_operations.h>
 #include <utilities/uv_surface.h>
 #include <utilities/validity_check.h>
