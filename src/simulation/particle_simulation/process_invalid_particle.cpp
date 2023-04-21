@@ -56,7 +56,6 @@ void process_invalid_particle(
     }
 
     // Get the halfedges based on the choosen h-v mapping
-    // TODO: check, ob das so richtig ist
     std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(old_ids, h_v_mapping);
 
     // Get the coordinates of the halfedges

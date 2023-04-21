@@ -8,12 +8,6 @@
 
 #include "utilities/sim_structs.h"
 
-std::vector<VertexData> update_vertex_data(
-    const std::vector<int>& vertices_3D_active,
-    const Eigen::VectorXd& vertice_3D_id,
-    const std::vector<int>& inside_uv_ids
-);
-
 void process_if_not_valid(
     std::unordered_map<int, Mesh_UV_Struct>& mesh_dict,
     std::vector<VertexData>& vertex_data,
