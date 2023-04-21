@@ -7,7 +7,7 @@
 #include <vector>
 
 #include <io/mesh_loader.h>
-#include <utilities/mesh_analysis.h>
+#include <utilities/2D_3D_mapping.h>
 #include <utilities/nearest_map.h>
 #include <utilities/sim_structs.h>
 #include <utilities/splay_state.h>
