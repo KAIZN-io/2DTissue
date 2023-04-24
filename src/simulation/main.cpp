@@ -39,7 +39,6 @@
 #include <utilities/dye_particle.h>
 #include <utilities/distance.h>
 #include <utilities/init_particle.h>
-#include <utilities/julia_handler.h>
 #include <utilities/matrix_algebra.h>
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/sim_structs.h>
@@ -118,22 +117,27 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Simulate the flight of the particle
     auto [r_new, r_dot, dist_length] = simulate_flight(r, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, dt);
 
+    // Find the particles which landed inside the mesh
     std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_new);
+    // Find the particles which landed outside the mesh
     std::vector<int> outside_uv_ids = set_difference(num_part, inside_uv_ids);
 
     // Specify the file path of the 3D model you want to load
     Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
 
-    // Get the mesh from the dictionary
+    // Get the original mesh from the dictionary
     auto [halfedges_uv, h_v_mapping] = get_mesh_data(vertices_2DTissue_map, 0);
 
-    // Find the new 3D vertex ids
+    // Find the new suggested 3D vertex ids, even if they are outside the 2D mesh
     Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new, halfedges_uv, h_v_mapping);
 
+    // Update our struct for this time step for the particles which landed Inside the mesh
     std::vector<VertexData> vertex_data = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids, 0);
 
+    // Check and process invalid particles, which landed Outside the mesh
     auto vertices_next_id = find_next_position(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
 
+    // Update the data for the previous particles which landed Outside
     for (int i : outside_uv_ids) {
         std::vector<int64_t> single_vertex_next_id = {vertices_next_id[i]};
         std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(single_vertex_next_id, h_v_mapping);
@@ -142,11 +146,19 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
         r_new.row(i) = r_new_temp_single_row.row(0);
     }
 
+    // Check if we lost particles
     if (find_inside_uv_vertices_id(r_new).size() != num_part) {
         throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
     }
 
-    // Dye the particles based on distance
+    // Check if there are invalid values like NaN or Inf in the output
+    if (checkForInvalidValues(r_new)) {
+        std::cout << "Invalid values found in r: " << std::endl;
+        std::cout << r_new << std::endl;
+        std::exit(1);  // stop script execution
+    }
+
+    // Dye the particles based on their distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
     // Calculate the particle vectors
@@ -154,12 +166,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 
     // Calculate the output vector v_order
     calculate_order_parameter(v_order, r, r_dot, tt);
-
-    if (checkForInvalidValues(r_new)) {
-        std::cout << "Invalid values found in r: " << std::endl;
-        std::cout << r_new << std::endl;
-        std::exit(1);  // stop script execution
-    }
 
     return std::make_tuple(r_new, r_dot, dist_length, ntest, nr_dot, particles_color);
 }
@@ -200,6 +206,7 @@ int main()
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
+    // Prefill the vertices_2DTissue_map
     auto [splay_state_coord, splay_state_halfedges] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
     auto splay_state_vertices = get_vertice_id(splay_state_coord, halfedge_uv, h_v_mapping_vector);
 
@@ -215,6 +222,7 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
 
+    // Start the simulation
     std::clock_t start = std::clock();
 
     Eigen::VectorXd v_order(num_frames);
