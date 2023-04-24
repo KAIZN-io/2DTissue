@@ -19,6 +19,7 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 #include <fstream>
 #include <vector>
 
+#include <utilities/paths_lib.h>
 #include <utilities/distance.h>
 
 using Kernel = CGAL::Simple_cartesian<double>;
@@ -32,8 +33,8 @@ using Heat_method_idt = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<T
 using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh>;
 
 
-std::vector<double> geo_distance(int32_t start_node){
-    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off"));
+std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node){
+    std::ifstream filename(CGAL::data_file_path(mesh_path));
     Triangle_mesh tm;
     filename >> tm;
 
@@ -62,19 +63,23 @@ atomic variable to keep track of the current index of the vector of distances, a
 different index until all the distances have been added to the distance matrix.
 */
 void fill_distance_matrix(
+    const std::string mesh_path,
     Eigen::MatrixXd &distance_matrix,
     int closest_vertice
 ){
     if (distance_matrix.row(closest_vertice).head(2).isZero()) {
         // get the distance of all vertices to all other vertices
-        std::vector<double> vertices_3D_distance_map = geo_distance(closest_vertice);
+        std::vector<double> vertices_3D_distance_map = geo_distance(mesh_path, closest_vertice);
         distance_matrix.row(closest_vertice) = Eigen::Map<Eigen::VectorXd>(vertices_3D_distance_map.data(), vertices_3D_distance_map.size());
     }
 }
 
 
 int get_all_distances(){
-    std::ifstream filename(CGAL::data_file_path("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off"));
+    auto mesh_path = get_full_path("2DTissue/meshes/ellipsoid_x4.off");
+    std::cout << mesh_path << std::endl;
+
+    std::ifstream filename(CGAL::data_file_path(mesh_path));
     Triangle_mesh tm;
     filename >> tm;
 
@@ -83,14 +88,19 @@ int get_all_distances(){
     // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
     // loop over all vertices and fill the distance matrix
     for (auto vi = vertices(tm).first; vi != vertices(tm).second; ++vi) {
-        fill_distance_matrix(distance_matrix_v, *vi);
+        fill_distance_matrix(mesh_path, distance_matrix_v, *vi);
     }
 
     // save the distance matrix to a csv file using comma as delimiter
     const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-    std::ofstream file("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
+
+    std::cout << "Saving distance matrix to file..." << std::endl;
+    std::string repo_root_str2 = get_repo_root();
+
+    std::ofstream file("/Users/janpiotraschke/git_repos/2DTissue/meshes/src/data/ellipsoid_x4_distance_matrix_static.csv");
     file << distance_matrix_v.format(CSVFormat);
     file.close();
+    std::cout << "saved" << std::endl;
 
     return 0;
 }
