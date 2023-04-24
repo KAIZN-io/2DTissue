@@ -54,5 +54,6 @@ void init_particle_position(
         n.row(i) << dis(gen), dis(gen), dis(gen);
     }
 
+    n.col(2).setZero();
     r.col(2).setZero();
 }

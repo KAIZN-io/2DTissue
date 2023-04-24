@@ -103,6 +103,8 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
 
     // Velocity of each particle
+    // 1. Every particle moves with a constant velocity v0 in the direction of the normal vector n
+    // 2. Some particles are influenced by the force F_track
     Eigen::MatrixXd r_dot = v0 * n + μ * F_track;
     r_dot.col(2).setZero();
 

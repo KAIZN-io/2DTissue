@@ -88,7 +88,6 @@ add_library(particle_simulation_lib STATIC
     src/simulation/particle_simulation/motion.cpp
     src/simulation/particle_simulation/forces.cpp
     src/simulation/particle_simulation/particle_vector.cpp
-    src/simulation/particle_simulation/process_invalid_particle.cpp
 )
 target_include_directories(particle_simulation_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost)
@@ -108,6 +107,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/2D_surface.cpp
     src/simulation/utilities/validity_check.cpp
     src/simulation/utilities/dye_particle.cpp
+    src/simulation/utilities/process_invalid_particle.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl ${OpenCV_LIBS})

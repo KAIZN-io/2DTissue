@@ -54,6 +54,7 @@ function vec_of_vec_to_array(V)
     reduce(vcat,transpose.(V))
 end
 
+num_part = 1999
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_loaded_uv = FileIO.load("meshes/Ellipsoid_uv.off")  # 3D mesh
@@ -62,8 +63,9 @@ vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # 
 halfedges_uv = CSV.read("halfedges_uv.csv", DataFrame; header=false) |> Matrix
 halfedge_vertices_mapping = CSV.read("halfedge_vertices_mapping.csv", DataFrame; header=false) |> Matrix
 
-observe_r = Makie.Observable(fill(Point3f0(NaN), 1999))
-observe_r_3D =  Makie.Observable(fill(Point3f0(NaN), 1999))
+observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))
+observe_r_3D =  Makie.Observable(fill(Point3f0(NaN), num_part))
+observe_n = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized orientation of particles
 
 
 figure = GLMakie.Figure(resolution=(2100, 2400))
@@ -82,13 +84,16 @@ ax3.ylabel = "v"
 
 mesh!(ax3, mesh_loaded_uv, color = :black)
 wireframe!(ax3, mesh_loaded_uv, color=(:white, 0.1), linewidth=4, transparency=true)  # only for the asthetic
+arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
 
 meshscatter!(ax1, observe_r_3D, color = :red, markersize = 0.08)
 meshscatter!(ax3, observe_r, color = :red, markersize = 0.008)
 
 record(figure, "assets/confined_active_particles.mp4", 1:14; framerate=6) do tt
     r = read_data("data", "r_data_$(tt).csv")
-    vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
-    observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
+    n = read_data("data", "n_data_$(tt).csv")
+    # vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+    # observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
     observe_r[] = array_to_vec_of_vec(r)
+    observe_n[] = array_to_vec_of_vec(n)  # normalized orientation of particles
 end

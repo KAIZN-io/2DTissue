@@ -33,7 +33,6 @@
 
 #include <particle_simulation/motion.h>
 #include <particle_simulation/particle_vector.h>
-#include <particle_simulation/process_invalid_particle.h>
 
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
@@ -47,6 +46,7 @@
 #include <utilities/boundary_check.h>
 #include <utilities/2D_surface.h>
 #include <utilities/validity_check.h>
+#include <utilities/process_invalid_particle.h>
 
 // CGAL type aliases
 using Kernel = CGAL::Simple_cartesian<double>;
@@ -236,8 +236,10 @@ int main()
         std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
         vertices_3D_active = new_vertices_3D_active;
 
-        std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
-        save_matrix_to_csv(r, file_name);
+        // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
+        // save_matrix_to_csv(r, file_name);
+        // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";
+        // save_matrix_to_csv(n, file_name_n);
     }
     std::cout << "Order parameter: " << v_order << std::endl;
 
