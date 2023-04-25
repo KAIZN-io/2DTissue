@@ -163,7 +163,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 
     // Calculate the particle vectors
     auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n, dt);
-
+    ntest = n;
     // Calculate the output vector v_order
     calculate_order_parameter(v_order, r, r_dot, tt);
 
@@ -195,7 +195,7 @@ int main()
     Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
     Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
     Eigen::MatrixXd r(num_part, 3);
-    Eigen::MatrixXd n(num_part, 3);
+    Eigen::MatrixXd n(num_part, 1);  // degree based vector
 
     vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping_vector};
 
@@ -236,10 +236,11 @@ int main()
         std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
         vertices_3D_active = new_vertices_3D_active;
 
-        // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
-        // save_matrix_to_csv(r, file_name);
+        std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
+        save_matrix_to_csv(r, file_name);
         // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";
-        // save_matrix_to_csv(n, file_name_n);
+        // Eigen::MatrixXi n_int = n.cast<int>();
+        // save_matrix_to_csv(n_int, file_name_n);
     }
     std::cout << "Order parameter: " << v_order << std::endl;
 

@@ -16,7 +16,7 @@ Visceck-type n correction adapted from "Phys. Rev. E 74, 061908"
 */
 Eigen::MatrixXd correct_n(
     const Eigen::MatrixXd& r_dot,
-    const Eigen::MatrixXd& n,
+    const Eigen::MatrixXd n,
     double τ,
     double dt
 ){
@@ -36,7 +36,7 @@ Eigen::MatrixXd correct_n(
 // TODO: dies könnte vlt nicht bei 2D gelten
 std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
     Eigen::MatrixXd &r_dot,
-    Eigen::MatrixXd &n,
+    Eigen::MatrixXd n,
     double dt
 ){
     // std::cout << "r_dot: " << r_dot << std::endl;
@@ -51,3 +51,44 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
 
     return std::pair(n, nr_dot);
 }
+
+
+// #include <iostream>
+// #include <Eigen/Dense>
+
+// int main() {
+//     using namespace Eigen;
+
+//     // Assuming 'n', 'r_dot', 'tau', and 'dt' matrices are initialized
+//     // Replace these with the actual sizes and values for your use case
+//     int rows = 4; // Replace with the actual number of rows
+//     int cols = 3; // Replace with the actual number of columns
+
+//     // Example matrices
+//     MatrixXd n(rows, cols);
+//     MatrixXd r_dot(rows, cols);
+//     double tau = 0.1; // Replace with the actual value
+//     double dt = 0.2; // Replace with the actual value
+
+//     // Viscek-type n correction adapted from "Phys. Rev. E 74, 061908"
+//     MatrixXd ncross(rows, cols);
+//     ncross.col(0) = n.col(1).cwiseProduct(r_dot.col(2)) - n.col(2).cwiseProduct(r_dot.col(1));
+//     ncross.col(1) = -(n.col(0).cwiseProduct(r_dot.col(2)) - n.col(2).cwiseProduct(r_dot.col(0)));
+//     ncross.col(2) = n.col(0).cwiseProduct(r_dot.col(1)) - n.col(1).cwiseProduct(r_dot.col(0));
+
+//     ncross = ncross.array() / (r_dot.rowwise().squaredNorm().array().sqrt().replicate(1, cols).array());
+
+//     MatrixXd n_cross_correction = (1.0 / tau) * ncross * dt;
+
+//     MatrixXd new_n(rows, cols);
+//     new_n.col(0) = n.col(1).cwiseProduct(n_cross_correction.col(2)) - n.col(2).cwiseProduct(n_cross_correction.col(1));
+//     new_n.col(1) = -(n.col(0).cwiseProduct(n_cross_correction.col(2)) - n.col(2).cwiseProduct(n_cross_correction.col(0)));
+//     new_n.col(2) = n.col(0).cwiseProduct(n_cross_correction.col(1)) - n.col(1).cwiseProduct(n_cross_correction.col(0));
+
+//     n = new_n.array() / (new_n.rowwise().squaredNorm().array().sqrt().replicate(1, cols).array());
+
+//     // 'n' now contains the corrected values
+//     std::cout << "Corrected n matrix:\n" << n << std::endl;
+
+//     return 0;
+// }
