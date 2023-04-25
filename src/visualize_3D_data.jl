@@ -54,18 +54,17 @@ function vec_of_vec_to_array(V)
     reduce(vcat,transpose.(V))
 end
 
-num_part = 1999
+num_part = 1199
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_loaded_uv = FileIO.load("meshes/Ellipsoid_uv.off")  # 3D mesh
 vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
 
-halfedges_uv = CSV.read("halfedges_uv.csv", DataFrame; header=false) |> Matrix
-halfedge_vertices_mapping = CSV.read("halfedge_vertices_mapping.csv", DataFrame; header=false) |> Matrix
+halfedges_uv = CSV.read("halfedge_uv.csv", DataFrame; header=false) |> Matrix
+halfedge_vertices_mapping = CSV.read("h_v_mapping_vector.csv", DataFrame; header=false) |> Matrix
 
 observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))
 observe_r_3D =  Makie.Observable(fill(Point3f0(NaN), num_part))
-observe_n = Makie.Observable(fill(Point3f0(NaN), num_part))  # normalized orientation of particles
 
 
 figure = GLMakie.Figure(resolution=(2100, 2400))
@@ -82,18 +81,36 @@ ax3.title = "UV-Plot"
 ax3.xlabel = "u"
 ax3.ylabel = "v"
 
-mesh!(ax3, mesh_loaded_uv, color = :black)
-wireframe!(ax3, mesh_loaded_uv, color=(:white, 0.1), linewidth=4, transparency=true)  # only for the asthetic
-arrows!(ax3, observe_r, observe_n, arrowsize = 0.01, linecolor = (:black, 0.7), linewidth = 0.02, lengthscale = scale)
+mesh!(ax3, mesh_loaded_uv, color = :white)
+# wireframe!(ax3, mesh_loaded_uv, color=(:white, 0.1), linewidth=4, transparency=true)  # only for the asthetic
 
 meshscatter!(ax1, observe_r_3D, color = :red, markersize = 0.08)
-meshscatter!(ax3, observe_r, color = :red, markersize = 0.008)
+meshscatter!(ax3, observe_r, color = :blue, markersize = 0.008)
 
-record(figure, "assets/confined_active_particles.mp4", 1:14; framerate=6) do tt
+record(figure, "assets/confined_active_particles.mp4", 1:100; framerate=6) do tt
     r = read_data("data", "r_data_$(tt).csv")
-    n = read_data("data", "n_data_$(tt).csv")
+    # n = read_data("data", "n_data_$(tt).csv")
+
+    # n_vectors = size(r, 1)
+    # end_points = zeros(n_vectors, 3) # 1199 x 3 matrix for end points
+    # length = 0.01 # You can adjust this value
+
+    # for i in 1:n_vectors
+    #     end_points[i, :] = [
+    #         r[i, 1] + length * cosd(n[i]),
+    #         r[i, 2] + length * sind(n[i]),
+    #         0
+    #     ]
+    # end
+
     # vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
     # observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
+    # start_points = [Point3f0(r[i, 1:3]) for i in 1:4]
+    # end_points_vec = [Point3f0(end_points[i, :]) for i in 1:4]
+
+    # ! BUG: The arrows are unlogicly plotted. They almost point to to top right even if the end points are in the bottom left.
+    # ! According to the internet this is a know bug in Makie for 3D arrows ...
+    # -> https://discourse.julialang.org/t/glmakie-length-of-the-arrows/80327/2 
+    # arrows!(ax3, start_points, end_points_vec, arrowsize = 0.01, linecolor = (:red, 0.7), linewidth = 0.01, lengthscale = 0.03)
     observe_r[] = array_to_vec_of_vec(r)
-    observe_n[] = array_to_vec_of_vec(n)  # normalized orientation of particles
 end
