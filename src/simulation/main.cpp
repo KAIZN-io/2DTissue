@@ -235,8 +235,8 @@ int main()
         std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
         vertices_3D_active = new_vertices_3D_active;
 
-        std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
-        save_matrix_to_csv(r, file_name);
+        // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
+        // save_matrix_to_csv(r, file_name);
         // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";
         // Eigen::MatrixXi n_int = n.cast<int>();
         // save_matrix_to_csv(n_int, file_name_n);
