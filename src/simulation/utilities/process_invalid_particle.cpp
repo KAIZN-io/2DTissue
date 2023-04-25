@@ -18,7 +18,7 @@
 #include <utilities/validity_check.h>
 
 #include <particle_simulation/motion.h>
-#include <particle_simulation/process_invalid_particle.h>
+#include <utilities/process_invalid_particle.h>
 
 
 void process_invalid_particle(

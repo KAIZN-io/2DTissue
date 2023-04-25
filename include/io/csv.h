@@ -30,7 +30,8 @@ M load_csv(const std::string &path) {
 }
 
 
-void save_matrix_to_csv(const Eigen::MatrixXd& matrix, const std::string& file_name) {
+template <typename MatrixType>
+void save_matrix_to_csv(const MatrixType& matrix, const std::string& file_name) {
     std::ofstream file(file_name);
 
     if (!file.is_open()) {

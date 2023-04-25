@@ -40,6 +40,7 @@ void init_particle_position(
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(-1.0, 1.0);
     std::uniform_int_distribution<> dis_face(0, faces_length - 1);
+    std::uniform_int_distribution<> dis_angle(0, 359);
 
     for (int i = 0; i < num_part; ++i) {
         int random_face = dis_face(gen);
@@ -51,7 +52,7 @@ void init_particle_position(
         Eigen::Vector3i r_face_uv = faces_uv.row(random_face);
         r.row(i) = get_face_gravity_center_coord(halfedges_uv, r_face_uv);
 
-        n.row(i) << dis(gen), dis(gen), dis(gen);
+        n.row(i) << dis_angle(gen);
     }
 
     r.col(2).setZero();
