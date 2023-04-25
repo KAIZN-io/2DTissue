@@ -173,7 +173,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 
 int main()
 {
-    // For testing purposes
     auto v0 = 0.1;
     auto k = 10;
     auto k_next = 10;
