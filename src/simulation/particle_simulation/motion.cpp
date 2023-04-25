@@ -5,7 +5,9 @@
 
 #include <tuple>
 #include <vector>
+#include <iostream>
 #include <Eigen/Dense>
+#include <random>
 
 #include <particle_simulation/forces.h>
 #include <particle_simulation/motion.h>
@@ -81,6 +83,65 @@ Eigen::MatrixXd get_distances_between_particles(
 }
 
 
+/*
+{\displaystyle \Theta _{i}(t+\Delta t)=\langle \Theta _{j}\rangle _{|r_{i}-r_{j}|<r}+\eta _{i}(t)}
+
+At each time step, each particle aligns with its neighbours within a given distance with an uncertainity due
+to a noise.
+*/
+Eigen::MatrixXd calculate_average_n_within_distance(
+    const std::vector<Eigen::MatrixXd> dist_vect,
+    const Eigen::MatrixXd dist_length,
+    Eigen::MatrixXd& n,
+    double σ
+){
+    // Get the number of particles
+    int num_part = dist_vect[0].rows();
+
+    // Initialize an Eigen::MatrixXd to store average n values
+    Eigen::MatrixXd avg_n(num_part, 3);
+    avg_n.setZero();
+
+    // Loop over all particles
+    for (int i = 0; i < num_part; i++) {
+        // Initialize a vector to accumulate n values and a counter for the number of valid pairs
+        Eigen::Vector3d sum_n(0, 0, 0);
+        int count = 0;
+
+        // Loop over all other particles
+        for (int j = 0; j < num_part; j++) {
+
+            // Distance between particles A and B
+            double dist = dist_length(i, j);
+
+            // Only consider particles within the specified distance
+            if (dist < 2 * σ) {
+                // Add the n vector of particle j to the sum
+                sum_n += n.row(j);
+                count++;
+            }
+        }
+
+        // Calculate the average n vector for particle i
+        avg_n.row(i) = sum_n / count;
+
+        // Add random noise to the average n
+        Eigen::MatrixXd noise = Eigen::MatrixXd::Random(1, 3).cwiseAbs();
+        Eigen::MatrixXd range(1, 3);
+        range << 0.099, 0.099, 0.099; // Set the range (0.1 - 0.001)
+        noise = (noise.cwiseProduct(range)).array() + 0.001;
+
+        avg_n.row(i) += noise.row(0);
+    }
+
+    // set third column to zero because we simulate in 2D
+    avg_n.col(2).setZero();
+
+    n = avg_n;
+    return avg_n;
+}
+
+
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::MatrixXd& r,
     Eigen::MatrixXd& n,
@@ -102,6 +163,11 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     // Calculate force between particles
     Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
 
+    // std::cout << "dist length: " << dist_length << "\n";
+    // Calculate the average for n for all particle pairs which are within dist >= 2 * σ 
+    calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
+
+    // std::cout << "n: " << n << "\n";
     // Velocity of each particle
     // 1. Every particle moves with a constant velocity v0 in the direction of the normal vector n
     // 2. Some particles are influenced by the force F_track
