@@ -225,8 +225,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
     Eigen::VectorXd abs_F = F_track.rowwise().norm();
 
-    // Calculate the average for n for all particle pairs which are within dist >= 2 * σ 
-    calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
     Eigen::MatrixXd n_vec = angles_to_unit_vectors(n);
 
     // Velocity of each particle
@@ -234,6 +232,8 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     // 2. Some particles are influenced by the force F_track
     abs_F = abs_F.array() + v0;
     
+    // ? Should I use the code in particle_vector.cpp for n_vec -> "a small correction of n"
+
     // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
     Eigen::MatrixXd r_dot = n_vec.array().colwise() * abs_F.array();
     // Eigen::MatrixXd r_dot = v0 * n_vec + μ * F_track;
@@ -243,6 +243,9 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     // Calculate the new position of each particle
     Eigen::MatrixXd r_new = r + r_dot * dt;
     r_new.col(2).setZero();
+
+    // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
+    calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
     return std::make_tuple(r_new, r_dot, dist_length);
 }
