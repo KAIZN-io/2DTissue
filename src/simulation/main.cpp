@@ -162,7 +162,9 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
     // Calculate the particle vectors
+    // TODO: remove ntest
     auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n, dt);
+
     ntest = n;
     // Calculate the output vector v_order
     calculate_order_parameter(v_order, r, r_dot, tt);
