@@ -12,7 +12,7 @@
 
 /*
 
-Visceck-type n correction adapted from "Phys. Rev. E 74, 061908"
+Vicsek-type n correction adapted from "Phys. Rev. E 74, 061908"
 */
 Eigen::MatrixXd correct_n(
     const Eigen::MatrixXd& r_dot,

@@ -136,11 +136,15 @@ Eigen::MatrixXd calculate_average_n_within_distance(
     Eigen::MatrixXd avg_n(num_part, 1);
     avg_n.setZero();
 
+     // Set up the random number generation for noise
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dist_noise(0.01, 0.99);
+
     // Loop over all particles
     for (int i = 0; i < num_part; i++) {
         // Initialize a vector to accumulate angle values and a counter for the number of valid pairs
         std::vector<double> angles;
-        // Eigen::Vector3d sum_n(0, 0, 0);
         int count = 0;
 
         // Loop over all other particles
@@ -153,28 +157,17 @@ Eigen::MatrixXd calculate_average_n_within_distance(
             if (dist < 2 * σ) {
                 // Add the angle of particle j to the angles vector
                 angles.push_back(n(j, 0));
-
-                // // Add the n vector of particle j to the sum
-                // sum_n += n.row(j);
                 count++;
             }
         }
 
         // Calculate the average angle for particle i
         avg_n(i, 0) = mean_unit_circle_vector_angle_degrees(angles);
-        // avg_n.row(i) = sum_n / count;
 
-        // // Add random noise to the average angle
-        // double noise = std::abs(Eigen::MatrixXd::Random(1, 1)(0, 0)) * 0.099 + 0.001; // Range: [0.001, 0.1)
-        // avg_n(i, 0) += noise;
+        // Add noise to the average angle
+        avg_n(i, 0) += dist_noise(gen);
 
-        // // Add random noise to the average n
-        // Eigen::MatrixXd noise = Eigen::MatrixXd::Random(1, 3).cwiseAbs();
-        // Eigen::MatrixXd range(1, 3);
-        // range << 0.099, 0.099, 0.099; // Set the range (0.1 - 0.001)
-        // noise = (noise.cwiseProduct(range)).array() + 0.001;
-
-        // avg_n.row(i) += noise.row(0);
+        // TODO: nochmal kontrollieren, ob der Winkel hier zwischen 0 and 360 Grad normiert sein müsste, weil er sonst vlt NaN Werte erzeugt
     }
 
     n = avg_n;
@@ -225,8 +218,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
     Eigen::VectorXd abs_F = F_track.rowwise().norm();
 
-    // Calculate the average for n for all particle pairs which are within dist >= 2 * σ 
-    calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
     Eigen::MatrixXd n_vec = angles_to_unit_vectors(n);
 
     // Velocity of each particle
@@ -234,6 +225,8 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     // 2. Some particles are influenced by the force F_track
     abs_F = abs_F.array() + v0;
     
+    // ? Should I use the code in particle_vector.cpp for n_vec -> "a small correction of n"
+
     // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
     Eigen::MatrixXd r_dot = n_vec.array().colwise() * abs_F.array();
     // Eigen::MatrixXd r_dot = v0 * n_vec + μ * F_track;
@@ -243,6 +236,9 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     // Calculate the new position of each particle
     Eigen::MatrixXd r_new = r + r_dot * dt;
     r_new.col(2).setZero();
+
+    // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
+    calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
     return std::make_tuple(r_new, r_dot, dist_length);
 }
