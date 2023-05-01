@@ -35,7 +35,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 find_package(CGAL 5.5.1 REQUIRED)
 find_package(Boost 1.80.0 REQUIRED)
 find_package(Eigen3 3.4.0 REQUIRED)
-find_package(JlCxx REQUIRED)
 find_package(OpenMP)
 find_package(OpenCV REQUIRED)
 
@@ -50,12 +49,6 @@ if(OpenMP_CXX_FOUND)
 else()
   message(WARNING "OpenMP not found. Some parts of the project might run slower without OpenMP support.")
 endif()
-
-# Get JlCxx location and set install RPATH
-get_target_property(JlCxx_location JlCxx::cxxwrap_julia LOCATION)
-get_filename_component(JlCxx_location ${JlCxx_location} DIRECTORY)
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib;${JlCxx_location}")
-message(STATUS "Found JlCxx at ${JlCxx_location}")
 
 # Include directories for local header files
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -97,7 +90,6 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/nearest_map.cpp
     src/simulation/utilities/distance.cpp
     src/simulation/utilities/init_particle.cpp
-    src/simulation/utilities/julia_handler.cpp
     src/simulation/utilities/matrix_algebra.cpp
     src/simulation/utilities/2D_3D_mapping.cpp
     src/simulation/utilities/sim_structs.cpp
@@ -111,10 +103,10 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/paths_lib.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl ${OpenCV_LIBS})
+target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost ${OpenCV_LIBS})
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support JlCxx::cxxwrap_julia JlCxx::cxxwrap_julia_stl assimp)
+target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
 
 # Install the target
 install(TARGETS main

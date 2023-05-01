@@ -44,10 +44,6 @@ CMakeCache.txt
 cmake_install.cmake
 archive/
 
-# libcxx
-libcxxwrap-julia
-libcxxwrap-julia-build
-
 # uv meshes
 *_uv*.off
 
