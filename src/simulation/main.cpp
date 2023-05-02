@@ -94,7 +94,7 @@ std::vector<int64_t> find_next_position(
 }
 
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd> perform_particle_simulation(
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd> perform_particle_simulation(
     Eigen::MatrixXd& r,
     Eigen::MatrixXd& n,
     std::vector<int>& vertices_3D_active,
@@ -161,15 +161,10 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Dye the particles based on their distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
-    // Calculate the particle vectors
-    // TODO: remove ntest
-    auto [ntest, nr_dot] = calculate_particle_vectors(r_dot, n, dt);
-
-    ntest = n;
     // Calculate the output vector v_order
     calculate_order_parameter(v_order, r, r_dot, tt);
 
-    return std::make_tuple(r_new, r_dot, dist_length, ntest, nr_dot, particles_color);
+    return std::make_tuple(r_new, r_dot, dist_length, n, particles_color);
 }
 
 
@@ -229,9 +224,9 @@ int main()
     Eigen::VectorXd v_order(num_frames);
 
     for (int tt = 1; tt <= num_frames; ++tt) {
-        auto [r_new, r_dot, dist_length, ntest, nr_dot, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
+        auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
         r = r_new;
-        n = ntest;
+        n = n_new;
 
         auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
         std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
