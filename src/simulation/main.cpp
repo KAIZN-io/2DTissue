@@ -161,7 +161,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Dye the particles based on their distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
-    // Calculate the output vector v_order
+    // Calculate the order parameter
     calculate_order_parameter(v_order, r, r_dot, tt);
 
     return std::make_tuple(r_new, r_dot, dist_length, n, particles_color);
@@ -224,14 +224,17 @@ int main()
     Eigen::VectorXd v_order(num_frames);
 
     for (int tt = 1; tt <= num_frames; ++tt) {
+        // Simulate the particles on the 2D surface
         auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
         r = r_new;
         n = n_new;
 
+        // Map the 2D vertices to their 3D vertices
         auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
         std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
         vertices_3D_active = new_vertices_3D_active;
 
+        // Save the data
         // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
         // save_matrix_to_csv(r, file_name);
         // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";

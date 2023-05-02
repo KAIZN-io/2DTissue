@@ -229,8 +229,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
 
     // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
     Eigen::MatrixXd r_dot = n_vec.array().colwise() * abs_F.array();
-    // Eigen::MatrixXd r_dot = v0 * n_vec + μ * F_track;
-    // Eigen::MatrixXd r_dot = v0 * n_vec;
     r_dot.col(2).setZero();
 
     // Calculate the new position of each particle
