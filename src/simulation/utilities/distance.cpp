@@ -104,20 +104,3 @@ int get_all_distances(){
 
     return 0;
 }
-
-
-// void parallel_fill_distance_matrix(
-//     Eigen::MatrixXd& distance_matrix,
-//     int closest_vertice,
-//     std::vector<double>& vertices_3D_distance_map,
-//     std::atomic<int>& current_index
-// ){
-//     while (true) {
-//         int i = current_index.fetch_add(1);
-//         if (i >= vertices_3D_distance_map.size()) {
-//             break;
-//         }
-
-//         distance_matrix.coeffRef(closest_vertice, i) = vertices_3D_distance_map[i];
-//     }
-// }
