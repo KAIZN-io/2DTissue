@@ -179,7 +179,7 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_part = 200;
+    // int num_part = 200;
     int num_frames = 10;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
@@ -190,15 +190,8 @@ int main()
 
     Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
     Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
-    Eigen::MatrixXd r(num_part, 3);
-    Eigen::MatrixXd n(num_part, 1);  // degree based vector
 
     vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping_vector};
-
-    init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
-
-    Eigen::VectorXd vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
-    std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
@@ -218,34 +211,59 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
 
-    // Start the simulation
-    std::clock_t start = std::clock();
+    for (int num_part = 100; num_part <= 200; num_part += 100) {
 
-    Eigen::VectorXd v_order(num_frames);
+        // Repeat the loop 5 times for each num_part
+        for (int repeat = 0; repeat < 1; ++repeat) {
 
-    for (int tt = 1; tt <= num_frames; ++tt) {
-        // Simulate the particles on the 2D surface
-        auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
-        r = r_new;
-        n = n_new;
+            // Initialize the particles in 2D
+            Eigen::MatrixXd r(num_part, 3);
+            Eigen::MatrixXd n(num_part, 1);
+            init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
 
-        // Map the 2D vertices to their 3D vertices
-        auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
-        std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
-        vertices_3D_active = new_vertices_3D_active;
+            // Map the 2D vertices to their 3D vertices
+            Eigen::VectorXd vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
+            std::vector<int> vertices_3D_active(vertices_3D_active_eigen.data(), vertices_3D_active_eigen.data() + vertices_3D_active_eigen.size());
 
-        // Save the data
-        // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
-        // save_matrix_to_csv(r, file_name);
-        // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";
-        // Eigen::MatrixXi n_int = n.cast<int>();
-        // save_matrix_to_csv(n_int, file_name_n);
+            // Start the simulation
+            std::clock_t start = std::clock();
+
+            Eigen::VectorXd v_order(num_frames);
+
+            for (int tt = 1; tt <= num_frames; ++tt) {
+                // Simulate the particles on the 2D surface
+                auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
+                r = r_new;
+                n = n_new;
+
+                // Map the 2D vertices to their 3D vertices
+                auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
+                std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
+                vertices_3D_active = new_vertices_3D_active;
+
+                // Save the data
+                // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
+                // save_matrix_to_csv(r, file_name, num_part);
+                // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";
+                // Eigen::MatrixXi n_int = n.cast<int>();
+                // save_matrix_to_csv(n_int, file_name_n, num_part);
+            }
+
+            // Create a VectorXd object with size 1 to store the last value of v_order
+            Eigen::VectorXd last_value(1);
+
+            // Copy the last value of v_order into the new vector
+            last_value(0) = v_order(v_order.size() - 1);
+
+            // Save the order parameter
+            std::string file_name = "v_order_data.csv";
+            save_matrix_to_csv(last_value, file_name, num_part);
+
+            std::clock_t end = std::clock();
+            double duration = (end - start) / (double) CLOCKS_PER_SEC;
+            std::cout << "Time taken: " << duration << " seconds" << std::endl;
+        }
     }
-    std::cout << "Order parameter: " << v_order << std::endl;
-
-    std::clock_t end = std::clock();
-    double duration = (end - start) / (double) CLOCKS_PER_SEC;
-    std::cout << "Time taken: " << duration << " seconds" << std::endl;
 
     return 0;
 }

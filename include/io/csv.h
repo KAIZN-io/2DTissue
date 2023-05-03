@@ -31,13 +31,16 @@ M load_csv(const std::string &path) {
 
 
 template <typename MatrixType>
-void save_matrix_to_csv(const MatrixType& matrix, const std::string& file_name) {
-    std::ofstream file(file_name);
+void save_matrix_to_csv(const MatrixType& matrix, const std::string& file_name, int num_particles) {
+    std::ofstream file(file_name, std::ios::app); // Open the file in append mode
 
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << file_name << std::endl;
         return;
     }
+
+    // Write the number of particles first
+    file << num_particles << ",";
 
     for (int i = 0; i < matrix.rows(); ++i) {
         for (int j = 0; j < matrix.cols(); ++j) {
