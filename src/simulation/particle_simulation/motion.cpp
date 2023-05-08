@@ -166,8 +166,6 @@ Eigen::MatrixXd calculate_average_n_within_distance(
 
         // Add noise to the average angle
         avg_n(i, 0) += dist_noise(gen);
-
-        // TODO: nochmal kontrollieren, ob der Winkel hier zwischen 0 and 360 Grad normiert sein müsste, weil er sonst vlt NaN Werte erzeugt
     }
 
     n = avg_n;
