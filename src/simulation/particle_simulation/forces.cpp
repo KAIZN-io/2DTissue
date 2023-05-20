@@ -6,6 +6,7 @@
 #include <vector>
 #include <Eigen/Dense>
 
+#include <particle_simulation/cell_cell_interactions.h>
 #include <particle_simulation/forces.h>
 
 
@@ -45,11 +46,8 @@ Eigen::MatrixXd calculate_forces_between_particles(
             // Eigen::Vector3d for the 3D distance vector
             Eigen::Vector3d dist_v(dist_vect[0](i, j), dist_vect[1](i, j), dist_vect[2](i, j));
 
-            double Fij_rep = (-k * (2 * σ - dist)) / (2 * σ);
-            double Fij_adh = (dist > r_adh) ? 0 : (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
-            double Fij = Fij_rep + Fij_adh;
-
-            F.row(i) += Fij * (dist_v / dist);
+            // Calculate the force between particles A and B
+            F.row(i) += repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
         }
     }
 
