@@ -14,6 +14,7 @@ using LinearAlgebra, SparseArrays
 using CSV
 using DataFrames
 using Tables
+using Colors
 
 GLMakie.activate!()
 GLMakie.set_window_config!(
@@ -54,7 +55,27 @@ function vec_of_vec_to_array(V)
     reduce(vcat,transpose.(V))
 end
 
-num_part = 1199
+function update_colors!(colors, int_matrix)
+    color_mapping = Dict(
+        7 => :green,
+        5 => :red,
+        8 => :purple,
+        9 => :purple
+    )
+
+    for i in 1:num_part
+        color_code = int_matrix[i]
+        if haskey(color_mapping, color_code)
+            colors.val[i] = color_mapping[color_code]
+        else
+            colors.val[i] = :blue
+        end
+    end
+
+    colors[] = colors.val
+end
+
+num_part = 1599
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_loaded_uv = FileIO.load("meshes/Ellipsoid_uv.off")  # 3D mesh
@@ -65,30 +86,58 @@ halfedge_vertices_mapping = CSV.read("h_v_mapping_vector.csv", DataFrame; header
 
 observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))
 observe_r_3D =  Makie.Observable(fill(Point3f0(NaN), num_part))
+observe_colors = Makie.Observable(fill(:blue, num_part))
 
+figure = GLMakie.Figure(resolution=(2600, 2300))
+labelsize = 40
+titlesize = 50
 
-figure = GLMakie.Figure(resolution=(2100, 2400))
-ax1 = Makie.Axis3(figure[1, :]; aspect=(1, 1, 1), perspectiveness=0.5)
+ax1 = Makie.Axis3(figure[1, :]; aspect = :data, perspectiveness=0.5, elevation = 0.1pi, azimuth = 0.35pi)
 ax1.title = "3D-Plot"
+ax1.titlesize = titlesize
+ax1.titlegap = 0
+ax1.xlabel = "X"
+ax1.ylabel = "Y"
+ax1.zlabel = "Z"
+ax1.xlabelsize = titlesize
+ax1.ylabelsize = titlesize
+ax1.zlabelsize = titlesize
+ax1.xticklabelsize = labelsize
+ax1.yticklabelsize = labelsize
+ax1.zticklabelsize = labelsize
+ax1.height = Relative(0.9)
+ax1.xlabeloffset = 100
+ax1.ylabeloffset = 100
+ax1.zlabeloffset = 100
 
-colsize!(figure.layout, 1, Relative(2 / 3))
-
-mesh!(ax1, mesh_loaded, color = :white)
-wireframe!(ax1, mesh_loaded, color=(:white, 0.1), linewidth=2, transparency=true)  # only for the asthetic
-
-ax3 = Makie.Axis(figure[2,:]; aspect=(2))  # NOTE: remove the aspect ratio to dynamically size the plot
+ax3 = Makie.Axis(figure[2,:]; aspect=(1))  # NOTE: remove the aspect ratio to dynamically size the plot
 ax3.title = "UV-Plot"
+ax3.titlesize = titlesize
 ax3.xlabel = "u"
 ax3.ylabel = "v"
+ax3.xlabelsize = titlesize
+ax3.ylabelsize = titlesize
+ax3.xticklabelsize = labelsize
+ax3.yticklabelsize = labelsize
+# ax3.xticklabelrotation = pi/4
 
-mesh!(ax3, mesh_loaded_uv, color = :white)
-# wireframe!(ax3, mesh_loaded_uv, color=(:white, 0.1), linewidth=4, transparency=true)  # only for the asthetic
+rowsize!(figure.layout, 1, Relative(2 / 3))
+rowsize!(figure.layout, 2, Relative(1 / 3))
 
-meshscatter!(ax1, observe_r_3D, color = :red, markersize = 0.08)
-meshscatter!(ax3, observe_r, color = :blue, markersize = 0.008)
+mesh!(ax1, mesh_loaded, color = (parse(Colorant, "#F6F6F6"), 0.5), alpha = 1)
+wireframe!(ax1, mesh_loaded, color=(parse(Colorant, "#000000"), 0.5), linewidth=1)
 
-record(figure, "assets/confined_active_particles.mp4", 1:100; framerate=6) do tt
+meshscatter!(ax3, observe_r, color = observe_colors, markersize = 0.008)
+mesh!(ax3, mesh_loaded_uv, color = (parse(Colorant, "#F6F6F6"), 0.5))
+wireframe!(ax3, mesh_loaded_uv, color=(parse(Colorant, "#000000"), 0.3), linewidth=1)
+
+meshscatter!(ax1, observe_r_3D, color = observe_colors, markersize = 0.08)
+
+
+record(figure, "assets/confined_active_particles.mp4", 1:1; framerate=10) do tt
     r = read_data("data", "r_data_$(tt).csv")
+    color = read_data("data", "color_data_$(tt).csv")
+    update_colors!(observe_colors, color)
     # n = read_data("data", "n_data_$(tt).csv")
 
     # n_vectors = size(r, 1)
@@ -103,8 +152,8 @@ record(figure, "assets/confined_active_particles.mp4", 1:100; framerate=6) do tt
     #     ]
     # end
 
-    # vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
-    # observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
+    vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+    observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
     # start_points = [Point3f0(r[i, 1:3]) for i in 1:4]
     # end_points_vec = [Point3f0(end_points[i, :]) for i in 1:4]
 
@@ -114,3 +163,5 @@ record(figure, "assets/confined_active_particles.mp4", 1:100; framerate=6) do tt
     # arrows!(ax3, start_points, end_points_vec, arrowsize = 0.01, linecolor = (:red, 0.7), linewidth = 0.01, lengthscale = 0.03)
     observe_r[] = array_to_vec_of_vec(r)
 end
+
+# hey 
