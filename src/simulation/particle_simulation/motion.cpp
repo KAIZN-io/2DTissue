@@ -222,8 +222,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     // 1. Every particle moves with a constant velocity v0 in the direction of the normal vector n
     // 2. Some particles are influenced by the force F_track
     abs_F = abs_F.array() + v0;
-    
-    // ? Should I use the code in particle_vector.cpp for n_vec -> "a small correction of n"
 
     // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
     Eigen::MatrixXd r_dot = n_vec.array().colwise() * abs_F.array();

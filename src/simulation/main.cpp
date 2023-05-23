@@ -122,9 +122,6 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Find the particles which landed outside the mesh
     std::vector<int> outside_uv_ids = set_difference(num_part, inside_uv_ids);
 
-    // Specify the file path of the 3D model you want to load
-    Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
-
     // Get the original mesh from the dictionary
     auto [halfedges_uv, h_v_mapping] = get_mesh_data(vertices_2DTissue_map, 0);
 
@@ -170,7 +167,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 
 int main()
 {
-    auto v0 = 0.1;
+    auto v0 = 0.01;
     auto k = 10;
     auto k_next = 10;
     auto v0_next = 0.1;
@@ -179,8 +176,7 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    // int num_part = 200;
-    int num_frames = 10;
+    int num_frames = 1;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -211,7 +207,9 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
 
-    for (int num_part = 100; num_part <= 200; num_part += 100) {
+    Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
+
+    for (int num_part = 40; num_part <= 40; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {
@@ -236,14 +234,21 @@ int main()
                 r = r_new;
                 n = n_new;
 
+                // TODO: implement the correct way to get the 3D vertices coordinates from the 2D particle position coordinates
+                // Get the 3D vertices coordinates from the 2D particle position coordinates
+                // Eigen::MatrixXd r_3D = get_r3d(r, halfedge_uv, h_v_mapping_vector);
+                // Eigen::VectorXd new_vertices_3D_active_eigen_test = get_vertice3D_id(r_3D, vertices_3D);
+
                 // Map the 2D vertices to their 3D vertices
-                auto new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
+                Eigen::VectorXd new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
                 std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
                 vertices_3D_active = new_vertices_3D_active;
 
                 // Save the data
                 // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
                 // save_matrix_to_csv(r, file_name, num_part);
+                // std::string file_name_color = "color_data_" + std::to_string(tt) + ".csv";
+                // save_matrix_to_csv(particles_color, file_name_color, num_part);
                 // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";
                 // Eigen::MatrixXi n_int = n.cast<int>();
                 // save_matrix_to_csv(n_int, file_name_n, num_part);
@@ -255,9 +260,9 @@ int main()
             // Copy the last value of v_order into the new vector
             last_value(0) = v_order(v_order.size() - 1);
 
-            // Save the order parameter
-            std::string file_name = "v_order_data.csv";
-            save_matrix_to_csv(last_value, file_name, num_part);
+            // // Save the order parameter
+            // std::string file_name = "v_order_data.csv";
+            // save_matrix_to_csv(last_value, file_name, num_part);
 
             std::clock_t end = std::clock();
             double duration = (end - start) / (double) CLOCKS_PER_SEC;

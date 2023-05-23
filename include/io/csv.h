@@ -40,7 +40,7 @@ void save_matrix_to_csv(const MatrixType& matrix, const std::string& file_name, 
     }
 
     // Write the number of particles first
-    file << num_particles << ",";
+    // file << num_particles << ",";
 
     for (int i = 0; i < matrix.rows(); ++i) {
         for (int j = 0; j < matrix.cols(); ++j) {

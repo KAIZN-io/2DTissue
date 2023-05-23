@@ -35,8 +35,19 @@ Eigen::Vector3d repulsive_adhesion_motion(
     double k_adh,
     const Eigen::Vector3d& dist_v
 ) {
-    double Fij_rep = (-k * (2 * σ - dist)) / (2 * σ);
-    double Fij_adh = (dist > r_adh) ? 0 : (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
+    double Fij_rep = 0;
+    double Fij_adh = 0;
+
+    if (dist < 2*σ)
+    {
+        Fij_rep = (-k * (2 * σ - dist)) / (2 * σ);
+    }
+
+    if (dist >= 2*σ && dist <= r_adh)
+    {
+        Fij_adh = (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
+    }
+
     double Fij = Fij_rep + Fij_adh;
 
     return Fij * (dist_v / dist);
