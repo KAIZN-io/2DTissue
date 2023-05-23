@@ -75,10 +75,10 @@ function update_colors!(colors, int_matrix)
     colors[] = colors.val
 end
 
-num_part = 1599
+num_part = 799
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
-mesh_loaded_uv = FileIO.load("meshes/Ellipsoid_uv.off")  # 3D mesh
+mesh_loaded_uv = FileIO.load("meshes/Ellipsoid_uv.off")  # 2D mesh
 vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
 
 halfedges_uv = CSV.read("halfedge_uv.csv", DataFrame; header=false) |> Matrix
@@ -88,29 +88,28 @@ observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))
 observe_r_3D =  Makie.Observable(fill(Point3f0(NaN), num_part))
 observe_colors = Makie.Observable(fill(:blue, num_part))
 
-figure = GLMakie.Figure(resolution=(2600, 2300))
+figure = GLMakie.Figure(resolution=(2200, 1000))
 labelsize = 40
-titlesize = 50
+titlesize = 60
 
-ax1 = Makie.Axis3(figure[1, :]; aspect = :data, perspectiveness=0.5, elevation = 0.1pi, azimuth = 0.35pi)
+ax1 = Makie.Axis3(figure[:, 1]; aspect = :data, perspectiveness=0.5, elevation = 0.1pi, azimuth = 0.24pi)
 ax1.title = "3D-Plot"
 ax1.titlesize = titlesize
 ax1.titlegap = 0
-ax1.xlabel = "X"
-ax1.ylabel = "Y"
-ax1.zlabel = "Z"
+ax1.xlabel = "x"
+ax1.ylabel = "y"
+ax1.zlabel = "z"
 ax1.xlabelsize = titlesize
 ax1.ylabelsize = titlesize
 ax1.zlabelsize = titlesize
 ax1.xticklabelsize = labelsize
 ax1.yticklabelsize = labelsize
 ax1.zticklabelsize = labelsize
-ax1.height = Relative(0.9)
-ax1.xlabeloffset = 100
-ax1.ylabeloffset = 100
-ax1.zlabeloffset = 100
+ax1.xlabeloffset = 70
+ax1.ylabeloffset = 70
+ax1.zlabeloffset = 70
 
-ax3 = Makie.Axis(figure[2,:]; aspect=(1))  # NOTE: remove the aspect ratio to dynamically size the plot
+ax3 = Makie.Axis(figure[:, 2]; aspect=(1))  # NOTE: remove the aspect ratio to dynamically size the plot
 ax3.title = "UV-Plot"
 ax3.titlesize = titlesize
 ax3.xlabel = "u"
@@ -121,22 +120,26 @@ ax3.xticklabelsize = labelsize
 ax3.yticklabelsize = labelsize
 # ax3.xticklabelrotation = pi/4
 
-rowsize!(figure.layout, 1, Relative(2 / 3))
-rowsize!(figure.layout, 2, Relative(1 / 3))
+ax1.height = Relative(0.8)
+ax3.height = Relative(0.8)
+
+colsize!(figure.layout, 1, Relative(0.6))
+colsize!(figure.layout, 2, Relative(1 / 3))
 
 mesh!(ax1, mesh_loaded, color = (parse(Colorant, "#F6F6F6"), 0.5), alpha = 1)
 wireframe!(ax1, mesh_loaded, color=(parse(Colorant, "#000000"), 0.5), linewidth=1)
 
-meshscatter!(ax3, observe_r, color = observe_colors, markersize = 0.008)
-mesh!(ax3, mesh_loaded_uv, color = (parse(Colorant, "#F6F6F6"), 0.5))
+meshscatter!(ax3, observe_r, color = observe_colors, markersize = 0.008, alpha = 1)
+mesh!(ax3, mesh_loaded_uv, color = (parse(Colorant, "#FFFFFF"), 0.5))
+
+meshscatter!(ax1, observe_r_3D, color = observe_colors, markersize = 0.14)
 wireframe!(ax3, mesh_loaded_uv, color=(parse(Colorant, "#000000"), 0.3), linewidth=1)
 
-meshscatter!(ax1, observe_r_3D, color = observe_colors, markersize = 0.08)
 
-
-record(figure, "assets/confined_active_particles.mp4", 1:1; framerate=10) do tt
-    r = read_data("data", "r_data_$(tt).csv")
-    color = read_data("data", "color_data_$(tt).csv")
+record(figure, "assets/confined_active_particles.mp4", 1:10; framerate=10) do tt
+    r = read_data("data/data_new", "r_data_$(tt).csv")
+    color = read_data("data/data_new", "color_data_$(tt).csv")
+    # r_3D = read_data("data/data_new", "r_3D_data_$(tt).csv")
     update_colors!(observe_colors, color)
     # n = read_data("data", "n_data_$(tt).csv")
 
@@ -154,6 +157,7 @@ record(figure, "assets/confined_active_particles.mp4", 1:1; framerate=10) do tt
 
     vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
     observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
+    # observe_r_3D[] = array_to_vec_of_vec(r_3D)
     # start_points = [Point3f0(r[i, 1:3]) for i in 1:4]
     # end_points_vec = [Point3f0(end_points[i, :]) for i in 1:4]
 
@@ -163,5 +167,3 @@ record(figure, "assets/confined_active_particles.mp4", 1:1; framerate=10) do tt
     # arrows!(ax3, start_points, end_points_vec, arrowsize = 0.01, linecolor = (:red, 0.7), linewidth = 0.01, lengthscale = 0.03)
     observe_r[] = array_to_vec_of_vec(r)
 end
-
-# hey 
