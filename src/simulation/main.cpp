@@ -176,7 +176,7 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_frames = 1;
+    int num_frames = 10;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -207,9 +207,8 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
 
-    Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
 
-    for (int num_part = 40; num_part <= 40; num_part += 100) {
+    for (int num_part = 100; num_part <= 100; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {
@@ -244,11 +243,15 @@ int main()
                 std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
                 vertices_3D_active = new_vertices_3D_active;
 
+                auto new_3D_points = get_r3d(r, halfedge_uv, h_v_mapping_vector);
+
                 // Save the data
                 // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
                 // save_matrix_to_csv(r, file_name, num_part);
                 // std::string file_name_color = "color_data_" + std::to_string(tt) + ".csv";
                 // save_matrix_to_csv(particles_color, file_name_color, num_part);
+                // std::string file_name_3D = "r_3D_data_" + std::to_string(tt) + ".csv";
+                // save_matrix_to_csv(new_3D_points, file_name_3D, num_part);
                 // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";
                 // Eigen::MatrixXi n_int = n.cast<int>();
                 // save_matrix_to_csv(n_int, file_name_n, num_part);

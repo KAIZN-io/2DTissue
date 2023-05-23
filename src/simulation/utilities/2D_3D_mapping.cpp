@@ -76,66 +76,64 @@ Eigen::VectorXd get_vertice_id(
 }
 
 
-// Eigen::VectorXd calculate_barycentric_coordinates(const std::array<double, 3>& distances) {
-//     // Initialize barycentric coordinates vector
-//     Eigen::VectorXd barycentric_coordinates(3);
+// (2D Coordinates -> 3D Coordinates) mapping
+Eigen::MatrixXd get_r3d(
+    const Eigen::MatrixXd& r,
+    const Eigen::MatrixXd& halfedges_uv,
+    const std::vector<int64_t>& halfedge_vertices_mapping
+){
+    int num_r = r.rows();
+    Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
+    Eigen::MatrixXd vertices_3D_ids(num_r, 3);
+    Eigen::MatrixXd distances_3D(num_r, 3);
 
-//     // Calculate total sum of inverses of distances for normalization
-//     double total_sum = 0;
-//     for (int i = 0; i < 3; i++) {
-//         total_sum += 1 / distances[i];
-//     }
+    for (int i = 0; i < num_r; ++i) {
+        // Use a vector of pairs: distance and index
+        std::vector<std::pair<double, int>> distances(halfedges_uv.rows());
 
-//     // Compute the normalized barycentric coordinates
-//     for (int i = 0; i < 3; i++) {
-//         barycentric_coordinates(i) = (1 / distances[i]) / total_sum;
-//     }
+        // Compute all distances
+        for (int j = 0; j < halfedges_uv.rows(); ++j) {
+            Eigen::VectorXd diff = halfedges_uv.row(j) - r.row(i);
+            distances[j] = {diff.norm(), j};
+        }
 
-//     return barycentric_coordinates;
-// }
+        // Partially sort the distances to find the three smallest
+        std::partial_sort(distances.begin(), distances.begin() + 3, distances.end());
 
+        // Save the vertex IDs and distances of the three closest half-edges
+        for (int j = 0; j < 3; ++j) {
+            vertices_3D_ids(i, j) = halfedge_vertices_mapping[distances[j].second];
+            distances_3D(i, j) = distances[j].first;
+        }
+    }
 
-// // (2D Coordinates -> 3D Coordinates) mapping
-// Eigen::MatrixXd get_r3d(
-//     const Eigen::MatrixXd& r,
-//     const Eigen::MatrixXd& halfedges_uv,
-//     const std::vector<int64_t>& halfedge_vertices_mapping
-// ){
-//     Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
+    // init empty Eigen::MatrixXd for the new points
+    Eigen::MatrixXd new_3D_points(num_r, 3);
 
-//     int num_r = r.rows();
-//     Eigen::MatrixXd r3d(num_r, 3);  // Initialize r3d
+    // iterate over the rows of vertices_3D_active_eigen_test and access all 3 column values by asigning them to new variables
+    for (int i = 0; i < vertices_3D_ids.rows(); ++i) {
+        // assign the distances to the weights
+        double w1 = distances_3D(i, 0);
+        double w2 = distances_3D(i, 1);
+        double w3 = distances_3D(i, 2);
 
-//     for (int i = 0; i < num_r; ++i) {
-//         std::array<double, 3> min_distances = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
-//         std::array<int64_t, 3> min_indices = {-1, -1, -1};
+        int v1 = vertices_3D_ids(i, 0);
+        int v2 = vertices_3D_ids(i, 1);
+        int v3 = vertices_3D_ids(i, 2);
 
-//         for (int j = 0; j < halfedges_uv.rows(); ++j) {
-//             Eigen::VectorXd diff = halfedges_uv.row(j) - r.row(i);
-//             double distance = diff.norm();
+        Eigen::Vector3d v1_3D = vertices_3D.row(v1);
+        Eigen::Vector3d v2_3D = vertices_3D.row(v2);
+        Eigen::Vector3d v3_3D = vertices_3D.row(v3);
 
-//             // update closest three distances
-//             for (int k = 0; k < 3; ++k) {
-//                 if (distance < min_distances[k]) {
-//                     min_distances[k] = distance;
-//                     min_indices[k] = j;
-//                     break;
-//                 }
-//             }
-//         }
+        // Calculate the new point
+        Eigen::Vector3d newPoint = (w1 * v1_3D + w2 * v2_3D + w3 * v3_3D) / (w1 + w2 + w3);
 
-//         // Calculate barycentric coordinates
-//         Eigen::VectorXd barycentric_coordinates = calculate_barycentric_coordinates(min_distances);
+        // Assign the new point to the new_points matrix
+        new_3D_points.row(i) = newPoint;
+    }
 
-//         // Compute the corresponding 3D position
-//         for (int k = 0; k < 3; ++k) {
-//             int64_t vertex_id = halfedge_vertices_mapping[min_indices[k]];
-//             r3d.row(i) += barycentric_coordinates(k) * vertices_3D.row(vertex_id);
-//         }
-//     }
-
-//     return r3d;
-// }
+    return new_3D_points;
+}
 
 
 // // (3D Coordinates -> 3D Vertice id) mapping
