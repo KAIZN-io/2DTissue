@@ -243,7 +243,6 @@ std::vector<int64_t> create_halfedge_vertex_map(
     std::vector<Point_3> points;
     for(vertex_descriptor vd : vertices(mesh)) {
         auto point_3D = sm.point(target(vd, sm));
-        std::cout << point_3D << std::endl;
         points.push_back(point_3D);
     }
 
@@ -256,17 +255,18 @@ std::vector<int64_t> create_halfedge_vertex_map(
     }
 
     // Save the data
-    std::string file_name = "vertice_3D_data.csv";
-    save_matrix_to_csv(halfedge_vertex_map, file_name, 1);  
+    // std::string file_name = "vertice_3D_data.csv";
+    // save_matrix_to_csv(halfedge_vertex_map, file_name, 1);  
 
     std::vector<int64_t> halfedge_vertex_map_old;
     for(vertex_descriptor vd : vertices(mesh)) {
         int64_t target_vertice = target(vd, sm);
         halfedge_vertex_map_old.push_back(target_vertice);
     }
-    
+
     return halfedge_vertex_map_old;
 }
+
 
 // Helper function to find the farthest vertex from a given start vertex
 my_vertex_descriptor find_farthest_vertex(
@@ -437,6 +437,40 @@ std::vector<int64_t> calculate_uv_surface(
 
     // Save the uv mesh
     save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
+
+    // iterate over the halfedges inside the uvmap
+    // for (auto h : halfedges(mesh)) {
+    //     // auto v = target(h, mesh);
+    //     auto target_uv_vertex = target(h, mesh);
+    //     auto uv = get(uvmap, h);
+
+    //     auto target_vertex = target(h, sm);
+    //     auto corresponding_point = sm.point(target_vertex);
+    //     // std::cout << "uv: " << uv  << " corresponding_point 3D: " << corresponding_point << std::endl;
+    // }
+
+    // std::vector<Point_2> points;
+    std::vector<Point_3> points;
+    for(vertex_descriptor vd : vertices(mesh)) {
+        auto point_3D = sm.point(target(vd, sm));
+        auto uv = get(uvmap, halfedge(vd, mesh));
+        // std::cout << "uv: " << uv  << std::endl;
+        // std::cout << point_3D << std::endl;
+        points.push_back(point_3D);
+    }
+
+    Eigen::MatrixXd halfedge_vertex_map(points.size(), 3);
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+        halfedge_vertex_map(i, 0) = points[i].x();
+        halfedge_vertex_map(i, 1) = points[i].y();
+        halfedge_vertex_map(i, 2) = points[i].z();
+        // halfedge_vertex_map(i, 2) = 0;
+    }
+
+    // // Save the data
+    // std::string file_name = "vertice_3D_data.csv";
+    // save_matrix_to_csv(halfedge_vertex_map, file_name, 1);  
 
     const auto _h_v_map = create_halfedge_vertex_map(mesh, sm);
 

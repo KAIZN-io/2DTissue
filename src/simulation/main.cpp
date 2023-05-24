@@ -167,7 +167,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 
 int main()
 {
-    auto v0 = 0.01;
+    auto v0 = 0.1;
     auto k = 10;
     auto k_next = 10;
     auto v0_next = 0.1;
@@ -176,7 +176,7 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_frames = 10;
+    int num_frames = 30;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -207,8 +207,7 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
 
-
-    for (int num_part = 100; num_part <= 100; num_part += 100) {
+    for (int num_part = 200; num_part <= 200; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {
@@ -243,7 +242,7 @@ int main()
                 std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
                 vertices_3D_active = new_vertices_3D_active;
 
-                auto new_3D_points = get_r3d(r, halfedge_uv, h_v_mapping_vector);
+                auto new_3D_points = get_r3d(r, halfedge_uv, h_v_mapping_vector, faces_uv);
 
                 // Save the data
                 // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
@@ -262,7 +261,7 @@ int main()
 
             // Copy the last value of v_order into the new vector
             last_value(0) = v_order(v_order.size() - 1);
-
+            // std::cout << v_order << std::endl;
             // // Save the order parameter
             // std::string file_name = "v_order_data.csv";
             // save_matrix_to_csv(last_value, file_name, num_part);

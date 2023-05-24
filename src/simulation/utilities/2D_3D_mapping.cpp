@@ -130,30 +130,6 @@ double pointTriangleDistance(const Eigen::Vector3d& p, const Eigen::Vector3d& a,
     return (a + ab * v + ac * w - p).norm();
 }
 
-Eigen::Vector3d cartesianToBarycentric(
-    const Eigen::VectorXd& P,
-    const Eigen::Vector3d& A,
-    const Eigen::Vector3d& B,
-    const Eigen::Vector3d& C)
-{
-    Eigen::Vector3d v0 = B - A;
-    Eigen::Vector3d v1 = C - A;
-    Eigen::Vector3d v2 = P.cast<double>() - A;
-
-    double d00 = v0.dot(v0);
-    double d01 = v0.dot(v1);
-    double d11 = v1.dot(v1);
-    double d20 = v2.dot(v0);
-    double d21 = v2.dot(v1);
-
-    double denom = d00 * d11 - d01 * d01;
-    double v = (d11 * d20 - d01 * d21) / denom;
-    double w = (d00 * d21 - d01 * d20) / denom;
-    double u = 1.0 - v - w;
-
-    return Eigen::Vector3d(u, v, w);
-}
-
 
 int closestRow(const Eigen::MatrixXd& vertices_uv_test, const Eigen::Vector2d& halfedge_coord) {
     Eigen::VectorXd dists(vertices_uv_test.rows());
@@ -202,11 +178,6 @@ Eigen::MatrixXd get_r3d(
         Eigen::Vector2d halfedge_b_coord = halfedges_uv.row(halfedge_b);
         Eigen::Vector2d halfedge_c_coord = halfedges_uv.row(halfedge_c);
 
-        // // Get the 3 halfedges of the UV triangle
-        // std::cout << "halfedge_a coordinates: " << halfedge_a_coord.transpose() << std::endl;
-        // std::cout << "halfedge_b coordinates: " << halfedge_b_coord.transpose() << std::endl;
-        // std::cout << "halfedge_c coordinates: " << halfedge_c_coord.transpose() << std::endl;
-
         // Inside your loop...
         int closest_a = closestRow(vertices_uv_test, halfedge_a_coord);
         int closest_b = closestRow(vertices_uv_test, halfedge_b_coord);
@@ -216,10 +187,6 @@ Eigen::MatrixXd get_r3d(
         Eigen::Vector3d a = vertices_3D_test.row(closest_a);
         Eigen::Vector3d b = vertices_3D_test.row(closest_b);
         Eigen::Vector3d c = vertices_3D_test.row(closest_c);
-
-        std::cout << "a: " << a.transpose() << std::endl;
-        std::cout << "b: " << b.transpose() << std::endl;
-        std::cout << "c: " << c.transpose() << std::endl;
 
         // Compute the weights (distances in UV space)
         double w_a = (r.row(i).head(2).transpose() - halfedge_a_coord).norm();
@@ -239,7 +206,7 @@ Eigen::MatrixXd get_r3d(
         new_3D_points.row(i) = newPoint;
 
     }
-    std::cout << "new_3D_points: " << new_3D_points << std::endl;
+
     return new_3D_points;
 }
 
