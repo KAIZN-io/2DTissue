@@ -11,6 +11,7 @@
 
 #include <utilities/2D_3D_mapping.h>
 #include <io/mesh_loader.h>
+#include <io/csv.h>
 
 
 // (3D Vertice id -> Halfedge id) mapping
@@ -153,6 +154,17 @@ Eigen::Vector3d cartesianToBarycentric(
     return Eigen::Vector3d(u, v, w);
 }
 
+int closestRow(const Eigen::MatrixXd& vertices_uv_test, const Eigen::Vector2d& halfedge_coord) {
+    Eigen::VectorXd dists(vertices_uv_test.rows());
+    for (int i = 0; i < vertices_uv_test.rows(); ++i) {
+        dists[i] = (vertices_uv_test.row(i) - halfedge_coord.transpose()).squaredNorm();
+    }
+
+    Eigen::VectorXd::Index minRow;
+    dists.minCoeff(&minRow);
+
+    return minRow;
+}
 
 Eigen::MatrixXd get_r3d(
     const Eigen::MatrixXd& r,
@@ -162,6 +174,9 @@ Eigen::MatrixXd get_r3d(
 {
     int num_r = r.rows();
     Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
+    Eigen::MatrixXd vertices_3D_test = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/vertice_3D_data.csv");
+    Eigen::MatrixXd vertices_uv_test = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/vertice_uv_data.csv");
+
     Eigen::MatrixXd new_3D_points(num_r, 3);
 
     for (int i = 0; i < num_r; ++i) {
@@ -177,34 +192,46 @@ Eigen::MatrixXd get_r3d(
 
         std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
 
-        Eigen::Vector2d halfedge_a = halfedges_uv.row(faces_uv(min_distance.second, 0));
-        Eigen::Vector2d halfedge_b = halfedges_uv.row(faces_uv(min_distance.second, 1));
-        Eigen::Vector2d halfedge_c = halfedges_uv.row(faces_uv(min_distance.second, 2));
+        int halfedge_a = faces_uv(min_distance.second, 0);
+        int halfedge_b = faces_uv(min_distance.second, 1);
+        int halfedge_c = faces_uv(min_distance.second, 2);
 
-        // Get the 3 halfedges of the UV triangle
-        std::cout << "halfedge_a: " << halfedge_a.transpose() << std::endl;
-        std::cout << "halfedge_b: " << halfedge_b.transpose() << std::endl;
-        std::cout << "halfedge_c: " << halfedge_c.transpose() << std::endl;
-        std::cout << "r.row(i): " << r.row(i) << std::endl;
+        Eigen::Vector2d halfedge_a_coord = halfedges_uv.row(halfedge_a);
+        Eigen::Vector2d halfedge_b_coord = halfedges_uv.row(halfedge_b);
+        Eigen::Vector2d halfedge_c_coord = halfedges_uv.row(halfedge_c);
+
+        // // Get the 3 halfedges of the UV triangle
+        // std::cout << "halfedge_a coordinates: " << halfedge_a_coord.transpose() << std::endl;
+        // std::cout << "halfedge_b coordinates: " << halfedge_b_coord.transpose() << std::endl;
+        // std::cout << "halfedge_c coordinates: " << halfedge_c_coord.transpose() << std::endl;
+
+        // Inside your loop...
+        int closest_a = closestRow(vertices_uv_test, halfedge_a_coord);
+        int closest_b = closestRow(vertices_uv_test, halfedge_b_coord);
+        int closest_c = closestRow(vertices_uv_test, halfedge_c_coord);
+
+        // Get the 3D coordinates of the 3 halfedges
+        Eigen::Vector3d a = vertices_3D_test.row(closest_a);
+        Eigen::Vector3d b = vertices_3D_test.row(closest_b);
+        Eigen::Vector3d c = vertices_3D_test.row(closest_c);
+
+        std::cout << "a: " << a.transpose() << std::endl;
+        std::cout << "b: " << b.transpose() << std::endl;
+        std::cout << "c: " << c.transpose() << std::endl;
+
+        // std::cout << "r.row(i): " << r.row(i) << std::endl;
+
+        // Eigen::Vector3d bary_coords = cartesianToBarycentric(r.row(i), a, b, c);
+        // Eigen::Vector3d newPoint = bary_coords.x() * a + bary_coords.y() * b + bary_coords.z() * c;
+        // new_3D_points.row(i) = newPoint;
+
+
     }
 
     return new_3D_points;
 }
 
-// Eigen::Vector3d a = vertices_3D.row(halfedge_vertices_mapping[faces_uv(min_distance.second, 0)]);
-// Eigen::Vector3d b = vertices_3D.row(halfedge_vertices_mapping[faces_uv(min_distance.second, 1)]);
-// Eigen::Vector3d c = vertices_3D.row(halfedge_vertices_mapping[faces_uv(min_distance.second, 2)]);
 
-// std::cout << "faces_uv row: " << min_distance.second << std::endl;
-// std::cout << "a: " << a.transpose() << std::endl;
-// std::cout << "b: " << b.transpose() << std::endl;
-// std::cout << "c: " << c.transpose() << std::endl;
-
-// std::cout << "r.row(i): " << r.row(i) << std::endl;
-
-// Eigen::Vector3d bary_coords = cartesianToBarycentric(r.row(i), a, b, c);
-// Eigen::Vector3d newPoint = bary_coords.x() * a + bary_coords.y() * b + bary_coords.z() * c;
-// new_3D_points.row(i) = newPoint;
 
 // Eigen::MatrixXd get_r3d(
 //     const Eigen::MatrixXd& r,
