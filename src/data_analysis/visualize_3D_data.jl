@@ -75,7 +75,7 @@ function update_colors!(colors, int_matrix)
     colors[] = colors.val
 end
 
-num_part = 799
+num_part = 4714
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_loaded_uv = FileIO.load("meshes/Ellipsoid_uv.off")  # 2D mesh
@@ -135,12 +135,35 @@ mesh!(ax3, mesh_loaded_uv, color = (parse(Colorant, "#FFFFFF"), 0.5))
 meshscatter!(ax1, observe_r_3D, color = observe_colors, markersize = 0.14)
 wireframe!(ax3, mesh_loaded_uv, color=(parse(Colorant, "#000000"), 0.3), linewidth=1)
 
+# # create an array for candidates of UV triangle points
+# r_test = [
+#     0.753911568484599 0.572822409100429 0
+#     0.752024  0.563002  0.0
+# ]
+# r_3D = [
+#     -3.50953 -5.00336  1.09256
+#     -3.47314  -5.2621 0.885476
+#     -3.23053 -5.14258  1.03928
+# ]
 
-record(figure, "assets/confined_active_particles.mp4", 1:10; framerate=10) do tt
+# # -6.49301   1.6581  1.70102
+# # -6.95969  2.03057  1.51066
+# # -5.79447  1.93773 -1.80882
+# # -------------------
+# -6.95969  2.03057  1.51066
+# -7.30475  2.07666  1.39401
+# -5.39364  1.84256 -1.89946
+# # -------------------
+# # -6.6145 1.98437 1.61385
+# # -6.49301   1.6581  1.70102
+
+
+
+record(figure, "assets/confined_active_particles.mp4", 1:50; framerate=10) do tt
     r = read_data("data/data_new", "r_data_$(tt).csv")
-    color = read_data("data/data_new", "color_data_$(tt).csv")
-    # r_3D = read_data("data/data_new", "r_3D_data_$(tt).csv")
-    update_colors!(observe_colors, color)
+    # color = read_data("data/data_new", "color_data_$(tt).csv")
+    r_3D = read_data("data/data_new", "r_3D_data_$(tt).csv")
+    # update_colors!(observe_colors, color)
     # n = read_data("data", "n_data_$(tt).csv")
 
     # n_vectors = size(r, 1)
@@ -155,9 +178,9 @@ record(figure, "assets/confined_active_particles.mp4", 1:10; framerate=10) do tt
     #     ]
     # end
 
-    vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
-    observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
-    # observe_r_3D[] = array_to_vec_of_vec(r_3D)
+    # vertice_3D_id = get_vertice_id(r, halfedges_uv, halfedge_vertices_mapping)
+    # observe_r_3D[] = vertices_3D[(vertice_3D_id .+ 1), :] |> array_to_vec_of_vec
+    observe_r_3D[] = array_to_vec_of_vec(r_3D)
     # start_points = [Point3f0(r[i, 1:3]) for i in 1:4]
     # end_points_vec = [Point3f0(end_points[i, :]) for i in 1:4]
 
