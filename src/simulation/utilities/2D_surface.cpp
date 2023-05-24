@@ -54,6 +54,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include <utilities/2D_surface.h>
+#include <io/csv.h>
 
 
 using Kernel = CGAL::Simple_cartesian<double>;
@@ -239,16 +240,33 @@ std::vector<int64_t> create_halfedge_vertex_map(
     const Mesh& mesh,
     const SurfaceMesh& sm
 ){
-    std::vector<int64_t> halfedge_vertex_map;
+    std::vector<Point_3> points;
     for(vertex_descriptor vd : vertices(mesh)) {
-        // std::cout << "Input point: " << vd << " is mapped to " << get(uvmap, vd) << " and to the 3D coordinate " << target(vd, sm) << std::endl;
-        int64_t target_vertice = target(vd, sm);  // transform the type to int64_t
-        halfedge_vertex_map.push_back(target_vertice);
+        auto point_3D = sm.point(target(vd, sm));
+        std::cout << point_3D << std::endl;
+        points.push_back(point_3D);
     }
 
-    return halfedge_vertex_map;
-}
+    Eigen::MatrixXd halfedge_vertex_map(points.size(), 3);
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+        halfedge_vertex_map(i, 0) = points[i].x();
+        halfedge_vertex_map(i, 1) = points[i].y();
+        halfedge_vertex_map(i, 2) = points[i].z();
+    }
 
+    // Save the data
+    std::string file_name = "vertice_3D_data.csv";
+    save_matrix_to_csv(halfedge_vertex_map, file_name, 1);  
+
+    std::vector<int64_t> halfedge_vertex_map_old;
+    for(vertex_descriptor vd : vertices(mesh)) {
+        int64_t target_vertice = target(vd, sm);
+        halfedge_vertex_map_old.push_back(target_vertice);
+    }
+    
+    return halfedge_vertex_map_old;
+}
 
 // Helper function to find the farthest vertex from a given start vertex
 my_vertex_descriptor find_farthest_vertex(
