@@ -76,64 +76,188 @@ Eigen::VectorXd get_vertice_id(
 }
 
 
-// (2D Coordinates -> 3D Coordinates) mapping
+double pointTriangleDistance(const Eigen::Vector3d& p, const Eigen::Vector3d& a, const Eigen::Vector3d& b, const Eigen::Vector3d& c) {
+    Eigen::Vector3d ab = b - a;
+    Eigen::Vector3d ac = c - a;
+    Eigen::Vector3d ap = p - a;
+
+    double d1 = ab.dot(ap);
+    double d2 = ac.dot(ap);
+
+    if (d1 <= 0.0 && d2 <= 0.0)
+        return ap.norm();
+
+    Eigen::Vector3d bp = p - b;
+    double d3 = ab.dot(bp);
+    double d4 = ac.dot(bp);
+
+    if (d3 >= 0.0 && d4 <= d3)
+        return bp.norm();
+
+    double vc = d1*d4 - d3*d2;
+
+    if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
+        double v = d1 / (d1 - d3);
+        return (a + v * ab - p).norm();
+    }
+
+    Eigen::Vector3d cp = p - c;
+    double d5 = ab.dot(cp);
+    double d6 = ac.dot(cp);
+
+    if (d6 >= 0.0 && d5 <= d6)
+        return cp.norm();
+
+    double vb = d5*d2 - d1*d6;
+
+    if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
+        double w = d2 / (d2 - d6);
+        return (a + w * ac - p).norm();
+    }
+
+    double va = d3*d6 - d5*d4;
+
+    if (va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0) {
+        double w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return (b + w * (c - b) - p).norm();
+    }
+
+    double denom = 1.0 / (va + vb + vc);
+    double v = vb * denom;
+    double w = vc * denom;
+
+    return (a + ab * v + ac * w - p).norm();
+}
+
+Eigen::Vector3d cartesianToBarycentric(
+    const Eigen::VectorXd& P,
+    const Eigen::Vector3d& A,
+    const Eigen::Vector3d& B,
+    const Eigen::Vector3d& C)
+{
+    Eigen::Vector3d v0 = B - A;
+    Eigen::Vector3d v1 = C - A;
+    Eigen::Vector3d v2 = P.cast<double>() - A;
+
+    double d00 = v0.dot(v0);
+    double d01 = v0.dot(v1);
+    double d11 = v1.dot(v1);
+    double d20 = v2.dot(v0);
+    double d21 = v2.dot(v1);
+
+    double denom = d00 * d11 - d01 * d01;
+    double v = (d11 * d20 - d01 * d21) / denom;
+    double w = (d00 * d21 - d01 * d20) / denom;
+    double u = 1.0 - v - w;
+
+    return Eigen::Vector3d(u, v, w);
+}
+
+
 Eigen::MatrixXd get_r3d(
     const Eigen::MatrixXd& r,
     const Eigen::MatrixXd& halfedges_uv,
-    const std::vector<int64_t>& halfedge_vertices_mapping
-){
+    const std::vector<int64_t>& halfedge_vertices_mapping,
+    const Eigen::MatrixXi faces_uv)
+{
     int num_r = r.rows();
     Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
-    Eigen::MatrixXd vertices_3D_ids(num_r, 3);
-    Eigen::MatrixXd distances_3D(num_r, 3);
-
-    for (int i = 0; i < num_r; ++i) {
-        // Use a vector of pairs: distance and index
-        std::vector<std::pair<double, int>> distances(halfedges_uv.rows());
-
-        // Compute all distances
-        for (int j = 0; j < halfedges_uv.rows(); ++j) {
-            Eigen::VectorXd diff = halfedges_uv.row(j) - r.row(i);
-            distances[j] = {diff.norm(), j};
-        }
-
-        // Partially sort the distances to find the three smallest
-        std::partial_sort(distances.begin(), distances.begin() + 3, distances.end());
-
-        // Save the vertex IDs and distances of the three closest half-edges
-        for (int j = 0; j < 3; ++j) {
-            vertices_3D_ids(i, j) = halfedge_vertices_mapping[distances[j].second];
-            distances_3D(i, j) = distances[j].first;
-        }
-    }
-
-    // init empty Eigen::MatrixXd for the new points
     Eigen::MatrixXd new_3D_points(num_r, 3);
 
-    // iterate over the rows of vertices_3D_active_eigen_test and access all 3 column values by asigning them to new variables
-    for (int i = 0; i < vertices_3D_ids.rows(); ++i) {
-        // assign the distances to the weights
-        double w1 = distances_3D(i, 0);
-        double w2 = distances_3D(i, 1);
-        double w3 = distances_3D(i, 2);
+    for (int i = 0; i < num_r; ++i) {
+        std::vector<std::pair<double, int>> distances(faces_uv.rows());
 
-        int v1 = vertices_3D_ids(i, 0);
-        int v2 = vertices_3D_ids(i, 1);
-        int v3 = vertices_3D_ids(i, 2);
+        for (int j = 0; j < faces_uv.rows(); ++j) {
+            Eigen::Vector3d uv_a = halfedges_uv.row(faces_uv(j, 0));
+            Eigen::Vector3d uv_b = halfedges_uv.row(faces_uv(j, 1));
+            Eigen::Vector3d uv_c = halfedges_uv.row(faces_uv(j, 2));
 
-        Eigen::Vector3d v1_3D = vertices_3D.row(v1);
-        Eigen::Vector3d v2_3D = vertices_3D.row(v2);
-        Eigen::Vector3d v3_3D = vertices_3D.row(v3);
+            distances[j] = {pointTriangleDistance(r.row(i).head(2), uv_a, uv_b, uv_c), j};
+        }
 
-        // Calculate the new point
-        Eigen::Vector3d newPoint = (w1 * v1_3D + w2 * v2_3D + w3 * v3_3D) / (w1 + w2 + w3);
+        std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
 
-        // Assign the new point to the new_points matrix
-        new_3D_points.row(i) = newPoint;
+        Eigen::Vector2d halfedge_a = halfedges_uv.row(faces_uv(min_distance.second, 0));
+        Eigen::Vector2d halfedge_b = halfedges_uv.row(faces_uv(min_distance.second, 1));
+        Eigen::Vector2d halfedge_c = halfedges_uv.row(faces_uv(min_distance.second, 2));
+
+        // Get the 3 halfedges of the UV triangle
+        std::cout << "halfedge_a: " << halfedge_a.transpose() << std::endl;
+        std::cout << "halfedge_b: " << halfedge_b.transpose() << std::endl;
+        std::cout << "halfedge_c: " << halfedge_c.transpose() << std::endl;
+        std::cout << "r.row(i): " << r.row(i) << std::endl;
     }
 
     return new_3D_points;
 }
+
+// Eigen::Vector3d a = vertices_3D.row(halfedge_vertices_mapping[faces_uv(min_distance.second, 0)]);
+// Eigen::Vector3d b = vertices_3D.row(halfedge_vertices_mapping[faces_uv(min_distance.second, 1)]);
+// Eigen::Vector3d c = vertices_3D.row(halfedge_vertices_mapping[faces_uv(min_distance.second, 2)]);
+
+// std::cout << "faces_uv row: " << min_distance.second << std::endl;
+// std::cout << "a: " << a.transpose() << std::endl;
+// std::cout << "b: " << b.transpose() << std::endl;
+// std::cout << "c: " << c.transpose() << std::endl;
+
+// std::cout << "r.row(i): " << r.row(i) << std::endl;
+
+// Eigen::Vector3d bary_coords = cartesianToBarycentric(r.row(i), a, b, c);
+// Eigen::Vector3d newPoint = bary_coords.x() * a + bary_coords.y() * b + bary_coords.z() * c;
+// new_3D_points.row(i) = newPoint;
+
+// Eigen::MatrixXd get_r3d(
+//     const Eigen::MatrixXd& r,
+//     const Eigen::MatrixXd& halfedges_uv,
+//     const std::vector<int64_t>& halfedge_vertices_mapping,
+//     Eigen::MatrixXi faces_uv
+// ){
+//     int num_r = r.rows();
+//     Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
+//     Eigen::MatrixXd vertices_3D_ids(num_r, 3);
+//     Eigen::MatrixXd distances_3D(num_r, 3);
+
+//     for (int i = 0; i < num_r; ++i) {
+//         std::vector<std::pair<double, int>> distances(faces_uv.rows());
+
+//         for (int j = 0; j < faces_uv.rows(); ++j) {
+//             Eigen::Vector3d a = vertices_3D.row(halfedge_vertices_mapping[faces_uv(j, 0)]);
+//             Eigen::Vector3d b = vertices_3D.row(halfedge_vertices_mapping[faces_uv(j, 1)]);
+//             Eigen::Vector3d c = vertices_3D.row(halfedge_vertices_mapping[faces_uv(j, 2)]);
+
+//             distances[j] = {pointTriangleDistance(r.row(i), a, b, c), j};
+//         }
+
+//         std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
+
+//         for (int j = 0; j < 3; ++j) {
+//             vertices_3D_ids(i, j) = halfedge_vertices_mapping[faces_uv(min_distance.second, j)];
+//             Eigen::Vector3d vertex = vertices_3D.row(vertices_3D_ids(i, j));
+//             distances_3D(i, j) = (vertex - Eigen::Vector3d(r.row(i))).norm();
+//         }
+//     }
+
+//     Eigen::MatrixXd new_3D_points(num_r, 3);
+
+//     for (int i = 0; i < vertices_3D_ids.rows(); ++i) {
+//         double w1 = distances_3D(i, 0);
+//         double w2 = distances_3D(i, 1);
+//         double w3 = distances_3D(i, 2);
+
+//         int v1 = vertices_3D_ids(i, 0);
+//         int v2 = vertices_3D_ids(i, 1);
+//         int v3 = vertices_3D_ids(i, 2);
+
+//         Eigen::Vector3d v1_3D = vertices_3D.row(v1);
+//         Eigen::Vector3d v2_3D = vertices_3D.row(v2);
+//         Eigen::Vector3d v3_3D = vertices_3D.row(v3);
+
+//         Eigen::Vector3d newPoint = (w1 * v1_3D + w2 * v2_3D + w3 * v3_3D) / (w1 + w2 + w3);
+//         new_3D_points.row(i) = newPoint;
+//     }
+
+//     return new_3D_points;
+// }
 
 
 // // (3D Coordinates -> 3D Vertice id) mapping
