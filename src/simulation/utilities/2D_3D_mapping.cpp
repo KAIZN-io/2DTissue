@@ -154,6 +154,7 @@ Eigen::Vector3d cartesianToBarycentric(
     return Eigen::Vector3d(u, v, w);
 }
 
+
 int closestRow(const Eigen::MatrixXd& vertices_uv_test, const Eigen::Vector2d& halfedge_coord) {
     Eigen::VectorXd dists(vertices_uv_test.rows());
     for (int i = 0; i < vertices_uv_test.rows(); ++i) {
@@ -165,6 +166,7 @@ int closestRow(const Eigen::MatrixXd& vertices_uv_test, const Eigen::Vector2d& h
 
     return minRow;
 }
+
 
 Eigen::MatrixXd get_r3d(
     const Eigen::MatrixXd& r,
@@ -219,72 +221,27 @@ Eigen::MatrixXd get_r3d(
         std::cout << "b: " << b.transpose() << std::endl;
         std::cout << "c: " << c.transpose() << std::endl;
 
-        // std::cout << "r.row(i): " << r.row(i) << std::endl;
+        // Compute the weights (distances in UV space)
+        double w_a = (r.row(i).head(2).transpose() - halfedge_a_coord).norm();
+        double w_b = (r.row(i).head(2).transpose() - halfedge_b_coord).norm();
+        double w_c = (r.row(i).head(2).transpose() - halfedge_c_coord).norm();
 
-        // Eigen::Vector3d bary_coords = cartesianToBarycentric(r.row(i), a, b, c);
-        // Eigen::Vector3d newPoint = bary_coords.x() * a + bary_coords.y() * b + bary_coords.z() * c;
-        // new_3D_points.row(i) = newPoint;
+        // Compute the barycentric coordinates
+        double sum_weights = w_a + w_b + w_c;
+        w_a /= sum_weights;
+        w_b /= sum_weights;
+        w_c /= sum_weights;
 
+        // Compute the new 3D point using the barycentric coordinates
+        Eigen::Vector3d newPoint = w_a * a + w_b * b + w_c * c;
+
+        // Store the new 3D point
+        new_3D_points.row(i) = newPoint;
 
     }
-
+    std::cout << "new_3D_points: " << new_3D_points << std::endl;
     return new_3D_points;
 }
-
-
-
-// Eigen::MatrixXd get_r3d(
-//     const Eigen::MatrixXd& r,
-//     const Eigen::MatrixXd& halfedges_uv,
-//     const std::vector<int64_t>& halfedge_vertices_mapping,
-//     Eigen::MatrixXi faces_uv
-// ){
-//     int num_r = r.rows();
-//     Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
-//     Eigen::MatrixXd vertices_3D_ids(num_r, 3);
-//     Eigen::MatrixXd distances_3D(num_r, 3);
-
-//     for (int i = 0; i < num_r; ++i) {
-//         std::vector<std::pair<double, int>> distances(faces_uv.rows());
-
-//         for (int j = 0; j < faces_uv.rows(); ++j) {
-//             Eigen::Vector3d a = vertices_3D.row(halfedge_vertices_mapping[faces_uv(j, 0)]);
-//             Eigen::Vector3d b = vertices_3D.row(halfedge_vertices_mapping[faces_uv(j, 1)]);
-//             Eigen::Vector3d c = vertices_3D.row(halfedge_vertices_mapping[faces_uv(j, 2)]);
-
-//             distances[j] = {pointTriangleDistance(r.row(i), a, b, c), j};
-//         }
-
-//         std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
-
-//         for (int j = 0; j < 3; ++j) {
-//             vertices_3D_ids(i, j) = halfedge_vertices_mapping[faces_uv(min_distance.second, j)];
-//             Eigen::Vector3d vertex = vertices_3D.row(vertices_3D_ids(i, j));
-//             distances_3D(i, j) = (vertex - Eigen::Vector3d(r.row(i))).norm();
-//         }
-//     }
-
-//     Eigen::MatrixXd new_3D_points(num_r, 3);
-
-//     for (int i = 0; i < vertices_3D_ids.rows(); ++i) {
-//         double w1 = distances_3D(i, 0);
-//         double w2 = distances_3D(i, 1);
-//         double w3 = distances_3D(i, 2);
-
-//         int v1 = vertices_3D_ids(i, 0);
-//         int v2 = vertices_3D_ids(i, 1);
-//         int v3 = vertices_3D_ids(i, 2);
-
-//         Eigen::Vector3d v1_3D = vertices_3D.row(v1);
-//         Eigen::Vector3d v2_3D = vertices_3D.row(v2);
-//         Eigen::Vector3d v3_3D = vertices_3D.row(v3);
-
-//         Eigen::Vector3d newPoint = (w1 * v1_3D + w2 * v2_3D + w3 * v3_3D) / (w1 + w2 + w3);
-//         new_3D_points.row(i) = newPoint;
-//     }
-
-//     return new_3D_points;
-// }
 
 
 // // (3D Coordinates -> 3D Vertice id) mapping
