@@ -44,6 +44,8 @@ CMakeCache.txt
 cmake_install.cmake
 archive/
 venv/
+matlab/
+*.mlp
 
 # uv meshes
 *_uv*.off
