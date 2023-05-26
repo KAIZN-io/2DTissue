@@ -97,7 +97,7 @@ int get_all_distances(){
     std::cout << "Saving distance matrix to file..." << std::endl;
     std::string repo_root_str2 = get_repo_root();
 
-    std::ofstream file("/Users/janpiotraschke/git_repos/2DTissue/meshes/src/data/ellipsoid_x4_distance_matrix_static.csv");
+    std::ofstream file("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
     file << distance_matrix_v.format(CSVFormat);
     file.close();
     std::cout << "saved" << std::endl;
