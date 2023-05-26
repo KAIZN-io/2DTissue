@@ -22,3 +22,7 @@ For C++ please install following libraries:
 ## Theoretical Model
 
 The model described is a Vicsek type model (Vicsek et al. 1995, Physical review letters 75(6): 1226) of spherical active particles with a fixed radius confined to the surface of an ellipsoid. Particle interactions are modelled through forces between neighbouring particles that tend to align their velocities (adapted from Szabo et al. 2006, Physical Review E 74(6): 061908).
+
+### Movie: Vicsek model on a Ellipsoid
+
+https://github.com/MorphoPhysics/2DTissue/assets/78916218/21d177b0-b150-459c-92f2-8b50eb44fa2f
