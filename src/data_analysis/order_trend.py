@@ -7,9 +7,9 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
 current_path = Path(os.getcwd())
-data = pd.read_csv(current_path.parents[1] / "assets" / 'v_order_analysis_low_noise.csv', sep=';')
-data = data[data['particles'] % 100 == 0]  # drop all rows where particles number is not Mod 100
-# data = pd.read_csv(current_path.parents[1] / "assets" / 'v_order_data_0_to_80_noise.csv', sep=',')
+# data = pd.read_csv(current_path.parents[1] / "assets" / 'v_order_analysis_low_noise.csv', sep=',')
+# data = data[data['particles'] % 50 == 0]  # drop all rows where particles number is not Mod 100
+data = pd.read_csv(current_path.parents[1] / "assets" / 'v_order_data_0_to_80_noise.csv', sep=',')
 
 # Extract x and y values
 x = data['particles']
@@ -30,10 +30,25 @@ fig.add_trace(
         x=data['particles'],
         y=data['order_parameter'],
         name='Order Parameter',
-        fillcolor='rgba(230, 230, 250, 1)',
+        # fillcolor='rgba(230, 230, 250, 1)',
+        fillcolor='rgba(168, 216, 185, 1)',
         boxmean=True,  # Show the mean as a dashed line
         marker_color='rgba(0, 76, 153, 0.5)',  # Change the box plot marker color
         line=dict(color='rgba(0, 76, 153, 1)')
+    ),
+    secondary_y=False,
+)
+
+# Add a fake trace to hold the label
+fig.add_trace(
+    go.Scatter(
+        x=[None],  # No x values
+        y=[None],  # No y values
+        mode='markers',
+        marker=dict(size=0),  # Size zero makes the marker invisible
+        showlegend=True,  # Show this trace in the legend
+        name='noise = [0.01, 80.0]',  # This is the text you want to display
+        hoverinfo='none'  # Don't show any hover information for this trace
     ),
     secondary_y=False,
 )
@@ -53,8 +68,8 @@ fig.add_trace(
 # Our design for the x and y axes
 axis_design = dict(
     title_standoff=25,
-    title_font=dict(size=32, color='black'),
-    tickfont=dict(size=26),
+    title_font=dict(size=36, color='black'),
+    tickfont=dict(size=32),
     ticks='outside',  # Draw ticks outside the plot area
     ticklen=5,  # Length of the ticks
     tickwidth=2,  # Width of the ticks
@@ -72,20 +87,41 @@ fig.update_yaxes(title_text="Order Parameter", **axis_design)
 fig.update_yaxes(showticklabels=False, secondary_y=True)
 
 # Customize the plot appearance
+# fig.update_layout(
+#     # title="Order Parameter vs Particles Number",
+#     # title_font=dict(size=36),
+#     hovermode="x unified",
+#     plot_bgcolor="white",
+#     legend=dict(
+#         font=dict(size=32),
+#         yanchor="top",
+#         y=0.99,
+#         xanchor="right",
+#         x=1.70
+#     ),
+#     margin=dict(l=80, r=50, t=80, b=80)
+# )
+
 fig.update_layout(
-    # title="Order Parameter vs Particles Number",
-    # title_font=dict(size=36),
     hovermode="x unified",
     plot_bgcolor="white",
     legend=dict(
         font=dict(size=32),
-        yanchor="top",
-        y=0.99,
-        xanchor="right",
-        x=1.40
+        yanchor="top",  # Anchoring y to the top of the legend
+        y=-0.45,  # Positioning legend below the bottom of the plot area
+        xanchor="left",  # Anchoring x to the left of the legend
+        x=0  # Positioning legend at the left of the plot area horizontally
     ),
-    margin=dict(l=80, r=50, t=80, b=80)
+    margin=dict(l=80, r=50, t=80, b=100)  # Adjust the bottom margin to make space for the legend
 )
+
+fig.update_xaxes(
+    title_text="Particles Number",
+    tickangle=-45,  # Rotate tick labels by 45 degrees
+    dtick=100,  # Set interval of x-ticks to be 100
+    **axis_design
+)
+
 
 # Display the plot
 fig.show()
