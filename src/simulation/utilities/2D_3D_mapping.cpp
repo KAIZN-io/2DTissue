@@ -131,10 +131,10 @@ double pointTriangleDistance(const Eigen::Vector3d& p, const Eigen::Vector3d& a,
 }
 
 
-int closestRow(const Eigen::MatrixXd& vertices_uv_test, const Eigen::Vector2d& halfedge_coord) {
-    Eigen::VectorXd dists(vertices_uv_test.rows());
-    for (int i = 0; i < vertices_uv_test.rows(); ++i) {
-        dists[i] = (vertices_uv_test.row(i) - halfedge_coord.transpose()).squaredNorm();
+int closestRow(const Eigen::MatrixXd& vertices_uv, const Eigen::Vector2d& halfedge_coord) {
+    Eigen::VectorXd dists(vertices_uv.rows());
+    for (int i = 0; i < vertices_uv.rows(); ++i) {
+        dists[i] = (vertices_uv.row(i) - halfedge_coord.transpose()).squaredNorm();
     }
 
     Eigen::VectorXd::Index minRow;
@@ -144,66 +144,77 @@ int closestRow(const Eigen::MatrixXd& vertices_uv_test, const Eigen::Vector2d& h
 }
 
 
+Eigen::Vector3d calculate_barycentric_3D_coord(
+    const Eigen::MatrixXd r,
+    const Eigen::MatrixXd halfedges_uv,
+    const Eigen::MatrixXi faces_uv,
+    Eigen::MatrixXd vertices_uv,
+    Eigen::MatrixXd vertices_3D,
+    int interator
+){
+    std::vector<std::pair<double, int>> distances(faces_uv.rows());
+
+    for (int j = 0; j < faces_uv.rows(); ++j) {
+        Eigen::Vector3d uv_a = halfedges_uv.row(faces_uv(j, 0));
+        Eigen::Vector3d uv_b = halfedges_uv.row(faces_uv(j, 1));
+        Eigen::Vector3d uv_c = halfedges_uv.row(faces_uv(j, 2));
+
+        distances[j] = {pointTriangleDistance(r.row(interator).head(2), uv_a, uv_b, uv_c), j};
+    }
+
+    std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
+
+    int halfedge_a = faces_uv(min_distance.second, 0);
+    int halfedge_b = faces_uv(min_distance.second, 1);
+    int halfedge_c = faces_uv(min_distance.second, 2);
+
+    Eigen::Vector2d halfedge_a_coord = halfedges_uv.row(halfedge_a);
+    Eigen::Vector2d halfedge_b_coord = halfedges_uv.row(halfedge_b);
+    Eigen::Vector2d halfedge_c_coord = halfedges_uv.row(halfedge_c);
+
+    // Inside your loop...
+    int closest_a = closestRow(vertices_uv, halfedge_a_coord);
+    int closest_b = closestRow(vertices_uv, halfedge_b_coord);
+    int closest_c = closestRow(vertices_uv, halfedge_c_coord);
+
+    // Get the 3D coordinates of the 3 halfedges
+    Eigen::Vector3d a = vertices_3D.row(closest_a);
+    Eigen::Vector3d b = vertices_3D.row(closest_b);
+    Eigen::Vector3d c = vertices_3D.row(closest_c);
+
+    // Compute the weights (distances in UV space)
+    double w_a = (r.row(interator).head(2).transpose() - halfedge_a_coord).norm();
+    double w_b = (r.row(interator).head(2).transpose() - halfedge_b_coord).norm();
+    double w_c = (r.row(interator).head(2).transpose() - halfedge_c_coord).norm();
+
+    // Compute the barycentric coordinates
+    double sum_weights = w_a + w_b + w_c;
+    w_a /= sum_weights;
+    w_b /= sum_weights;
+    w_c /= sum_weights;
+
+    // Compute the new 3D point using the barycentric coordinates
+    Eigen::Vector3d newPoint = w_a * a + w_b * b + w_c * c;
+
+    return newPoint;
+}
+
+
 Eigen::MatrixXd get_r3d(
     const Eigen::MatrixXd& r,
     const Eigen::MatrixXd& halfedges_uv,
     const std::vector<int64_t>& halfedge_vertices_mapping,
-    const Eigen::MatrixXi faces_uv)
-{
+    const Eigen::MatrixXi faces_uv
+){
     int num_r = r.rows();
-    Eigen::MatrixXd vertices_3D = loadMeshVertices("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
-    Eigen::MatrixXd vertices_3D_test = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/vertice_3D_data.csv");
-    Eigen::MatrixXd vertices_uv_test = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/vertice_uv_data.csv");
+    Eigen::MatrixXd vertices_3D = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/vertice_3D_data.csv");
+    Eigen::MatrixXd vertices_uv = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/vertice_uv_data.csv");
 
     Eigen::MatrixXd new_3D_points(num_r, 3);
 
     for (int i = 0; i < num_r; ++i) {
-        std::vector<std::pair<double, int>> distances(faces_uv.rows());
 
-        for (int j = 0; j < faces_uv.rows(); ++j) {
-            Eigen::Vector3d uv_a = halfedges_uv.row(faces_uv(j, 0));
-            Eigen::Vector3d uv_b = halfedges_uv.row(faces_uv(j, 1));
-            Eigen::Vector3d uv_c = halfedges_uv.row(faces_uv(j, 2));
-
-            distances[j] = {pointTriangleDistance(r.row(i).head(2), uv_a, uv_b, uv_c), j};
-        }
-
-        std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
-
-        int halfedge_a = faces_uv(min_distance.second, 0);
-        int halfedge_b = faces_uv(min_distance.second, 1);
-        int halfedge_c = faces_uv(min_distance.second, 2);
-
-        Eigen::Vector2d halfedge_a_coord = halfedges_uv.row(halfedge_a);
-        Eigen::Vector2d halfedge_b_coord = halfedges_uv.row(halfedge_b);
-        Eigen::Vector2d halfedge_c_coord = halfedges_uv.row(halfedge_c);
-
-        // Inside your loop...
-        int closest_a = closestRow(vertices_uv_test, halfedge_a_coord);
-        int closest_b = closestRow(vertices_uv_test, halfedge_b_coord);
-        int closest_c = closestRow(vertices_uv_test, halfedge_c_coord);
-
-        // Get the 3D coordinates of the 3 halfedges
-        Eigen::Vector3d a = vertices_3D_test.row(closest_a);
-        Eigen::Vector3d b = vertices_3D_test.row(closest_b);
-        Eigen::Vector3d c = vertices_3D_test.row(closest_c);
-
-        // Compute the weights (distances in UV space)
-        double w_a = (r.row(i).head(2).transpose() - halfedge_a_coord).norm();
-        double w_b = (r.row(i).head(2).transpose() - halfedge_b_coord).norm();
-        double w_c = (r.row(i).head(2).transpose() - halfedge_c_coord).norm();
-
-        // Compute the barycentric coordinates
-        double sum_weights = w_a + w_b + w_c;
-        w_a /= sum_weights;
-        w_b /= sum_weights;
-        w_c /= sum_weights;
-
-        // Compute the new 3D point using the barycentric coordinates
-        Eigen::Vector3d newPoint = w_a * a + w_b * b + w_c * c;
-
-        // Store the new 3D point
-        new_3D_points.row(i) = newPoint;
+        new_3D_points.row(i) = calculate_barycentric_3D_coord(r, halfedges_uv, faces_uv, vertices_uv, vertices_3D, i);
 
     }
 
