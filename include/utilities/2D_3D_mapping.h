@@ -28,3 +28,8 @@ Eigen::MatrixXd get_r3d(
     const Eigen::MatrixXd vertices_uv,
     const Eigen::MatrixXd vertices_3D
 );
+
+Eigen::VectorXd get_vertice3D_id(
+    const Eigen::MatrixXd r3d,
+    const Eigen::MatrixXd vertices_3D
+);

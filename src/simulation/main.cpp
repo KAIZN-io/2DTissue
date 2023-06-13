@@ -105,6 +105,8 @@ int main()
         std::string mesh_file_path_virtual = std::get<1>(result_virtual);
         Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path);
 
+        auto [vertices_UV_splay, vertices_3D_splay] = get_h_v_map("Ellipsoid", splay_state_v);
+
         // Store the virtual meshes
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
@@ -141,7 +143,6 @@ int main()
 
                 // Get the 3D vertices coordinates from the 2D particle position coordinates
                 auto new_3D_points = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D);
-                std::cout << "new_3D_points: " << new_3D_points << std::endl;
 
                 // Save the data
                 // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
@@ -152,7 +153,7 @@ int main()
                 // save_matrix_to_csv(new_3D_points, file_name_3D, num_part);
             }
 
-            std::cout << v_order << std::endl;
+            // std::cout << v_order << std::endl;
 
             std::clock_t end = std::clock();
             double duration = (end - start) / (double) CLOCKS_PER_SEC;

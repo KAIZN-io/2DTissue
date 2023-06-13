@@ -446,6 +446,7 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> get_h_v_map(
     return std::make_pair(vertices_UV, vertices_3D);
 }
 
+
 std::vector<int64_t> calculate_uv_surface(
     const std::string& mesh_3D,
     my_vertex_descriptor start_node,

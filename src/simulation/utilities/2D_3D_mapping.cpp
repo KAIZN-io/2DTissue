@@ -98,30 +98,30 @@ Eigen::MatrixXd get_r3d(
 }
 
 
-// // (3D Coordinates -> 3D Vertice id) mapping
-// Eigen::VectorXd get_vertice3D_id(
-//     const Eigen::MatrixXd r3d,
-//     const Eigen::MatrixXd vertices_3D
-// ){
-//     int num_r = r3d.rows();
-//     Eigen::VectorXd vertice_3D_id(num_r);
+// (3D Coordinates -> 3D Vertice id) mapping
+Eigen::VectorXd get_vertice3D_id(
+    const Eigen::MatrixXd r3d,
+    const Eigen::MatrixXd vertices_3D
+){
+    int num_r = r3d.rows();
+    Eigen::VectorXd vertice_3D_id(num_r);
 
-//     for (int i = 0; i < num_r; ++i) {
-//         double min_distance = std::numeric_limits<double>::max();
-//         int64_t min_idx = -1;
+    for (int i = 0; i < num_r; ++i) {
+        double min_distance = std::numeric_limits<double>::max();
+        int64_t min_idx = -1;
 
-//         for (int j = 0; j < vertices_3D.rows(); ++j) {
-//             Eigen::Vector3d diff = vertices_3D.row(j) - r3d.row(i).transpose();
-//             double distance = diff.norm();
+        for (int j = 0; j < vertices_3D.rows(); ++j) {
+            Eigen::Vector3d diff = vertices_3D.row(j) - r3d.row(i).transpose();
+            double distance = diff.norm();
 
-//             if (distance < min_distance) {
-//                 min_distance = distance;
-//                 min_idx = j;
-//             }
-//         }
+            if (distance < min_distance) {
+                min_distance = distance;
+                min_idx = j;
+            }
+        }
 
-//         vertice_3D_id(i) = min_idx;
-//     }
+        vertice_3D_id(i) = min_idx;
+    }
 
-//     return vertice_3D_id;
-// }
+    return vertice_3D_id;
+}
