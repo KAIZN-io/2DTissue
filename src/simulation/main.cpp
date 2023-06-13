@@ -49,6 +49,20 @@
 #include <utilities/process_invalid_particle.h>
 
 
+std::pair<std::vector<int64_t>, std::string> init_simulation(){
+    // Create the UV mesh
+    auto result = create_uv_surface_intern("Ellipsoid", 0);
+
+    // Check if the distance matrix of the static 3D mesh already exists
+    if (!std::filesystem::exists("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv")) {
+        // Calculate the distance matrix of the static 3D mesh
+        get_all_distances();
+    }
+
+    return result;
+}
+
+
 int main()
 {
     auto v0 = 0.1;
@@ -60,23 +74,21 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_frames = 30;
+    int num_frames = 2;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
-    auto result = create_uv_surface_intern("Ellipsoid", 0);
+    // Initialize the simulation
+    auto result = init_simulation();
     std::vector<int64_t> h_v_mapping_vector = std::get<0>(result);  // halfedge-vertice mapping
     std::string mesh_file_path = std::get<1>(result);
+
+    auto [vertices_UV, vertices_3D] = get_h_v_map("Ellipsoid", 0);
 
     Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
     Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
 
     vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping_vector};
-
-    // Check if file exists
-    if (!std::filesystem::exists("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv")) {
-        get_all_distances();
-    }
 
     // Load the distance matrix
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
@@ -97,7 +109,7 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
 
-    for (int num_part = 600; num_part <= 600; num_part += 100) {
+    for (int num_part = 2; num_part <= 2; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {
@@ -122,17 +134,14 @@ int main()
                 r = r_new;
                 n = n_new;
 
-                // TODO: implement the correct way to get the 3D vertices coordinates from the 2D particle position coordinates
-                // Get the 3D vertices coordinates from the 2D particle position coordinates
-                // Eigen::MatrixXd r_3D = get_r3d(r, halfedge_uv, h_v_mapping_vector);
-                // Eigen::VectorXd new_vertices_3D_active_eigen_test = get_vertice3D_id(r_3D, vertices_3D);
-
                 // Map the 2D vertices to their 3D vertices
                 Eigen::VectorXd new_vertices_3D_active_eigen = get_vertice_id(r, halfedge_uv, h_v_mapping_vector);
                 std::vector<int> new_vertices_3D_active(new_vertices_3D_active_eigen.data(), new_vertices_3D_active_eigen.data() + new_vertices_3D_active_eigen.size());
                 vertices_3D_active = new_vertices_3D_active;
 
-                auto new_3D_points = get_r3d(r, halfedge_uv, h_v_mapping_vector, faces_uv);
+                // Get the 3D vertices coordinates from the 2D particle position coordinates
+                auto new_3D_points = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D);
+                std::cout << "new_3D_points: " << new_3D_points << std::endl;
 
                 // Save the data
                 // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
@@ -141,20 +150,9 @@ int main()
                 // save_matrix_to_csv(particles_color, file_name_color, num_part);
                 // std::string file_name_3D = "r_3D_data_" + std::to_string(tt) + ".csv";
                 // save_matrix_to_csv(new_3D_points, file_name_3D, num_part);
-                // std::string file_name_n = "n_data_" + std::to_string(tt) + ".csv";
-                // Eigen::MatrixXi n_int = n.cast<int>();
-                // save_matrix_to_csv(n_int, file_name_n, num_part);
             }
 
-            // Create a VectorXd object with size 1 to store the last value of v_order
-            // Eigen::VectorXd last_value(1);
-
-            // Copy the last value of v_order into the new vector
-            // last_value(0) = v_order(v_order.size() - 1);
             std::cout << v_order << std::endl;
-            // // Save the order parameter
-            // std::string file_name = "v_order_data.csv";
-            // save_matrix_to_csv(last_value, file_name, num_part);
 
             std::clock_t end = std::clock();
             double duration = (end - start) / (double) CLOCKS_PER_SEC;

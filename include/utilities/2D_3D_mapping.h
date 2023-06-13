@@ -24,6 +24,7 @@ Eigen::VectorXd get_vertice_id(
 Eigen::MatrixXd get_r3d(
     const Eigen::MatrixXd& r,
     const Eigen::MatrixXd& halfedges_uv,
-    const std::vector<int64_t>& halfedge_vertices_mapping,
-    Eigen::MatrixXi faces_uv
+    const Eigen::MatrixXi faces_uv,
+    const Eigen::MatrixXd vertices_uv,
+    const Eigen::MatrixXd vertices_3D
 );
