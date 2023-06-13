@@ -89,6 +89,7 @@ target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost
 
 add_library(utilities_lib STATIC
     src/simulation/utilities/analytics.cpp
+    src/simulation/utilities/barycentric_coord.cpp
     src/simulation/utilities/nearest_map.cpp
     src/simulation/utilities/distance.cpp
     src/simulation/utilities/init_particle.cpp
