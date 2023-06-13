@@ -82,6 +82,7 @@ add_library(particle_simulation_lib STATIC
     src/simulation/particle_simulation/motion.cpp
     src/simulation/particle_simulation/forces.cpp
     src/simulation/particle_simulation/particle_vector.cpp
+    src/simulation/particle_simulation/simulation.cpp
 )
 target_include_directories(particle_simulation_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost)
