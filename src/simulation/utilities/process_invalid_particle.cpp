@@ -41,8 +41,9 @@ void process_invalid_particle(
 ) {
     int old_id = particle.old_id;
 
-    auto [halfedges_uv, h_v_mapping] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
+    auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
 
+    // Get the old 3D vertice ids
     std::vector<int64_t> old_ids(vertex_data.size());
     for (size_t i = 0; i < vertex_data.size(); ++i) {
         old_ids[i] = vertex_data[i].old_id;
@@ -104,7 +105,6 @@ void process_if_not_valid(
         }
     }
 
-    // NOTE: hope that this is a good safety net
     std::vector<int> still_invalid_ids;
 
     for (int i = 0; i < vertex_data.size(); ++i) {
@@ -117,13 +117,12 @@ void process_if_not_valid(
         // Create new 2D surfaces for the still invalid ids
         for (int i = 0; i < still_invalid_ids.size(); ++i) {
             std::cout << "Creating new 2D surface for particle " << i << std::endl;
-            auto result = create_uv_surface_intern("Ellipsoid", i);
-            std::vector<int64_t> h_v_mapping_vector = std::get<0>(result);  // halfedge-vertice mapping
-            std::string mesh_file_path = std::get<1>(result);
+
+            auto [h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path] = create_uv_surface_intern("Ellipsoid", i);
             Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
 
             // Store the new meshes
-            vertices_2DTissue_map[i] = Mesh_UV_Struct{i, halfedge_uv, h_v_mapping_vector};
+            vertices_2DTissue_map[i] = Mesh_UV_Struct{i, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D};
             process_invalid_particle(vertices_2DTissue_map, vertex_data, vertex_data[i], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
 
             if (are_all_valid(vertex_data)) {

@@ -49,20 +49,6 @@
 #include <utilities/process_invalid_particle.h>
 
 
-std::pair<std::vector<int64_t>, std::string> init_simulation(){
-    // Create the UV mesh
-    auto result = create_uv_surface_intern("Ellipsoid", 0);
-
-    // Check if the distance matrix of the static 3D mesh already exists
-    if (!std::filesystem::exists("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv")) {
-        // Calculate the distance matrix of the static 3D mesh
-        get_all_distances();
-    }
-
-    return result;
-}
-
-
 int main()
 {
     auto v0 = 0.1;
@@ -79,16 +65,18 @@ int main()
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
     // Initialize the simulation
-    auto result = init_simulation();
-    std::vector<int64_t> h_v_mapping_vector = std::get<0>(result);  // halfedge-vertice mapping
-    std::string mesh_file_path = std::get<1>(result);
+    auto [h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path] = create_uv_surface_intern("Ellipsoid", 0);
 
-    auto [vertices_UV, vertices_3D] = get_h_v_map("Ellipsoid", 0);
+    // Check if the distance matrix of the static 3D mesh already exists
+    if (!std::filesystem::exists("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv")) {
+        // Calculate the distance matrix of the static 3D mesh
+        get_all_distances();
+    }
 
     Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
     Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
 
-    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping_vector};
+    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D};
 
     // Load the distance matrix
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
@@ -100,15 +88,11 @@ int main()
     for (int i = 0; i < splay_state_vertices.size(); ++i) {
         int splay_state_v = splay_state_vertices[i];
 
-        auto result_virtual = create_uv_surface_intern("Ellipsoid", splay_state_v);
-        std::vector<int64_t> h_v_mapping_vector_virtual = std::get<0>(result_virtual);
-        std::string mesh_file_path_virtual = std::get<1>(result_virtual);
+        auto [h_v_mapping_vector_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = create_uv_surface_intern("Ellipsoid", splay_state_v);
         Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path);
 
-        auto [vertices_UV_splay, vertices_3D_splay] = get_h_v_map("Ellipsoid", splay_state_v);
-
         // Store the virtual meshes
-        vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
+        vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual, vertices_UV_splay, vertices_3D_splay};
     }
 
     for (int num_part = 2; num_part <= 2; num_part += 100) {

@@ -381,73 +381,7 @@ SMP::Error_code perform_parameterization(
 }
 
 
-std::pair<Eigen::MatrixXd, Eigen::MatrixXd> get_h_v_map(
-    std::string mesh_3D,
-    int32_t start_node_int
-){
-    // Load the 3D mesh
-    SurfaceMesh sm;
-    auto filename = get_mesh_obj(mesh_3D);
-    filename >> sm;
-
-    my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-
-    // Calculate the virtual border
-    auto calc_edges = calc_virtual_border(mesh_3D, start_node);
-
-    // Canonical Halfedges Representing a Vertex
-    UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
-
-    // Create the seam mesh
-    Mesh mesh = create_seam_mesh(sm, calc_edges);
-
-    // Choose a halfedge on the (possibly virtual) border
-    halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
-
-    // Perform parameterization
-    SMP::Error_code err = perform_parameterization(mesh, bhd, uvmap);
-
-    // iterate over the halfedges inside the uvmap
-    // for (auto h : halfedges(mesh)) {
-    //     // auto v = target(h, mesh);
-    //     auto target_uv_vertex = target(h, mesh);
-    //     auto uv = get(uvmap, h);
-
-    //     auto target_vertex = target(h, sm);
-    //     auto corresponding_point = sm.point(target_vertex);
-    //     // std::cout << "uv: " << uv  << " corresponding_point 3D: " << corresponding_point << std::endl;
-    // }
-
-    std::vector<Point_2> points_uv;
-    std::vector<Point_3> points;
-    for (vertex_descriptor vd : vertices(mesh)) {
-        auto point_3D = sm.point(target(vd, sm));
-        auto uv = get(uvmap, halfedge(vd, mesh));
-
-        points.push_back(point_3D);
-        points_uv.push_back(uv);
-    }
-
-    Eigen::MatrixXd vertices_3D(points.size(), 3);
-    Eigen::MatrixXd vertices_UV(points.size(), 3);
-    for (size_t i = 0; i < points.size(); ++i)
-    {
-        // Get the points
-        vertices_3D(i, 0) = points[i].x();
-        vertices_3D(i, 1) = points[i].y();
-        vertices_3D(i, 2) = points[i].z();
-
-        // Get the uv points
-        vertices_UV(i, 0) = points_uv[i].x();
-        vertices_UV(i, 1) = points_uv[i].y();
-        vertices_UV(i, 2) = 0;
-    }
-
-    return std::make_pair(vertices_UV, vertices_3D);
-}
-
-
-std::vector<int64_t> calculate_uv_surface(
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_surface(
     const std::string& mesh_3D,
     my_vertex_descriptor start_node,
     int uv_mesh_number
@@ -475,13 +409,39 @@ std::vector<int64_t> calculate_uv_surface(
     // Save the uv mesh
     save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
 
-    const auto _h_v_map = create_halfedge_vertex_map(mesh, sm);
+    std::vector<Point_2> points_uv;
+    std::vector<Point_3> points;
+    std::vector<int64_t> ids;
+    for (vertex_descriptor vd : vertices(mesh)) {
+        int64_t target_vertice = target(vd, sm);
+        auto point_3D = sm.point(target(vd, sm));
+        auto uv = get(uvmap, halfedge(vd, mesh));
 
-    return _h_v_map;
+        ids.push_back(target_vertice);
+        points.push_back(point_3D);
+        points_uv.push_back(uv);
+    }
+
+    Eigen::MatrixXd vertices_3D(points.size(), 3);
+    Eigen::MatrixXd vertices_UV(points.size(), 3);
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+        // Get the points
+        vertices_3D(i, 0) = points[i].x();
+        vertices_3D(i, 1) = points[i].y();
+        vertices_3D(i, 2) = points[i].z();
+
+        // Get the uv points
+        vertices_UV(i, 0) = points_uv[i].x();
+        vertices_UV(i, 1) = points_uv[i].y();
+        vertices_UV(i, 2) = 0;
+    }
+
+    return std::make_tuple(ids, vertices_UV, vertices_3D);
 }
 
 
-std::pair<std::vector<int64_t>, std::string> create_uv_surface_intern(
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface_intern(
     std::string mesh_3D,
     int32_t start_node_int
 ){
@@ -491,9 +451,9 @@ std::pair<std::vector<int64_t>, std::string> create_uv_surface_intern(
     filename >> sm;
 
     my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-    const auto results = calculate_uv_surface(mesh_3D, start_node, start_node_int);
+    auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_3D, start_node, start_node_int);
 
     const auto mesh_file_path = meshmeta.mesh_path;
 
-    return std::make_pair(results, mesh_file_path);
+    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
 }

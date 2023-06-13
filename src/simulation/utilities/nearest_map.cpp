@@ -13,7 +13,7 @@
 #include <utilities/sim_structs.h>
 
 
-std::pair<Eigen::MatrixXd, std::vector<int64_t>> find_nearest_vertice_map(
+std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> find_nearest_vertice_map(
     int target_vertex,
     const Eigen::MatrixXd distance_matrix,
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map
@@ -35,8 +35,20 @@ std::pair<Eigen::MatrixXd, std::vector<int64_t>> find_nearest_vertice_map(
         }
     }
 
-    auto [halfedges_uv, h_v_mapping] = get_mesh_data(vertices_2DTissue_map, nearest_vertex);
+    Eigen::MatrixXd halfedges_uv;
+    std::vector<int64_t> h_v_mapping;
+    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertices_3D;
 
-    return std::pair(halfedges_uv, h_v_mapping);
+    auto it = vertices_2DTissue_map.find(nearest_vertex);
+    if (it != vertices_2DTissue_map.end()) {
+        // Load the mesh
+        halfedges_uv = it->second.mesh;
+        h_v_mapping = it->second.h_v_mapping;
+        vertices_UV = it->second.vertices_UV;
+        vertices_3D = it->second.vertices_3D;
+    }
+
+    return std::tuple(halfedges_uv, h_v_mapping, vertices_UV, vertices_3D);
 }
 
