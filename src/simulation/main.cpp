@@ -55,7 +55,22 @@ using Point_3 = Kernel::Point_3;
 using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
 
 
-std::vector<int64_t> find_next_position(
+void error_unvalid_vertices(
+    std::vector<VertexData> vertex_data
+){
+    if (!are_all_valid(vertex_data)) {
+        std::cout << "Invalid vertices:\n";
+        for (const VertexData& vd : vertex_data) {
+            if (!vd.valid) {
+                std::cout << "Old ID: " << vd.old_id << ", Next ID: " << vd.next_id << ", Valid: " << vd.valid << ", UV Mesh ID: " << vd.uv_mesh_id << '\n';
+            }
+        }
+        throw std::runtime_error("There are still particles outside the mesh");
+    }
+}
+
+
+void validate_vertices(
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     std::vector<VertexData>& vertex_data,
     int num_part,
@@ -76,22 +91,41 @@ std::vector<int64_t> find_next_position(
         process_if_not_valid(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
     }
 
-    if (!are_all_valid(vertex_data)) {
-        std::cout << "Invalid vertices:\n";
-        for (const VertexData& vd : vertex_data) {
-            if (!vd.valid) {
-                std::cout << "Old ID: " << vd.old_id << ", Next ID: " << vd.next_id << ", Valid: " << vd.valid << ", UV Mesh ID: " << vd.uv_mesh_id << '\n';
-            }
-        }
-        throw std::runtime_error("There are still particles outside the mesh");
-    }
+    // Throw an error if there are still invalid vertices
+    error_unvalid_vertices(vertex_data);
+}
 
+
+std::vector<int64_t> get_next_ids(const std::vector<VertexData>& vertex_data){
     std::vector<int64_t> vertices_next_id(vertex_data.size());
     for (size_t i = 0; i < vertex_data.size(); ++i) {
         vertices_next_id[i] = vertex_data[i].next_id;
     }
 
     return vertices_next_id;
+}
+
+
+std::vector<int64_t> find_next_position(
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
+    std::vector<VertexData>& vertex_data,
+    int num_part,
+    Eigen::MatrixXd distance_matrix_v,
+    Eigen::MatrixXd n,
+    double v0,
+    double k,
+    double k_next,
+    double v0_next,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh,
+    double dt,
+    double tt
+){
+    validate_vertices(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+
+    return get_next_ids(vertex_data);
 }
 
 
@@ -177,7 +211,7 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_frames = 30;
+    int num_frames = 1;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -214,7 +248,7 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual};
     }
 
-    for (int num_part = 200; num_part <= 200; num_part += 100) {
+    for (int num_part = 100; num_part <= 100; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {
@@ -264,10 +298,10 @@ int main()
             }
 
             // Create a VectorXd object with size 1 to store the last value of v_order
-            Eigen::VectorXd last_value(1);
+            // Eigen::VectorXd last_value(1);
 
             // Copy the last value of v_order into the new vector
-            last_value(0) = v_order(v_order.size() - 1);
+            // last_value(0) = v_order(v_order.size() - 1);
             // std::cout << v_order << std::endl;
             // // Save the order parameter
             // std::string file_name = "v_order_data.csv";
