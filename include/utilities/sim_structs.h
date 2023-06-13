@@ -18,4 +18,5 @@ struct Mesh_UV_Struct {
     std::vector<int64_t> h_v_mapping;
     Eigen::MatrixXd vertices_UV;
     Eigen::MatrixXd vertices_3D;
+    std::string mesh_file_path;
 };

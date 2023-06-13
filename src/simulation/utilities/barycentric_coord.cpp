@@ -84,12 +84,13 @@ int closestRow(const Eigen::MatrixXd& vertices_uv, const Eigen::Vector2d& halfed
 }
 
 
-Eigen::Vector3d calculate_barycentric_3D_coord(
+std::pair<Eigen::Vector3d, int>calculate_barycentric_3D_coord(
     const Eigen::MatrixXd r,
     const Eigen::MatrixXd halfedges_uv,
     const Eigen::MatrixXi faces_uv,
     Eigen::MatrixXd vertices_uv,
     Eigen::MatrixXd vertices_3D,
+    std::vector<int64_t> h_v_mapping,
     int interator
 ){
     std::vector<std::pair<double, int>> distances(faces_uv.rows());
@@ -136,5 +137,21 @@ Eigen::Vector3d calculate_barycentric_3D_coord(
     // Compute the new 3D point using the barycentric coordinates
     Eigen::Vector3d newPoint = w_a * a + w_b * b + w_c * c;
 
-    return newPoint;
+    // Compute distances from newPoint to a, b, c
+    double dist_a = (newPoint - a).norm();
+    double dist_b = (newPoint - b).norm();
+    double dist_c = (newPoint - c).norm();
+
+    // Find the vertex with the minimum distance to newPoint
+    double min_dist = std::min({dist_a, dist_b, dist_c});
+
+    int closest_row_id;
+    if (min_dist == dist_a) closest_row_id = closest_a;
+    else if (min_dist == dist_b) closest_row_id = closest_b;
+    else closest_row_id = closest_c;
+
+    // Get the vertice of h_v_mapping
+    int closest_vertice_id = h_v_mapping[closest_row_id];
+
+    return std::make_pair(newPoint, closest_vertice_id);
 }

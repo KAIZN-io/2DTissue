@@ -48,80 +48,24 @@ Eigen::MatrixXd get_r_from_halfedge_id(
 }
 
 
-// (2D Coordinates -> 3D Vertice id) mapping
-Eigen::VectorXd get_vertice_id(
-    const Eigen::MatrixXd& r,
-    const Eigen::MatrixXd& halfedges_uv,
-    const std::vector<int64_t>& halfedge_vertices_mapping
-){
-    int num_r = r.rows();
-    Eigen::VectorXd vertice_3D_id(num_r);
-
-    for (int i = 0; i < num_r; ++i) {
-        double min_distance = std::numeric_limits<double>::max();
-        int64_t min_idx = -1;
-
-        for (int j = 0; j < halfedges_uv.rows(); ++j) {
-            Eigen::VectorXd diff = halfedges_uv.row(j) - r.row(i);
-            double distance = diff.norm();
-
-            if (distance < min_distance) {
-                min_distance = distance;
-                min_idx = j;
-            }
-        }
-
-        vertice_3D_id(i) = halfedge_vertices_mapping[min_idx];
-    }
-
-    return vertice_3D_id;
-}
-
-
-Eigen::MatrixXd get_r3d(
+// (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id) mapping
+std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
     const Eigen::MatrixXd& r,
     const Eigen::MatrixXd& halfedges_uv,
     const Eigen::MatrixXi faces_uv,
     const Eigen::MatrixXd vertices_uv,
-    const Eigen::MatrixXd vertices_3D
+    const Eigen::MatrixXd vertices_3D,
+    std::vector<int64_t> h_v_mapping
 ){
     int num_r = r.rows();
     Eigen::MatrixXd new_3D_points(num_r, 3);
+    std::vector<int> nearest_vertices_ids(num_r);
 
     for (int i = 0; i < num_r; ++i) {
-
-        new_3D_points.row(i) = calculate_barycentric_3D_coord(r, halfedges_uv, faces_uv, vertices_uv, vertices_3D, i);
-
+        auto [barycentric_coord, nearest_vertex_id] = calculate_barycentric_3D_coord(r, halfedges_uv, faces_uv, vertices_uv, vertices_3D, h_v_mapping, i);
+        new_3D_points.row(i) = barycentric_coord;
+        nearest_vertices_ids[i] = nearest_vertex_id;
     }
 
-    return new_3D_points;
-}
-
-
-// (3D Coordinates -> 3D Vertice id) mapping
-Eigen::VectorXd get_vertice3D_id(
-    const Eigen::MatrixXd r3d,
-    const Eigen::MatrixXd vertices_3D
-){
-    int num_r = r3d.rows();
-    Eigen::VectorXd vertice_3D_id(num_r);
-
-    for (int i = 0; i < num_r; ++i) {
-        double min_distance = std::numeric_limits<double>::max();
-        int64_t min_idx = -1;
-
-        for (int j = 0; j < vertices_3D.rows(); ++j) {
-            Eigen::Vector3d diff = vertices_3D.row(j) - r3d.row(i).transpose();
-            double distance = diff.norm();
-
-            if (distance < min_distance) {
-                min_distance = distance;
-                min_idx = j;
-            }
-        }
-
-        vertice_3D_id(i) = min_idx;
-    }
-
-    return vertice_3D_id;
+    return std::make_pair(new_3D_points, nearest_vertices_ids);
 }

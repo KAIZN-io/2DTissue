@@ -41,7 +41,8 @@ void process_invalid_particle(
 ) {
     int old_id = particle.old_id;
 
-    auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
+    auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
+    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
 
     // Get the old 3D vertice ids
     std::vector<int64_t> old_ids(vertex_data.size());
@@ -66,7 +67,14 @@ void process_invalid_particle(
     auto [r_new_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids_int, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
 
     // Get the new vertice id
-    Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new_virtual, halfedges_uv, h_v_mapping);
+    auto [start_3D_points, vertices_3D_active] = get_r3d(r_new_virtual, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+
+    // Convert std::vector<int> to std::vector<double>
+    std::vector<double> vertices_3D_active_double(vertices_3D_active.begin(), vertices_3D_active.end());
+
+    // Map std::vector<double> to Eigen::VectorXd
+    Eigen::VectorXd vertice_3D_id = Eigen::Map<Eigen::VectorXd>(vertices_3D_active_double.data(), vertices_3D_active_double.size());
+
 
     update_if_valid(vertex_data, r_new_virtual, vertice_3D_id, old_id);
 }
@@ -122,7 +130,7 @@ void process_if_not_valid(
             Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
 
             // Store the new meshes
-            vertices_2DTissue_map[i] = Mesh_UV_Struct{i, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D};
+            vertices_2DTissue_map[i] = Mesh_UV_Struct{i, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};
             process_invalid_particle(vertices_2DTissue_map, vertex_data, vertex_data[i], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
 
             if (are_all_valid(vertex_data)) {

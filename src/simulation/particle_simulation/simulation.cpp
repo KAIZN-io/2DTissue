@@ -160,10 +160,32 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     std::vector<int> outside_uv_ids = set_difference(num_part, inside_uv_ids);
 
     // Get the original mesh from the dictionary
-    auto [halfedges_uv, h_v_mapping] = get_mesh_data(vertices_2DTissue_map, 0);
+    Eigen::MatrixXd halfedges_uv;
+    std::vector<int64_t> h_v_mapping;
+    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertices_3D;
+    std::string mesh_file_path;
+
+    auto it = vertices_2DTissue_map.find(0);
+    if (it != vertices_2DTissue_map.end()) {
+        // Load the mesh
+        halfedges_uv = it->second.mesh;
+        h_v_mapping = it->second.h_v_mapping;
+        vertices_UV = it->second.vertices_UV;
+        vertices_3D = it->second.vertices_3D;
+        mesh_file_path = it->second.mesh_file_path;
+    }
+
+    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
 
     // Find the new suggested 3D vertex ids, even if they are outside the 2D mesh
-    Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new, halfedges_uv, h_v_mapping);
+    auto [start_3D_points, new_vertices_3D_active] = get_r3d(r_new, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+
+    // Convert std::vector<int> to std::vector<double>
+    std::vector<double> vertices_3D_active_double(new_vertices_3D_active.begin(), new_vertices_3D_active.end());
+
+    // Map std::vector<double> to Eigen::VectorXd
+    Eigen::VectorXd vertice_3D_id = Eigen::Map<Eigen::VectorXd>(vertices_3D_active_double.data(), vertices_3D_active_double.size());
 
     // Update our struct for this time step for the particles which landed Inside the mesh
     std::vector<VertexData> vertex_data = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids, 0);
