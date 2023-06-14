@@ -8,6 +8,7 @@
 #include <limits>
 #include <cstdint>
 #include <Eigen/Dense>
+#include <unordered_set>
 
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/barycentric_coord.h>
@@ -68,4 +69,39 @@ std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
     }
 
     return std::make_pair(new_3D_points, nearest_vertices_ids);
+}
+
+
+// (3D Vertice id -> 3D Vertice row position) mapping
+std::vector<int> find_vertice_rows_index(
+    std::vector<int64_t> h_v_mapping_vector,
+    std::vector<int> r3d_vertices
+){
+    std::unordered_set<int> found_ids;
+    std::vector<int> indices;
+
+    for (int i = 0; i < h_v_mapping_vector.size(); ++i) {
+        if (std::find(r3d_vertices.begin(), r3d_vertices.end(), h_v_mapping_vector[i]) != r3d_vertices.end()) {
+            if (found_ids.find(h_v_mapping_vector[i]) == found_ids.end()) {
+                indices.push_back(i);
+                found_ids.insert(h_v_mapping_vector[i]);
+            }
+        }
+    }
+    return indices;
+}
+
+
+// (3D Vertice row position -> nD Vertice coordinates) mapping
+Eigen::MatrixXd get_coordinates(
+    std::vector<int> indices,
+    Eigen::MatrixXd coord
+){
+    Eigen::MatrixXd found_coord(indices.size(), coord.cols());
+
+    for (int i = 0; i < indices.size(); ++i) {
+        found_coord.row(i) = coord.row(indices[i]);
+    }
+
+    return found_coord;
 }

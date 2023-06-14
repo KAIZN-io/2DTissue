@@ -23,3 +23,13 @@ std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
     const Eigen::MatrixXd vertices_3D,
     std::vector<int64_t> h_v_mapping
 );
+
+std::vector<int> find_vertice_rows_index(
+    std::vector<int64_t> h_v_mapping_vector,
+    std::vector<int> r3d_vertices
+);
+
+Eigen::MatrixXd get_coordinates(
+    std::vector<int> indices,
+    Eigen::MatrixXd coord
+);
