@@ -6,6 +6,7 @@
 
 #include <Eigen/Dense>
 #include <vector>
+#include <iostream>
 
 #include <utilities/update.h>
 #include <utilities/boundary_check.h>
@@ -17,7 +18,7 @@ std::vector<VertexData> update_vertex_data(
     const std::vector<int>& inside_uv_ids,
     int start_id
 ){
-    int num_r = old_r_3D_coord.size();
+    int num_r = old_r_3D_coord.rows();
     std::vector<VertexData> vertex_data(num_r);
 
     // Initialize the vertex data
