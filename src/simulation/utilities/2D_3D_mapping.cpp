@@ -16,40 +16,7 @@
 #include <io/csv.h>
 
 
-// (3D Vertice id -> Halfedge id) mapping
-std::vector<int64_t> get_first_uv_halfedge_from_3D_vertice_id(
-    const std::vector<int64_t>& _vertice_3D_id,
-    const std::vector<int64_t>& _halfedge_vertices_mapping
-) {
-    std::vector<int64_t> halfedge_id;
-    halfedge_id.reserve(_vertice_3D_id.size());
-
-    for (const auto& vertice_3D_id : _vertice_3D_id) {
-        auto it = std::find(_halfedge_vertices_mapping.begin(), _halfedge_vertices_mapping.end(), vertice_3D_id);
-        halfedge_id.push_back(static_cast<int64_t>(std::distance(_halfedge_vertices_mapping.begin(), it)));
-    }
-
-    return halfedge_id;
-}
-
-
-// (Halfedge id -> 2D Coordinates) mapping
-Eigen::MatrixXd get_r_from_halfedge_id(
-    const std::vector<int64_t>& halfedge_id,
-    const Eigen::MatrixXd& halfedges_uv
-){
-    int num_halfedges = static_cast<int>(halfedge_id.size());
-    Eigen::MatrixXd halfedge_uv_coord(num_halfedges, halfedges_uv.cols());
-
-    for (int i = 0; i < num_halfedges; i++) {
-        halfedge_uv_coord.row(i) = halfedges_uv.row(halfedge_id[i]);
-    }
-
-    return halfedge_uv_coord;
-}
-
-
-// (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id) mapping
+// (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
 std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
     const Eigen::MatrixXd& r,
     const Eigen::MatrixXd& halfedges_uv,
@@ -72,7 +39,7 @@ std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
 }
 
 
-// (3D Vertice id -> 3D Vertice row position) mapping
+// (3D Vertice id -> 3D Vertice row position of the h-v map) mapping
 std::vector<int> find_vertice_rows_index(
     std::vector<int64_t> h_v_mapping_vector,
     std::vector<int> r3d_vertices

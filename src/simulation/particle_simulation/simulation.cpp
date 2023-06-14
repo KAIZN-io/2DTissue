@@ -98,8 +98,8 @@ void validate_vertices(
 }
 
 
-std::vector<int64_t> get_next_ids(const std::vector<VertexData>& vertex_data){
-    std::vector<int64_t> vertices_next_id(vertex_data.size());
+std::vector<int> get_next_ids(const std::vector<VertexData>& vertex_data){
+    std::vector<int> vertices_next_id(vertex_data.size());
     for (size_t i = 0; i < vertex_data.size(); ++i) {
         vertices_next_id[i] = vertex_data[i].next_id;
     }
@@ -108,7 +108,7 @@ std::vector<int64_t> get_next_ids(const std::vector<VertexData>& vertex_data){
 }
 
 
-std::vector<int64_t> find_next_position(
+std::vector<int> find_next_position(
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     std::vector<VertexData>& vertex_data,
     int num_part,
@@ -191,14 +191,18 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     std::vector<VertexData> vertex_data = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids, 0);
 
     // Check and process invalid particles, which landed Outside the mesh
-    auto vertices_next_id = find_next_position(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+    std::vector<int> vertices_next_id = find_next_position(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
 
     // Update the data for the previous particles which landed Outside
     for (int i : outside_uv_ids) {
-        std::vector<int64_t> single_vertex_next_id = {vertices_next_id[i]};
-        std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(single_vertex_next_id, h_v_mapping);
+        std::vector<int> single_vertex_next_id = {vertices_next_id[i]};
 
-        Eigen::MatrixXd r_new_temp_single_row = get_r_from_halfedge_id(halfedge_id, halfedges_uv);
+        // Find the row of the vertex number inside the h_v_mapping_vector
+        auto row_indices = find_vertice_rows_index(h_v_mapping, single_vertex_next_id);
+
+        // Get the coordinates of the vertices based on the row indices
+        Eigen::MatrixXd r_new_temp_single_row = get_coordinates(row_indices, vertices_UV);
+
         r_new.row(i) = r_new_temp_single_row.row(0);
     }
 

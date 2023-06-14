@@ -41,32 +41,26 @@ void process_invalid_particle(
 ) {
     int old_id = particle.old_id;
 
+    // Get the nearest vertice map
     auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
-    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
 
     // Get the old 3D vertice ids
-    std::vector<int64_t> old_ids(vertex_data.size());
+    std::vector<int> old_ids(vertex_data.size());
     for (size_t i = 0; i < vertex_data.size(); ++i) {
-        old_ids[i] = vertex_data[i].old_id;
+        old_ids[i] = static_cast<int>(vertex_data[i].old_id);
     }
 
-    // ! TEMPORARY SOLUTION
-    // Create a new vector of int and copy the elements from old_ids
-    std::vector<int> old_ids_int(old_ids.size());
-    for (size_t i = 0; i < old_ids.size(); ++i) {
-        old_ids_int[i] = static_cast<int>(old_ids[i]);
-    }
+    // Find the row of the vertex number inside the h_v_mapping_vector
+    auto row_indices = find_vertice_rows_index(h_v_mapping, old_ids);
 
-    // Get the halfedges based on the choosen h-v mapping
-    std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(old_ids, h_v_mapping);
-
-    // Get the coordinates of the halfedges
-    auto r_active = get_r_from_halfedge_id(halfedge_id, halfedges_uv);
+    // Get the coordinates of the vertices based on the row indices
+    auto r_active = get_coordinates(row_indices, vertices_UV);
 
     // Simulate the flight of the particle
-    auto [r_new_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids_int, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
+    auto [r_new_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
 
     // Get the new vertice id
+    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
     auto [start_3D_points, vertices_3D_active] = get_r3d(r_new_virtual, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
     // Convert std::vector<int> to std::vector<double>
