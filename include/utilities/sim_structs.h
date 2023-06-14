@@ -6,8 +6,8 @@
 #include <cstdint>
 
 struct VertexData {
-    int64_t old_id;
-    int64_t next_id;
+    Eigen::MatrixXd old_particle_pos;
+    Eigen::MatrixXd next_particle_pos;
     bool valid;
     int uv_mesh_id;
 };

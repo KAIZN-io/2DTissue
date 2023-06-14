@@ -60,7 +60,7 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_frames = 30;
+    int num_frames = 2;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -82,6 +82,7 @@ int main()
     // Load the distance matrix
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
+
     /*
     Prefill the vertices_2DTissue_map with the virtual meshes
     */
@@ -101,7 +102,11 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
     }
 
-    for (int num_part = 400; num_part <= 400; num_part += 100) {
+
+    /*
+    Run the simulation
+    */
+    for (int num_part = 2; num_part <= 2; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {
@@ -128,7 +133,6 @@ int main()
 
                 // Get the 3D vertices coordinates from the 2D particle position coordinates
                 auto [new_3D_points, new_vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping_vector);
-
                 vertices_3D_active = new_vertices_3D_active;
 
                 // // Save the data

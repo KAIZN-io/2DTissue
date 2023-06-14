@@ -50,7 +50,6 @@
 #include <utilities/validity_check.h>
 #include <utilities/process_invalid_particle.h>
 
-
 // CGAL type aliases
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_3 = Kernel::Point_3;
@@ -61,78 +60,24 @@ void error_unvalid_vertices(
     std::vector<VertexData> vertex_data
 ){
     if (!are_all_valid(vertex_data)) {
-        std::cout << "Invalid vertices:\n";
-        for (const VertexData& vd : vertex_data) {
-            if (!vd.valid) {
-                std::cout << "Old ID: " << vd.old_id << ", Next ID: " << vd.next_id << ", Valid: " << vd.valid << ", UV Mesh ID: " << vd.uv_mesh_id << '\n';
-            }
-        }
         throw std::runtime_error("There are still particles outside the mesh");
     }
 }
 
 
-void validate_vertices(
-    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
-    std::vector<VertexData>& vertex_data,
-    int num_part,
-    Eigen::MatrixXd distance_matrix_v,
-    Eigen::MatrixXd n,
-    double v0,
-    double k,
-    double k_next,
-    double v0_next,
-    double σ,
-    double μ,
-    double r_adh,
-    double k_adh,
-    double dt,
-    double tt
+void error_invalid_values(
+    Eigen::MatrixXd r_new
 ){
-    if (!are_all_valid(vertex_data)) {
-        process_if_not_valid(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
+    if (checkForInvalidValues(r_new)) {
+        std::cout << "Invalid values found in r: " << std::endl;
+        std::cout << r_new << std::endl;
+        std::exit(1);  // stop script execution
     }
-
-    // Throw an error if there are still invalid vertices
-    error_unvalid_vertices(vertex_data);
-}
-
-
-std::vector<int> get_next_ids(const std::vector<VertexData>& vertex_data){
-    std::vector<int> vertices_next_id(vertex_data.size());
-    for (size_t i = 0; i < vertex_data.size(); ++i) {
-        vertices_next_id[i] = vertex_data[i].next_id;
-    }
-
-    return vertices_next_id;
-}
-
-
-std::vector<int> find_next_position(
-    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
-    std::vector<VertexData>& vertex_data,
-    int num_part,
-    Eigen::MatrixXd distance_matrix_v,
-    Eigen::MatrixXd n,
-    double v0,
-    double k,
-    double k_next,
-    double v0_next,
-    double σ,
-    double μ,
-    double r_adh,
-    double k_adh,
-    double dt,
-    double tt
-){
-    validate_vertices(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
-
-    return get_next_ids(vertex_data);
 }
 
 
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd> perform_particle_simulation(
-    Eigen::MatrixXd& r,
+    Eigen::MatrixXd& r_UV,
     Eigen::MatrixXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
@@ -151,78 +96,85 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     double plotstep
 ){
-    // Simulate the flight of the particle
-    auto [r_new, r_dot, dist_length] = simulate_flight(r, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, dt);
-
-    // Find the particles which landed inside the mesh
-    std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_new);
-    // Find the particles which landed outside the mesh
-    std::vector<int> outside_uv_ids = set_difference(num_part, inside_uv_ids);
-
     // Get the original mesh from the dictionary
-    Eigen::MatrixXd halfedges_uv;
-    std::vector<int64_t> h_v_mapping;
-    Eigen::MatrixXd vertices_UV;
-    Eigen::MatrixXd vertices_3D;
-    std::string mesh_file_path;
-
-    auto it = vertices_2DTissue_map.find(0);
-    if (it != vertices_2DTissue_map.end()) {
-        // Load the mesh
-        halfedges_uv = it->second.mesh;
-        h_v_mapping = it->second.h_v_mapping;
-        vertices_UV = it->second.vertices_UV;
-        vertices_3D = it->second.vertices_3D;
-        mesh_file_path = it->second.mesh_file_path;
-    }
-
+    auto mesh_struct = vertices_2DTissue_map[0];
+    Eigen::MatrixXd halfedges_uv = mesh_struct.mesh;
+    std::vector<int64_t> h_v_mapping = mesh_struct.h_v_mapping;
+    Eigen::MatrixXd vertices_UV = mesh_struct.vertices_UV;
+    Eigen::MatrixXd vertices_3D = mesh_struct.vertices_3D;
+    std::string mesh_file_path = mesh_struct.mesh_file_path;
     Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
 
-    // Find the new suggested 3D vertex ids, even if they are outside the 2D mesh
-    auto [start_3D_points, new_vertices_3D_active] = get_r3d(r_new, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
-    // Convert std::vector<int> to std::vector<double>
-    std::vector<double> vertices_3D_active_double(new_vertices_3D_active.begin(), new_vertices_3D_active.end());
+    // 1. Simulate the flight of the particle on the UV mesh
+    auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, dt);
 
-    // Map std::vector<double> to Eigen::VectorXd
-    Eigen::VectorXd vertice_3D_id = Eigen::Map<Eigen::VectorXd>(vertices_3D_active_double.data(), vertices_3D_active_double.size());
+
+    // 2. Map old UV to 3D coordinates
+    auto [old_r_3D_coord, old_vertices_3D_active] = get_r3d(r_UV, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+
+
+    // 3. Check if the particle landed inside the mesh
+    // Find the particles which landed inside the mesh
+    std::vector<int> inside_uv_row_ids = find_inside_uv_vertices_id(r_UV_new);
+    // Find the particles which landed outside the mesh
+    std::vector<int> outside_uv_row_ids = set_difference(num_part, inside_uv_row_ids);
+
+
+    // 4. Map valid UV coordinates to their 3D coordinates
+    // Find the 3D vertex coordinates
+    auto [new_r_3D_coord, new_vertices_3D_active] = get_r3d(r_UV_new, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
     // Update our struct for this time step for the particles which landed Inside the mesh
-    std::vector<VertexData> vertex_data = update_vertex_data(vertices_3D_active, vertice_3D_id, inside_uv_ids, 0);
+    std::vector<VertexData> vertex_data = update_vertex_data(old_r_3D_coord, new_r_3D_coord, inside_uv_row_ids, 0);
 
-    // Check and process invalid particles, which landed Outside the mesh
-    std::vector<int> vertices_next_id = find_next_position(vertices_2DTissue_map, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
 
-    // Update the data for the previous particles which landed Outside
-    for (int i : outside_uv_ids) {
-        std::vector<int> single_vertex_next_id = {vertices_next_id[i]};
-
-        // Find the row of the vertex number inside the h_v_mapping_vector
-        auto row_indices = find_vertice_rows_index(h_v_mapping, single_vertex_next_id);
-
-        // Get the coordinates of the vertices based on the row indices
-        Eigen::MatrixXd r_new_temp_single_row = get_coordinates(row_indices, vertices_UV);
-
-        r_new.row(i) = r_new_temp_single_row.row(0);
+    // 5. Unvalid particles
+    // Re-run invalid particles, which landed Outside the mesh
+    if (!are_all_valid(vertex_data)) {
+        process_if_not_valid(vertices_2DTissue_map, old_vertices_3D_active, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt);
     }
 
-    // Check if we lost particles
-    if (find_inside_uv_vertices_id(r_new).size() != num_part) {
+    // Throw an error if there are still invalid vertices
+    error_unvalid_vertices(vertex_data);
+
+    // Eigen::MatrixXd vertices_next_id(vertex_data.size(), 3);
+    // for (size_t i = 0; i < vertex_data.size(); ++i) {
+    //     vertices_next_id.row(i) = vertex_data[i].next_particle_pos;
+    // }
+
+    // // Update the data for the previous particles which landed Outside
+    // for (int i : outside_uv_row_ids) {
+    //     // TODO
+    //     std::vector<int> single_vertex_next_id = {vertices_next_id[i]};
+
+    //     // Find the row of the vertex number inside the h_v_mapping_vector
+    //     auto row_indices = find_vertice_rows_index(h_v_mapping, single_vertex_next_id);
+
+    //     // Get the coordinates of the vertices based on the row indices
+    //     Eigen::MatrixXd r_new_temp_single_row = get_coordinates(row_indices, vertices_UV);
+
+    //     r_new.row(i) = r_new_temp_single_row.row(0);
+    // }
+
+
+    /*
+    Error checkings
+    */
+    // 1. Check if we lost particles
+    if (find_inside_uv_vertices_id(r_UV_new).size() != num_part) {
         throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
     }
 
-    // Check if there are invalid values like NaN or Inf in the output
-    if (checkForInvalidValues(r_new)) {
-        std::cout << "Invalid values found in r: " << std::endl;
-        std::cout << r_new << std::endl;
-        std::exit(1);  // stop script execution
-    }
+    // 2. Check if there are invalid values like NaN or Inf in the output
+    error_invalid_values(r_UV_new);
+
 
     // Dye the particles based on their distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
     // Calculate the order parameter
-    calculate_order_parameter(v_order, r, r_dot, tt);
+    calculate_order_parameter(v_order, r_UV, r_dot, tt);
 
-    return std::make_tuple(r_new, r_dot, dist_length, n, particles_color);
+    return std::make_tuple(r_UV_new, r_dot, dist_length, n, particles_color);
 }

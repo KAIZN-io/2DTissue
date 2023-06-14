@@ -40,7 +40,7 @@ Eigen::MatrixXd calculate_forces_between_particles(
 
             // Add a small value if the distance is zero or you get nan values due to 'Fij * (dist_v / dist)' (division by zero)
             if (dist == 0) {
-                dist += 0.0001;
+                dist += 0.001;
             }
 
             // Eigen::Vector3d for the 3D distance vector
