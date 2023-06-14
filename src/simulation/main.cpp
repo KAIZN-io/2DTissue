@@ -60,7 +60,7 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_frames = 2;
+    int num_frames = 10;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -106,7 +106,7 @@ int main()
     /*
     Run the simulation
     */
-    for (int num_part = 2; num_part <= 2; num_part += 100) {
+    for (int num_part = 200; num_part <= 200; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {

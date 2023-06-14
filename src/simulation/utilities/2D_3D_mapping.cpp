@@ -39,6 +39,27 @@ std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
 }
 
 
+// (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
+Eigen::MatrixXd get_r2d(
+    const Eigen::MatrixXd& r,
+    const Eigen::MatrixXd& halfedges_uv,
+    const Eigen::MatrixXi& faces_uv,
+    const Eigen::MatrixXd& vertices_uv,
+    const Eigen::MatrixXd& vertices_3D,
+    std::vector<int64_t>& h_v_mapping
+){
+    int num_r = r.rows();
+    Eigen::MatrixXd new_2D_points(num_r, 2);
+
+    for (int i = 0; i < num_r; ++i) {
+        auto [uv_coord, nearest_vertex_id] = calculate_barycentric_2D_coord(r, halfedges_uv, faces_uv, vertices_uv, vertices_3D, h_v_mapping, i);
+        new_2D_points.row(i) = uv_coord;
+    }
+
+    return new_2D_points;
+}
+
+
 // (3D Vertice id -> 3D Vertice row position of the h-v map) mapping
 std::vector<int> find_vertice_rows_index(
     std::vector<int64_t> h_v_mapping_vector,

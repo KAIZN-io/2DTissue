@@ -69,8 +69,6 @@ void error_invalid_values(
     Eigen::MatrixXd r_new
 ){
     if (checkForInvalidValues(r_new)) {
-        std::cout << "Invalid values found in r: " << std::endl;
-        std::cout << r_new << std::endl;
         std::exit(1);  // stop script execution
     }
 }
@@ -106,12 +104,12 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
 
 
-    // 1. Simulate the flight of the particle on the UV mesh
-    auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, dt);
-
-
-    // 2. Map old UV to 3D coordinates
+    // 1. Map old UV to 3D coordinates
     auto [old_r_3D_coord, old_vertices_3D_active] = get_r3d(r_UV, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+
+
+    // 2. Simulate the flight of the particle on the UV mesh
+    auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, dt);
 
 
     // 3. Check if the particle landed inside the mesh
@@ -120,14 +118,12 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Find the particles which landed outside the mesh
     std::vector<int> outside_uv_row_ids = set_difference(num_part, inside_uv_row_ids);
 
-
     // 4. Map valid UV coordinates to their 3D coordinates
     // Find the 3D vertex coordinates
     auto [new_r_3D_coord, new_vertices_3D_active] = get_r3d(r_UV_new, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
     // Update our struct for this time step for the particles which landed Inside the mesh
     std::vector<VertexData> vertex_data = update_vertex_data(old_r_3D_coord, new_r_3D_coord, inside_uv_row_ids, 0);
-
 
     // 5. Unvalid particles
     // Re-run invalid particles, which landed Outside the mesh
@@ -138,24 +134,21 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // Throw an error if there are still invalid vertices
     error_unvalid_vertices(vertex_data);
 
-    // Eigen::MatrixXd vertices_next_id(vertex_data.size(), 3);
-    // for (size_t i = 0; i < vertex_data.size(); ++i) {
-    //     vertices_next_id.row(i) = vertex_data[i].next_particle_pos;
-    // }
 
-    // // Update the data for the previous particles which landed Outside
-    // for (int i : outside_uv_row_ids) {
-    //     // TODO
-    //     std::vector<int> single_vertex_next_id = {vertices_next_id[i]};
+    Eigen::MatrixXd vertices_next_id(vertex_data.size(), 3);
+    for (size_t i = 0; i < vertex_data.size(); ++i) {
+        vertices_next_id.row(i) = vertex_data[i].next_particle_pos;
+    }
 
-    //     // Find the row of the vertex number inside the h_v_mapping_vector
-    //     auto row_indices = find_vertice_rows_index(h_v_mapping, single_vertex_next_id);
+    // Update the data for the previous particles which landed Outside
+    for (int i : outside_uv_row_ids) {
+        std::cout << "Particle " << i << " landed outside the mesh" << std::endl;
+        Eigen::MatrixXd single_3D_coord = vertices_next_id.row(i);
+        Eigen::MatrixXd r_new_temp_single_row = get_r2d(single_3D_coord, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
-    //     // Get the coordinates of the vertices based on the row indices
-    //     Eigen::MatrixXd r_new_temp_single_row = get_coordinates(row_indices, vertices_UV);
-
-    //     r_new.row(i) = r_new_temp_single_row.row(0);
-    // }
+        r_UV_new.row(i) = r_new_temp_single_row.row(0);
+    }
+    std::cout << r_UV_new << std::endl;
 
 
     /*

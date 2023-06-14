@@ -31,16 +31,17 @@ std::vector<VertexData> update_vertex_data(
 
     // Update the vertex data based on inside_uv_ids
     for (int i : inside_uv_ids) {
+
         if (!vertex_data[i].valid) {
             // Get the vertex data
-            VertexData& vd = vertex_data[inside_uv_ids[i]];
+            // ? VertexData& vd = vertex_data[inside_uv_ids[i]];
+            VertexData& vd = vertex_data[i];
 
             vd.next_particle_pos = new_r_3D_coord.row(i);
             vd.uv_mesh_id = start_id;
             vd.valid = true;
         }
     }
-
     return vertex_data;
 }
 
