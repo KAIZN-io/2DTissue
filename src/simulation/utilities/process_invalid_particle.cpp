@@ -63,12 +63,8 @@ void process_invalid_particle(
     Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
     auto [start_3D_points, vertices_3D_active] = get_r3d(r_new_virtual, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
-    // Convert std::vector<int> to std::vector<double>
     std::vector<double> vertices_3D_active_double(vertices_3D_active.begin(), vertices_3D_active.end());
-
-    // Map std::vector<double> to Eigen::VectorXd
     Eigen::VectorXd vertice_3D_id = Eigen::Map<Eigen::VectorXd>(vertices_3D_active_double.data(), vertices_3D_active_double.size());
-
 
     update_if_valid(vertex_data, r_new_virtual, vertice_3D_id, old_id);
 }
@@ -118,14 +114,16 @@ void process_if_not_valid(
 
         // Create new 2D surfaces for the still invalid ids
         for (int i = 0; i < still_invalid_ids.size(); ++i) {
-            std::cout << "Creating new 2D surface for particle " << i << std::endl;
 
-            auto [h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path] = create_uv_surface_intern("Ellipsoid", i);
+            int invalid_particle = still_invalid_ids[i];
+            std::cout << "Creating new 2D surface for particle " << invalid_particle << std::endl;
+
+            auto [h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path] = create_uv_surface_intern("Ellipsoid", invalid_particle);
             Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
 
             // Store the new meshes
-            vertices_2DTissue_map[i] = Mesh_UV_Struct{i, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};
-            process_invalid_particle(vertices_2DTissue_map, vertex_data, vertex_data[i], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+            vertices_2DTissue_map[invalid_particle] = Mesh_UV_Struct{invalid_particle, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};
+            process_invalid_particle(vertices_2DTissue_map, vertex_data, vertex_data[invalid_particle], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
 
             if (are_all_valid(vertex_data)) {
                 break;
