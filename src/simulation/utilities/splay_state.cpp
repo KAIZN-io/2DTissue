@@ -88,3 +88,45 @@ std::tuple<Eigen::MatrixXd, std::vector<int>> get_splay_state_vertices(const Mat
 
     return {splay_state_vertices, border_vertices};
 }
+
+
+std::vector<int> get_3D_splay_vertices(
+    Eigen::MatrixXd distance_matrix,
+    int number_vertices
+){
+    std::vector<int> selected_vertices;
+
+    // Start at a random vertex
+    int start_vertex = rand() % distance_matrix.rows();
+    selected_vertices.push_back(start_vertex);
+
+    while (selected_vertices.size() < number_vertices) {
+        double max_distance = -1;
+        int furthest_vertex = -1;
+
+        // Find the vertex that is furthest away from all selected vertices
+        for (int i = 0; i < distance_matrix.rows(); ++i) {
+            double min_distance = std::numeric_limits<double>::infinity();
+
+            // Compute the minimum distance to the selected vertices
+            for (int j : selected_vertices) {
+                double distance = distance_matrix(i, j);
+
+                if (distance < min_distance) {
+                    min_distance = distance;
+                }
+            }
+
+            // If this vertex is further away than the current furthest vertex, update it
+            if (min_distance > max_distance) {
+                max_distance = min_distance;
+                furthest_vertex = i;
+            }
+        }
+
+        // Add the furthest vertex to the selected vertices
+        selected_vertices.push_back(furthest_vertex);
+    }
+
+    return selected_vertices;
+}

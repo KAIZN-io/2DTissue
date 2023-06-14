@@ -60,7 +60,7 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_frames = 2;
+    int num_frames = 30;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -69,6 +69,7 @@ int main()
 
     // Check if the distance matrix of the static 3D mesh already exists
     if (!std::filesystem::exists("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv")) {
+
         // Calculate the distance matrix of the static 3D mesh
         get_all_distances();
     }
@@ -81,12 +82,17 @@ int main()
     // Load the distance matrix
     const Eigen::MatrixXd distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
 
-    // Prefill the vertices_2DTissue_map
-    auto [splay_state_UV_coord, splay_state_halfedges] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
-    auto [splay_state_3D_coord, splay_state_vertices] = get_r3d(splay_state_UV_coord, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping_vector);
+    /*
+    Prefill the vertices_2DTissue_map with the virtual meshes
+    */
+    // Get the vertices that are selected for the splay state in 3D
+    auto splay_state_vertices_id = get_3D_splay_vertices(distance_matrix, 30);
 
-    for (int i = 0; i < splay_state_vertices.size(); ++i) {
-        int splay_state_v = splay_state_vertices[i];
+    // auto [splay_state_UV_coord, splay_state_halfedges] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
+    // auto [splay_state_3D_coord, splay_state_vertices_id] = get_r3d(splay_state_UV_coord, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping_vector);
+
+    for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
+        int splay_state_v = splay_state_vertices_id[i];
 
         auto [h_v_mapping_vector_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = create_uv_surface_intern("Ellipsoid", splay_state_v);
         Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path_virtual);
@@ -95,7 +101,7 @@ int main()
         vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_vector_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
     }
 
-    for (int num_part = 600; num_part <= 600; num_part += 100) {
+    for (int num_part = 400; num_part <= 400; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {
@@ -114,6 +120,7 @@ int main()
             Eigen::VectorXd v_order(num_frames);
 
             for (int tt = 1; tt <= num_frames; ++tt) {
+
                 // Simulate the particles on the 2D surface
                 auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
                 r = r_new;
@@ -124,7 +131,7 @@ int main()
 
                 vertices_3D_active = new_vertices_3D_active;
 
-                // Save the data
+                // // Save the data
                 // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
                 // save_matrix_to_csv(r, file_name, num_part);
                 // std::string file_name_color = "color_data_" + std::to_string(tt) + ".csv";
@@ -132,8 +139,6 @@ int main()
                 // std::string file_name_3D = "r_3D_data_" + std::to_string(tt) + ".csv";
                 // save_matrix_to_csv(new_3D_points, file_name_3D, num_part);
             }
-
-            std::cout << v_order << std::endl;
 
             std::clock_t end = std::clock();
             double duration = (end - start) / (double) CLOCKS_PER_SEC;
