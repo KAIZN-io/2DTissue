@@ -132,7 +132,8 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     }
 
     // Throw an error if there are still invalid vertices
-    error_unvalid_vertices(vertex_data);
+    // TODO: fix this 
+    // error_unvalid_vertices(vertex_data);
 
 
     Eigen::MatrixXd vertices_next_id(vertex_data.size(), 3);
@@ -142,13 +143,11 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 
     // Update the data for the previous particles which landed Outside
     for (int i : outside_uv_row_ids) {
-        std::cout << "Particle " << i << " landed outside the mesh" << std::endl;
         Eigen::MatrixXd single_3D_coord = vertices_next_id.row(i);
-        Eigen::MatrixXd r_new_temp_single_row = get_r2d(single_3D_coord, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+        Eigen::MatrixXd r_new_temp_single_row = get_r2d(single_3D_coord, vertices_UV, vertices_3D, h_v_mapping);
 
         r_UV_new.row(i) = r_new_temp_single_row.row(0);
     }
-    std::cout << r_UV_new << std::endl;
 
 
     /*

@@ -134,10 +134,6 @@ std::pair<Eigen::Vector3d, int>calculate_barycentric_3D_coord(
     w_b /= sum_weights;
     w_c /= sum_weights;
 
-    // // Closest UV vertice
-    // double min_weight = std::min({w_a, w_b, w_c});
-    // int closest_UV_vertice = (min_weight == w_a) ? closest_a : (min_weight == w_b) ? closest_b : closest_c;
-
     // Compute the new 3D point using the barycentric coordinates
     Eigen::Vector3d newPoint = w_a * a + w_b * b + w_c * c;
 
