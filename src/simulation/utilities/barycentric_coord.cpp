@@ -161,28 +161,63 @@ std::pair<Eigen::Vector3d, int>calculate_barycentric_3D_coord(
 }
 
 
-std::pair<Eigen::Vector2d, int> calculate_barycentric_2D_coord(
-    const Eigen::MatrixXd& r,
-    const Eigen::MatrixXd& halfedges_uv,
-    const Eigen::MatrixXi& faces_uv,
-    const Eigen::MatrixXd& vertices_uv,
+Eigen::Vector3d calculate_barycentric_2D_coord(
+    const Eigen::MatrixXd& start_3D_points,
+    const Eigen::MatrixXi& faces_3D_static,
+    const Eigen::MatrixXd& vertices_UV,
     const Eigen::MatrixXd& vertices_3D,
     std::vector<int64_t>& h_v_mapping,
     int iterator
 ){
-    std::vector<std::pair<double, int>> distances(vertices_3D.rows());
+    std::vector<std::pair<double, int>> distances(faces_3D_static.rows());
 
-    for (int j = 0; j < vertices_3D.rows(); ++j) {
-        distances[j] = { (vertices_3D.row(j) - r.row(iterator)).norm(), j };
+    for (int j = 0; j < faces_3D_static.rows(); ++j) {
+
+        // find first occurence of vertice_a in h_v_mapping_vector and get the row index
+        int halfedge_a = std::find(h_v_mapping.begin(), h_v_mapping.end(), faces_3D_static(j, 0)) - h_v_mapping.begin();
+        int halfedge_b = std::find(h_v_mapping.begin(), h_v_mapping.end(), faces_3D_static(j, 1)) - h_v_mapping.begin();
+        int halfedge_c = std::find(h_v_mapping.begin(), h_v_mapping.end(), faces_3D_static(j, 2)) - h_v_mapping.begin();
+
+        Eigen::Vector3d uv_a = vertices_3D.row(halfedge_a);
+        Eigen::Vector3d uv_b = vertices_3D.row(halfedge_b);
+        Eigen::Vector3d uv_c = vertices_3D.row(halfedge_c);
+
+        distances[j] = {pointTriangleDistance(start_3D_points.row(iterator).head(2), uv_a, uv_b, uv_c), j};
     }
 
     std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
 
-    // Get the 2D (UV) coordinates of the closest vertex
-    Eigen::Vector2d closest_uv = vertices_uv.row(min_distance.second);
+    int vertice_a = faces_3D_static(min_distance.second, 0);
+    int vertice_b = faces_3D_static(min_distance.second, 1);
+    int vertice_c = faces_3D_static(min_distance.second, 2);
 
-    // Get the vertice of h_v_mapping
-    int closest_vertice_id = h_v_mapping[min_distance.second];
+    int nearest_halfedge_a = std::find(h_v_mapping.begin(), h_v_mapping.end(), vertice_a) - h_v_mapping.begin();
+    int nearest_halfedge_b = std::find(h_v_mapping.begin(), h_v_mapping.end(), vertice_b) - h_v_mapping.begin();
+    int nearest_halfedge_c = std::find(h_v_mapping.begin(), h_v_mapping.end(), vertice_c) - h_v_mapping.begin();
 
-    return std::make_pair(closest_uv, closest_vertice_id);
+    // Get the 3D coordinates of the 3 halfedges
+    Eigen::Vector3d a = vertices_3D.row(nearest_halfedge_a);
+    Eigen::Vector3d b = vertices_3D.row(nearest_halfedge_b);
+    Eigen::Vector3d c = vertices_3D.row(nearest_halfedge_c);
+
+    // Get the 2D coordinates of the 3 halfedges
+    Eigen::Vector3d uv_a = vertices_UV.row(nearest_halfedge_a);
+    Eigen::Vector3d uv_b = vertices_UV.row(nearest_halfedge_b);
+    Eigen::Vector3d uv_c = vertices_UV.row(nearest_halfedge_c);
+
+    // Compute the weights (distances in 3D space)
+    double w_a = (start_3D_points.row(iterator).head(2).transpose() - a).norm();
+    double w_b = (start_3D_points.row(iterator).head(2).transpose() - b).norm();
+    double w_c = (start_3D_points.row(iterator).head(2).transpose() - c).norm();
+
+    // Compute the barycentric coordinates
+    double sum_weights = w_a + w_b + w_c;
+    w_a /= sum_weights;
+    w_b /= sum_weights;
+    w_c /= sum_weights;
+
+    // Compute the new 3D point using the barycentric coordinates
+    Eigen::Vector3d newPoint = w_a * uv_a + w_b * uv_b + w_c * uv_c;
+
+    return newPoint;
 }

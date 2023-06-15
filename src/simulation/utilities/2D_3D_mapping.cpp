@@ -42,18 +42,22 @@ std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
 Eigen::MatrixXd get_r2d(
     const Eigen::MatrixXd& r,
-    const Eigen::MatrixXd& halfedges_uv,
-    const Eigen::MatrixXi& faces_uv,
     const Eigen::MatrixXd& vertices_uv,
     const Eigen::MatrixXd& vertices_3D,
     std::vector<int64_t>& h_v_mapping
 ){
+    // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
+    std::string mesh_3D_file_path = "/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off";
+    Eigen::MatrixXi faces_3D_static = loadMeshFaces(mesh_3D_file_path);
+
     int num_r = r.rows();
-    Eigen::MatrixXd new_2D_points(num_r, 2);
+    Eigen::MatrixXd new_2D_points(num_r, 3);
 
     for (int i = 0; i < num_r; ++i) {
-        auto [uv_coord, nearest_vertex_id] = calculate_barycentric_2D_coord(r, halfedges_uv, faces_uv, vertices_uv, vertices_3D, h_v_mapping, i);
+        auto uv_coord = calculate_barycentric_2D_coord(r, faces_3D_static, vertices_uv, vertices_3D, h_v_mapping, i);
+
         new_2D_points.row(i) = uv_coord;
+        new_2D_points.row(i).col(2).setZero();
     }
 
     return new_2D_points;
