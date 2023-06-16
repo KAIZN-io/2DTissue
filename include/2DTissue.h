@@ -4,7 +4,9 @@
 #include <vector>
 #include <filesystem>
 #include <Eigen/Dense>
+#include <map>
 
+#include <utilities/sim_structs.h>
 
 // Individuelle Partikel Informationen
 struct Particle{
@@ -29,6 +31,35 @@ struct System{
 
 class _2DTissue
 {
+private:
+    // Include here your class variables (the ones used in start and update methods)
+    std::filesystem::path mesh_path;
+    double v0;
+    double k;
+    double k_next;
+    double v0_next;
+    double σ;
+    double μ;
+    double r_adh;
+    double k_adh;
+    double step_size;
+    int step_count;
+    int map_cache_count;
+
+    Eigen::MatrixXd r;
+    Eigen::MatrixXd n;
+    std::vector<int> vertices_3D_active;
+    Eigen::MatrixXd distance_matrix;
+    Eigen::VectorXd v_order;
+    Eigen::MatrixXd halfedge_uv;
+    Eigen::MatrixXi faces_uv;
+    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertices_3D;
+    std::vector<int64_t> h_v_mapping;
+    double dt;
+    int num_part;
+    std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
+
 public:
     _2DTissue(
         std::filesystem::path mesh_path,
@@ -45,9 +76,7 @@ public:
         int map_cache_count = 30
     );
     void start(
-        int particle_count = 10,
-        Eigen::MatrixXd halfedge_uv = Eigen::MatrixXd(0, 0),
-        Eigen::MatrixXi faces_uv = Eigen::MatrixXi(0, 0)
+        int particle_count = 10
     );
     System update(
         int tt

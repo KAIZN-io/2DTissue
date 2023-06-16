@@ -6,14 +6,44 @@
 
 #include <particle_simulation/simulation.h>
 #include <utilities/init_particle.h>
+#include <utilities/2D_3D_mapping.h>
 
 #include <2DTissue.h>
 
 
+_2DTissue::_2DTissue(
+    std::filesystem::path mesh_path,
+    double v0,
+    double k,
+    double k_next,
+    double v0_next,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh,
+    double step_size,
+    int step_count,
+    int map_cache_count
+) :
+    mesh_path(mesh_path),
+    v0(v0),
+    k(k),
+    k_next(k_next),
+    v0_next(v0_next),
+    σ(σ),
+    μ(μ),
+    r_adh(r_adh),
+    k_adh(k_adh),
+    step_size(step_size),
+    step_count(step_count),
+    map_cache_count(map_cache_count)
+{
+    // Further initialization if necessary...
+}
+
+
 void _2DTissue::start(
-    int particle_count,
-    Eigen::MatrixXd halfedge_uv,
-    Eigen::MatrixXi faces_uv
+    int particle_count
 ){
     // Initialize the particles in 2D
     Eigen::MatrixXd r(particle_count, 3);
@@ -41,19 +71,21 @@ System _2DTissue::update(
 
     for (int i = 0; i < r_new.rows(); i++){
         Particle p;
-        p.x_UV = r_new.row(i).col(0);
-        p.y_UV = r_new.row(i).col(1);
-        p.x_velocity_UV = r_dot.row(i).col(0);
-        p.y_velocity_UV = r_dot.row(i).col(1);
-        p.x_alignment_UV = n_new.row(i).col(0);
-        p.y_alignment_UV = n_new.row(i).col(1);
-        p.x_3D = new_3D_points.row(i).col(0);
-        p.y_3D = new_3D_points.row(i).col(1);
-        p.z_3D = new_3D_points.row(i).col(2):
+        p.x_UV = r_new(i, 0);
+        p.y_UV = r_new(i, 1);
+        p.x_velocity_UV = r_dot(i, 0);
+        p.y_velocity_UV = r_dot(i, 1);
+        p.x_alignment_UV = n_new(i, 0);
+        p.y_alignment_UV = n_new(i, 1);
+        p.x_3D = new_3D_points(i, 0);
+        p.y_3D = new_3D_points(i, 1);
+        p.z_3D = new_3D_points(i, 2);
         p.neighbor_count = particles_color[i];
         particles.push_back(p);
     }
 
-    System.order_parameter = v_order.back();
-    System.particles = particles;
+    System system;
+    system.order_parameter = v_order(v_order.rows() - 1, 0);
+    system.particles = particles;
+    return system;
 }
