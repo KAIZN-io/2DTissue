@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <filesystem>
+#include <Eigen/Dense>
 
 
 // Individuelle Partikel Informationen
@@ -26,10 +27,10 @@ struct System{
 };
 
 
-class 2DTissue
+class _2DTissue
 {
 public:
-    2DTissue(
+    _2DTissue(
         std::filesystem::path mesh_path,
         double v0 = 0.1,
         double k = 10,
@@ -43,8 +44,10 @@ public:
         int step_count = 1,
         int map_cache_count = 30
     );
-    start(
-        int particle_count = 10
+    void start(
+        int particle_count = 10,
+        Eigen::MatrixXd halfedge_uv = Eigen::MatrixXd(0, 0),
+        Eigen::MatrixXi faces_uv = Eigen::MatrixXi(0, 0)
     );
     System update(
         int tt

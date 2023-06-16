@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include <tuple>
 #include <unordered_map>
+#include <utilities/sim_structs.h>
 
 
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd> perform_particle_simulation(

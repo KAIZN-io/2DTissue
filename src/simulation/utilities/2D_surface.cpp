@@ -130,6 +130,7 @@ std::string get_mesh_name(
 }
 
 
+// TODO: move it to mesh_loader.cpp
 /*
 Get the mesh from the file.
 Add new meshes with there path in this function

@@ -25,7 +25,7 @@ void process_invalid_particle(
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     int old_id,
     std::vector<int> old_ids,
-    std::vector<VertexData>& vertex_data,
+    std::vector<VertexData>& vertex_struct,
     const VertexData& particle,
     int num_part,
     const Eigen::MatrixXd& distance_matrix,
@@ -51,21 +51,21 @@ void process_invalid_particle(
     auto r_active = get_coordinates(row_indices, vertices_UV);
 
     // Simulate the flight of the particle
-    auto [r_new_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
+    auto [r_UV_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
 
     // Get the new vertice id
     Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
     // Map them to the 3D coordinates
-    auto [start_3D_points, vertices_3D_active] = get_r3d(r_new_virtual, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+    auto [r_3D_virtual, vertices_3D_active] = get_r3d(r_UV_virtual, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
-    update_if_valid(vertex_data, r_new_virtual, start_3D_points, old_id);
+    update_if_valid(vertex_struct, r_UV_virtual, r_3D_virtual, old_id);
 }
 
 
 void process_if_not_valid(
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
     std::vector<int> old_vertices_3D,
-    std::vector<VertexData>& vertex_data,
+    std::vector<VertexData>& vertex_struct,
     int num_part,
     Eigen::MatrixXd& distance_matrix_v,
     Eigen::MatrixXd& n,
@@ -82,24 +82,24 @@ void process_if_not_valid(
 ) {
     std::vector<int> invalid_ids;
 
-    for (int i = 0; i < vertex_data.size(); ++i) {
-        if (!vertex_data[i].valid) {
+    for (int i = 0; i < vertex_struct.size(); ++i) {
+        if (!vertex_struct[i].valid) {
             invalid_ids.push_back(i);
         }
     }
 
     for (int invalid_id : invalid_ids) {
-        process_invalid_particle(vertices_2DTissue_map, invalid_id, old_vertices_3D, vertex_data, vertex_data[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+        process_invalid_particle(vertices_2DTissue_map, invalid_id, old_vertices_3D, vertex_struct, vertex_struct[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
 
-        if (are_all_valid(vertex_data)) {
+        if (are_all_valid(vertex_struct)) {
             break;
         }
     }
 
     std::vector<int> still_invalid_ids;
 
-    for (int i = 0; i < vertex_data.size(); ++i) {
-        if (!vertex_data[i].valid) {
+    for (int i = 0; i < vertex_struct.size(); ++i) {
+        if (!vertex_struct[i].valid) {
             still_invalid_ids.push_back(i);
         }
     }
@@ -116,9 +116,9 @@ void process_if_not_valid(
 
             // Store the new meshes
             vertices_2DTissue_map[invalid_particle] = Mesh_UV_Struct{invalid_particle, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};
-            process_invalid_particle(vertices_2DTissue_map, invalid_particle, old_vertices_3D, vertex_data, vertex_data[invalid_particle], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+            process_invalid_particle(vertices_2DTissue_map, invalid_particle, old_vertices_3D, vertex_struct, vertex_struct[invalid_particle], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
 
-            if (are_all_valid(vertex_data)) {
+            if (are_all_valid(vertex_struct)) {
                 break;
             }
         }

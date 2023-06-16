@@ -135,15 +135,19 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // TODO: fix this 
     // error_unvalid_vertices(vertex_data);
 
-
-    Eigen::MatrixXd vertices_next_id(vertex_data.size(), 3);
+    // 6. Map the 3D coordinates back to the original UV mesh
+    Eigen::MatrixXd r_3D_next(vertex_data.size(), 3);
     for (size_t i = 0; i < vertex_data.size(); ++i) {
-        vertices_next_id.row(i) = vertex_data[i].next_particle_pos;
+        r_3D_next.row(i) = vertex_data[i].next_particle_pos;
     }
+
+    auto r_UV_test = get_r2d(r_3D_next, vertices_UV, vertices_3D, h_v_mapping);
+    std::cout << "r_UV_test: " << r_UV_test << std::endl;
+    std::cout << "r_UV_new: " << r_UV_new << std::endl;
 
     // Update the data for the previous particles which landed Outside
     for (int i : outside_uv_row_ids) {
-        Eigen::MatrixXd single_3D_coord = vertices_next_id.row(i);
+        Eigen::MatrixXd single_3D_coord = r_3D_next.row(i);
         Eigen::MatrixXd r_new_temp_single_row = get_r2d(single_3D_coord, vertices_UV, vertices_3D, h_v_mapping);
 
         r_UV_new.row(i) = r_new_temp_single_row.row(0);

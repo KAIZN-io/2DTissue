@@ -49,6 +49,7 @@
 #include <utilities/process_invalid_particle.h>
 #include <utilities/barycentric_coord.h>
 
+#include <2DTissue.h>
 
 int main()
 {
@@ -61,7 +62,8 @@ int main()
     auto r_adh = 1;
     auto k_adh = 0.75;
     auto dt = 0.001;
-    int num_frames = 10;
+    int num_frames = 1;
+    int map_cache_count = 30;
 
     static std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
@@ -88,7 +90,7 @@ int main()
     Prefill the vertices_2DTissue_map with the virtual meshes
     */
     // Get the vertices that are selected for the splay state in 3D
-    auto splay_state_vertices_id = get_3D_splay_vertices(distance_matrix, 30);
+    auto splay_state_vertices_id = get_3D_splay_vertices(distance_matrix, map_cache_count);
 
     // auto [splay_state_UV_coord, splay_state_halfedges] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
     // auto [splay_state_3D_coord, splay_state_vertices_id] = get_r3d(splay_state_UV_coord, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
@@ -107,49 +109,53 @@ int main()
     /*
     Run the simulation
     */
-    for (int num_part = 600; num_part <= 600; num_part += 100) {
+    for (int num_part = 10; num_part <= 10; num_part += 100) {
 
         // Repeat the loop 5 times for each num_part
         for (int repeat = 0; repeat < 1; ++repeat) {
 
-            // Initialize the particles in 2D
-            Eigen::MatrixXd r(num_part, 3);
-            Eigen::MatrixXd n(num_part, 1);
-            init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
+            _2DTissue tissue("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
 
-            // Map the 2D coordinates to their 3D vertices counterparts
-            auto [start_3D_points, vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+            tissue.start(num_part, halfedge_uv, faces_uv);
+            // // Initialize the particles in 2D
+            // Eigen::MatrixXd r(num_part, 3);
+            // Eigen::MatrixXd n(num_part, 1);
+            // init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
 
-            // Start the simulation
-            std::clock_t start = std::clock();
+            // // Map the 2D coordinates to their 3D vertices counterparts
+            // auto [start_3D_points, vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
-            Eigen::VectorXd v_order(num_frames);
+            // // Start the simulation
+            // std::clock_t start = std::clock();
 
-            for (int tt = 1; tt <= num_frames; ++tt) {
+            // Eigen::VectorXd v_order(num_frames);
 
-                // Simulate the particles on the 2D surface
-                auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
-                r = r_new;
-                n = n_new;
+            // for (int tt = 1; tt <= num_frames; ++tt) {
+            //     System system = tissue.update(tt);
 
-                // Get the 3D vertices coordinates from the 2D particle position coordinates
-                auto [new_3D_points, new_vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
-                vertices_3D_active = new_vertices_3D_active;
+            //     // Simulate the particles on the 2D surface
+            //     auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
+            //     r = r_new;
+            //     n = n_new;
 
-                // Save the data
-                // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
-                // save_matrix_to_csv(r, file_name, num_part);
-                // std::string file_name_color = "color_data_" + std::to_string(tt) + ".csv";
-                // save_matrix_to_csv(particles_color, file_name_color, num_part);
-                // std::string file_name_3D = "r_3D_data_" + std::to_string(tt) + ".csv";
-                // save_matrix_to_csv(new_3D_points, file_name_3D, num_part);
-            }
+            //     // Get the 3D vertices coordinates from the 2D particle position coordinates
+            //     auto [new_3D_points, new_vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+            //     vertices_3D_active = new_vertices_3D_active;
 
-            std::cout << v_order << std::endl;
+            //     // Save the data
+            //     // std::string file_name = "r_data_" + std::to_string(tt) + ".csv";
+            //     // save_matrix_to_csv(r, file_name, num_part);
+            //     // std::string file_name_color = "color_data_" + std::to_string(tt) + ".csv";
+            //     // save_matrix_to_csv(particles_color, file_name_color, num_part);
+            //     // std::string file_name_3D = "r_3D_data_" + std::to_string(tt) + ".csv";
+            //     // save_matrix_to_csv(new_3D_points, file_name_3D, num_part);
+            // }
 
-            std::clock_t end = std::clock();
-            double duration = (end - start) / (double) CLOCKS_PER_SEC;
-            std::cout << "Time taken: " << duration << " seconds" << std::endl;
+            // // std::cout << v_order << std::endl;
+
+            // std::clock_t end = std::clock();
+            // double duration = (end - start) / (double) CLOCKS_PER_SEC;
+            // std::cout << "Time taken: " << duration << " seconds" << std::endl;
         }
     }
 

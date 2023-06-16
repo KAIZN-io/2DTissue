@@ -23,10 +23,12 @@ std::vector<VertexData> update_vertex_data(
 
     // Initialize the vertex data
     for (int i = 0; i < num_r; ++i) {
-        vertex_data[i].old_particle_pos = old_r_3D_coord.row(i);
-        vertex_data[i].next_particle_pos = old_r_3D_coord.row(i);
-        vertex_data[i].valid = false;
-        vertex_data[i].uv_mesh_id = start_id;
+        VertexData& vd = vertex_data[i];
+
+        vd.old_particle_pos = old_r_3D_coord.row(i);
+        vd.next_particle_pos = old_r_3D_coord.row(i);
+        vd.valid = false;
+        vd.uv_mesh_id = start_id;
     }
 
     // Update the vertex data based on inside_uv_ids
@@ -57,9 +59,11 @@ void update_if_valid(
 
     for (int i : inside_uv_ids) {
         if (!vertex_data[i].valid) {
-            vertex_data[i].next_particle_pos = r_3D_coord.row(i);
-            vertex_data[i].uv_mesh_id = start_id;
-            vertex_data[i].valid = true;
+            VertexData& vd = vertex_data[i];
+
+            vd.next_particle_pos = r_3D_coord.row(i);
+            vd.uv_mesh_id = start_id;
+            vd.valid = true;
         }
     }
 }

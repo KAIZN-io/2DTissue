@@ -10,20 +10,22 @@
 #include <2DTissue.h>
 
 
-void start(
-    int particle_count = 10
+void _2DTissue::start(
+    int particle_count,
+    Eigen::MatrixXd halfedge_uv,
+    Eigen::MatrixXi faces_uv
 ){
     // Initialize the particles in 2D
-    Eigen::MatrixXd r(num_part, 3);
-    Eigen::MatrixXd n(num_part, 1);
-    init_particle_position(faces_uv, halfedge_uv, num_part, r, n);
+    Eigen::MatrixXd r(particle_count, 3);
+    Eigen::MatrixXd n(particle_count, 1);
+    init_particle_position(faces_uv, halfedge_uv, particle_count, r, n);
 
     // Map the 2D coordinates to their 3D vertices counterparts
-    auto [start_3D_points, vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+    // auto [start_3D_points, vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 }
 
 
-System update(
+System _2DTissue::update(
     int tt
 ){
     // Simulate the particles on the 2D surface
