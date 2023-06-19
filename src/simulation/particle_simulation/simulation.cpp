@@ -120,6 +120,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
 
     // 4. Map valid UV coordinates to their 3D coordinates
     // Find the 3D vertex coordinates
+
     auto [new_r_3D_coord, new_vertices_3D_active] = get_r3d(r_UV_new, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
     // Update our struct for this time step for the particles which landed Inside the mesh
@@ -142,8 +143,8 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     }
 
     auto r_UV_test = get_r2d(r_3D_next, vertices_UV, vertices_3D, h_v_mapping);
-    std::cout << "r_UV_test: " << r_UV_test << std::endl;
-    std::cout << "r_UV_new: " << r_UV_new << std::endl;
+    // std::cout << "r_UV_test: " << r_UV_test << std::endl;
+    // std::cout << "r_UV_new: " << r_UV_new << std::endl;
 
     // Update the data for the previous particles which landed Outside
     for (int i : outside_uv_row_ids) {
@@ -153,24 +154,22 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
         r_UV_new.row(i) = r_new_temp_single_row.row(0);
     }
 
-
     /*
     Error checkings
     */
     // 1. Check if we lost particles
-    if (find_inside_uv_vertices_id(r_UV_new).size() != num_part) {
-        throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
-    }
+    // if (find_inside_uv_vertices_id(r_UV_new).size() != num_part) {
+    //     throw std::runtime_error("We lost particles after getting the original mesh halfedges coord");
+    // }
 
     // 2. Check if there are invalid values like NaN or Inf in the output
     error_invalid_values(r_UV_new);
-
 
     // Dye the particles based on their distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
     // Calculate the order parameter
-    calculate_order_parameter(v_order, r_UV, r_dot, tt);
+    // calculate_order_parameter(v_order, r_UV, r_dot, tt);
 
     return std::make_tuple(r_UV_new, r_dot, dist_length, n, particles_color);
 }

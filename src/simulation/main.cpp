@@ -8,12 +8,12 @@
 
 int main()
 {
-    int num_frames = 1;
+    int num_frames = 10;
 
     // Initialize the 2DTissue object
     _2DTissue _2dtissue("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
 
-    for (int num_part = 1; num_part <= 1; num_part += 100) {
+    for (int num_part = 100; num_part <= 100; num_part += 100) {
 
         _2dtissue.start(num_part);
 

@@ -101,26 +101,26 @@ System _2DTissue::update(
 ){
     // Simulate the particles on the 2D surface
     auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
-    // r = r_new;
-    // n = n_new;
+    r = r_new;
+    n = n_new;
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
-    // auto [new_3D_points, new_vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
-    // vertices_3D_active = new_vertices_3D_active;
+    auto [r_3D, new_vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+    vertices_3D_active = new_vertices_3D_active;
 
     std::vector<Particle> particles;
     // start for loop
-    for (int i = 0; i < r_new.rows(); i++){
+    for (int i = 0; i < r.rows(); i++){
         Particle p;
-        p.x_UV = r_new(i, 0);
-        p.y_UV = r_new(i, 1);
+        p.x_UV = r(i, 0);
+        p.y_UV = r(i, 1);
         p.x_velocity_UV = r_dot(i, 0);
         p.y_velocity_UV = r_dot(i, 1);
-        p.x_alignment_UV = n_new(i, 0);
-        p.y_alignment_UV = n_new(i, 1);
-        p.x_3D = r_new(i, 0);
-        p.y_3D = r_new(i, 1);   // ! Zur Testung habe ich hier die 2D Koordinaten genommen anstatt der 3D Koordinaten
-        p.z_3D = r_new(i, 2);
+        p.x_alignment_UV = n(i, 0);
+        p.y_alignment_UV = n(i, 1);
+        p.x_3D = r_3D(i, 0);
+        p.y_3D = r_3D(i, 1);
+        p.z_3D = r_3D(i, 2);
         p.neighbor_count = particles_color[i];
         particles.push_back(p);
     }
