@@ -458,3 +458,21 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
 
     return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
 }
+
+
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface(
+    std::string mesh_path,
+    int32_t start_node_int
+){
+    // Load the 3D mesh
+    SurfaceMesh sm;
+    std::ifstream in(CGAL::data_file_path(mesh_path));
+    in >> sm;
+
+    my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
+    auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_path, start_node, start_node_int);
+
+    const auto mesh_file_path = meshmeta.mesh_path;
+
+    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
+}

@@ -6,7 +6,9 @@
 #include <Eigen/Dense>
 #include <map>
 
+
 #include <utilities/sim_structs.h>
+#include <io/mesh_loader.h>
 
 // Individuelle Partikel Informationen
 struct Particle{
@@ -33,7 +35,7 @@ class _2DTissue
 {
 private:
     // Include here your class variables (the ones used in start and update methods)
-    std::filesystem::path mesh_path;
+    std::string mesh_path;
     double v0;
     double k;
     double k_next;
@@ -51,18 +53,19 @@ private:
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;
     Eigen::VectorXd v_order;
-    Eigen::MatrixXd halfedge_uv;
-    Eigen::MatrixXi faces_uv;
+    Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_path);
+    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_path);
     Eigen::MatrixXd vertices_UV;
     Eigen::MatrixXd vertices_3D;
     std::vector<int64_t> h_v_mapping;
+    std::string mesh_file_path;
     double dt;
     int num_part;
     std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
 public:
     _2DTissue(
-        std::filesystem::path mesh_path,
+        std::string mesh_path,
         double v0 = 0.1,
         double k = 10,
         double k_next = 10,
