@@ -18,8 +18,8 @@
 
 // (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
 std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
-    const Eigen::MatrixXd& r,
-    const Eigen::MatrixXd& halfedges_uv,
+    const Eigen::MatrixXd r,
+    const Eigen::MatrixXd halfedges_uv,
     const Eigen::MatrixXi faces_uv,
     const Eigen::MatrixXd vertices_uv,
     const Eigen::MatrixXd vertices_3D,
@@ -41,10 +41,10 @@ std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
 
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
 Eigen::MatrixXd get_r2d(
-    const Eigen::MatrixXd& r,
-    const Eigen::MatrixXd& vertices_uv,
-    const Eigen::MatrixXd& vertices_3D,
-    std::vector<int64_t>& h_v_mapping
+    const Eigen::MatrixXd r,
+    const Eigen::MatrixXd vertices_uv,
+    const Eigen::MatrixXd vertices_3D,
+    std::vector<int64_t> h_v_mapping
 ){
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = "/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off";

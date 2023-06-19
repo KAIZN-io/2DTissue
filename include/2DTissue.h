@@ -53,8 +53,8 @@ private:
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;
     Eigen::VectorXd v_order;
-    Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_path);
-    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_path);
+    Eigen::MatrixXd halfedge_uv;
+    Eigen::MatrixXi faces_uv;
     Eigen::MatrixXd vertices_UV;
     Eigen::MatrixXd vertices_3D;
     std::vector<int64_t> h_v_mapping;
