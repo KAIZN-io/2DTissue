@@ -4,14 +4,19 @@
 // version: 0.2.0
 
 #include <iostream>
+#include <filesystem>
+
 #include <2DTissue.h>
+
+const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 int main()
 {
     int num_frames = 10;
 
     // Initialize the 2DTissue object
-    _2DTissue _2dtissue("/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off");
+    std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
+    _2DTissue _2dtissue(mesh_path);
 
     for (int num_part = 100; num_part <= 100; num_part += 100) {
 

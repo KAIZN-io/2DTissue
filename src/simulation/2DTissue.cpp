@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <Eigen/Dense>
+#include <filesystem>
 
 #include <particle_simulation/simulation.h>
 #include <utilities/init_particle.h>
@@ -45,14 +46,14 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count)
 {
     // Initialize the simulation
-
     // Check if the distance matrix of the static 3D mesh already exists
-    if (!std::filesystem::exists("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv")) {
+    std::string distance_matrix_path = PROJECT_PATH + "/meshes/data/ellipsoid_x4_distance_matrix_static.csv";
+    if (!std::filesystem::exists(distance_matrix_path)) {
 
         // Calculate the distance matrix of the static 3D mesh
         get_all_distances();
     }
-    distance_matrix = load_csv<Eigen::MatrixXd>("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
+    distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.

@@ -9,12 +9,14 @@
 #include <cstdint>
 #include <Eigen/Dense>
 #include <unordered_set>
+#include <filesystem>
 
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/barycentric_coord.h>
 #include <io/mesh_loader.h>
 #include <io/csv.h>
 
+const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 // (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
 std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
@@ -47,7 +49,7 @@ Eigen::MatrixXd get_r2d(
     std::vector<int64_t> h_v_mapping
 ){
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
-    std::string mesh_3D_file_path = "/Users/jan-piotraschke/git_repos/2DTissue/meshes/ellipsoid_x4.off";
+    std::string mesh_3D_file_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
     Eigen::MatrixXi faces_3D_static = loadMeshFaces(mesh_3D_file_path);
 
     int num_r = r.rows();

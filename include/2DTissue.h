@@ -35,6 +35,7 @@ class _2DTissue
 {
 private:
     // Include here your class variables (the ones used in start and update methods)
+    std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
     std::string mesh_path;
     double v0;
     double k;

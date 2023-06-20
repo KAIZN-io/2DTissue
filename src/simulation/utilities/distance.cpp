@@ -94,10 +94,11 @@ int get_all_distances(){
     // save the distance matrix to a csv file using comma as delimiter
     const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
 
-    std::cout << "Saving distance matrix to file..." << std::endl;
-    std::string repo_root_str2 = get_repo_root();
+    const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
-    std::ofstream file("/Users/jan-piotraschke/git_repos/2DTissue/meshes/data/ellipsoid_x4_distance_matrix_static.csv");
+    std::cout << "Saving distance matrix to file..." << std::endl;
+    std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/ellipsoid_x4_distance_matrix_static.csv";
+    std::ofstream file(distance_matrix_path);
     file << distance_matrix_v.format(CSVFormat);
     file.close();
     std::cout << "saved" << std::endl;

@@ -22,6 +22,9 @@ set(ASSIMP_LIBRARY_DIRS "${ASSIMP_ROOT}/lib")
 # Set the project name and version
 project(2DTissue VERSION 1.0)
 
+# Make the project foulder path available to the source code
+add_definitions("-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"")
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 
