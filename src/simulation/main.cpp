@@ -16,11 +16,11 @@ int main()
 
     // Initialize the 2DTissue object
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
-    _2DTissue _2dtissue(mesh_path, num_frames);
 
-    for (int num_part = 10; num_part <= 10; num_part += 100) {
+    for (int num_part = 400; num_part <= 400; num_part += 100) {
+        _2DTissue _2dtissue(mesh_path, num_part, num_frames);
 
-        _2dtissue.start(num_part);
+        _2dtissue.start();
 
         std::clock_t start = std::clock();
 

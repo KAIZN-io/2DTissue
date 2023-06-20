@@ -20,6 +20,7 @@
 
 _2DTissue::_2DTissue(
     std::string mesh_path,
+    int particle_count,
     int step_count,
     double v0,
     double k,
@@ -33,6 +34,7 @@ _2DTissue::_2DTissue(
     int map_cache_count
 ) :
     mesh_path(mesh_path),
+    particle_count(particle_count),
     step_count(step_count),
     v0(v0),
     k(k),
@@ -86,9 +88,7 @@ _2DTissue::_2DTissue(
 }
 
 
-void _2DTissue::start(
-    int particle_count
-){
+void _2DTissue::start(){
     // Initialize the particles in 2D
     r.resize(particle_count, 3);
     n.resize(particle_count, 1);
@@ -101,7 +101,7 @@ void _2DTissue::start(
 
 System _2DTissue::update(){
     // Simulate the particles on the 2D surface
-    auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step, num_part, vertices_2DTissue_map);
+    auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step, particle_count, vertices_2DTissue_map);
     r = r_new;
     n = n_new;
 
@@ -135,8 +135,8 @@ System _2DTissue::update(){
         finished = true;
     }
 
-    std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
-    save_matrix_to_csv(r, file_name, num_part);
+    // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(r, file_name, num_part);
 
     return system;
 }
