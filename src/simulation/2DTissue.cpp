@@ -20,6 +20,7 @@
 
 _2DTissue::_2DTissue(
     std::string mesh_path,
+    int step_count,
     double v0,
     double k,
     double k_next,
@@ -29,10 +30,10 @@ _2DTissue::_2DTissue(
     double r_adh,
     double k_adh,
     double step_size,
-    int step_count,
     int map_cache_count
 ) :
     mesh_path(mesh_path),
+    step_count(step_count),
     v0(v0),
     k(k),
     k_next(k_next),
@@ -42,8 +43,9 @@ _2DTissue::_2DTissue(
     r_adh(r_adh),
     k_adh(k_adh),
     step_size(step_size),
-    step_count(step_count),
-    map_cache_count(map_cache_count)
+    current_step(0),
+    map_cache_count(map_cache_count),
+    finished(false)
 {
     // Initialize the simulation
     // Check if the distance matrix of the static 3D mesh already exists
@@ -97,11 +99,9 @@ void _2DTissue::start(
 }
 
 
-System _2DTissue::update(
-    int tt
-){
+System _2DTissue::update(){
     // Simulate the particles on the 2D surface
-    auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, tt, num_part, vertices_2DTissue_map);
+    auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, current_step, num_part, vertices_2DTissue_map);
     r = r_new;
     n = n_new;
 
@@ -130,5 +130,15 @@ System _2DTissue::update(
     system.order_parameter = 1; // v_order(v_order.rows() - 1, 0);  // ! Todo: fix this
     system.particles = particles;
 
+    current_step++;
+    if (current_step >= step_count) {
+        finished = true;
+    }
+
     return system;
+}
+
+
+bool _2DTissue::is_finished() {
+    return finished;
 }

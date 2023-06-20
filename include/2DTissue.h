@@ -37,6 +37,7 @@ private:
     // Include here your class variables (the ones used in start and update methods)
     std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
     std::string mesh_path;
+    int step_count;
     double v0;
     double k;
     double k_next;
@@ -46,8 +47,9 @@ private:
     double r_adh;
     double k_adh;
     double step_size;
-    int step_count;
+    int current_step;
     int map_cache_count;
+    bool finished;
 
     Eigen::MatrixXd r;
     Eigen::MatrixXd n;
@@ -67,6 +69,7 @@ private:
 public:
     _2DTissue(
         std::string mesh_path,
+        int step_count = 1,
         double v0 = 0.1,
         double k = 10,
         double k_next = 10,
@@ -76,13 +79,11 @@ public:
         double r_adh = 1,
         double k_adh = 0.75,
         double step_size = 0.001,
-        int step_count = 1,
         int map_cache_count = 30
     );
     void start(
         int particle_count = 10
     );
-    System update(
-        int tt
-    );
+    System update();
+    bool is_finished();
 };

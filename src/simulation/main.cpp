@@ -12,11 +12,11 @@ const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 int main()
 {
-    int num_frames = 10;
+    int num_frames = 5;
 
     // Initialize the 2DTissue object
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
-    _2DTissue _2dtissue(mesh_path);
+    _2DTissue _2dtissue(mesh_path, num_frames);
 
     for (int num_part = 100; num_part <= 100; num_part += 100) {
 
@@ -24,9 +24,8 @@ int main()
 
         std::clock_t start = std::clock();
 
-        for (int tt = 1; tt <= num_frames; ++tt) {
-
-            System data = _2dtissue.update(tt);
+        while(!_2dtissue.is_finished()) {
+            System data = _2dtissue.update();
             std::cout << "data.particles[0].x_UV: " << data.particles[0].x_UV << '\n';
         }
 
