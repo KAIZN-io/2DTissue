@@ -101,7 +101,8 @@ void _2DTissue::start(
 
 System _2DTissue::update(){
     // Simulate the particles on the 2D surface
-    auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, dt, current_step, num_part, vertices_2DTissue_map);
+    // std::cout << "r: " << r << std::endl;
+    auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step, num_part, vertices_2DTissue_map);
     r = r_new;
     n = n_new;
 
@@ -134,6 +135,9 @@ System _2DTissue::update(){
     if (current_step >= step_count) {
         finished = true;
     }
+
+    // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(r, file_name, num_part);
 
     return system;
 }

@@ -39,7 +39,7 @@ void process_invalid_particle(
     double r_adh,
     double k_adh,
     double dt,
-    double tt
+    double current_step
 ) {
     // Get the nearest vertice map
     auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
@@ -77,8 +77,8 @@ void process_if_not_valid(
     double μ,
     double r_adh,
     double k_adh,
-    double dt,
-    double tt
+    double step_size,
+    double current_step
 ) {
     std::vector<int> invalid_ids;
 
@@ -89,7 +89,7 @@ void process_if_not_valid(
     }
 
     for (int invalid_id : invalid_ids) {
-        process_invalid_particle(vertices_2DTissue_map, invalid_id, old_vertices_3D, vertex_struct, vertex_struct[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+        process_invalid_particle(vertices_2DTissue_map, invalid_id, old_vertices_3D, vertex_struct, vertex_struct[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, step_size, current_step);
 
         if (are_all_valid(vertex_struct)) {
             break;
@@ -116,7 +116,7 @@ void process_if_not_valid(
 
             // Store the new meshes
             vertices_2DTissue_map[invalid_particle] = Mesh_UV_Struct{invalid_particle, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};
-            process_invalid_particle(vertices_2DTissue_map, invalid_particle, old_vertices_3D, vertex_struct, vertex_struct[invalid_particle], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+            process_invalid_particle(vertices_2DTissue_map, invalid_particle, old_vertices_3D, vertex_struct, vertex_struct[invalid_particle], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, step_size, current_step);
 
             if (are_all_valid(vertex_struct)) {
                 break;

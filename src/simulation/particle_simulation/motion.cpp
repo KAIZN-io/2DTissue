@@ -205,7 +205,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     double μ,
     double r_adh,
     double k_adh,
-    double dt
+    double step_size
 ){
     // Get distance vectors and calculate distances between particles
     auto dist_vect = get_dist_vect(r);
@@ -228,7 +228,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     r_dot.col(2).setZero();
 
     // Calculate the new position of each particle
-    Eigen::MatrixXd r_new = r + r_dot * dt;
+    Eigen::MatrixXd r_new = r + r_dot * step_size;
     r_new.col(2).setZero();
 
     // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
