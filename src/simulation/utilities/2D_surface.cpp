@@ -293,7 +293,15 @@ std::vector<my_edge_descriptor> create_path(
         current = predecessor;
     }
 
-    return path_list;
+    // Reverse the path list because we went back from target to start
+    std::reverse(path_list.begin(), path_list.end());
+
+    // Shorten the path list to 1/3 of the original length
+    std::vector<my_edge_descriptor> shorted_cut_line;
+    auto middle = path_list.begin() + path_list.size() / 3;
+    shorted_cut_line = std::vector<my_edge_descriptor>(path_list.begin(), middle);
+
+    return shorted_cut_line;
 }
 
 
@@ -333,10 +341,7 @@ std::vector<my_edge_descriptor> calc_virtual_border(
     // Get the edges of the path between the start and the target node
     std::vector<my_edge_descriptor> path_list = create_path(mesh, start_node, target_node, predecessor_pmap);
 
-    // Overgive the path_list to the vector b because handling vectors is easier for me
-    std::vector<my_edge_descriptor> b(path_list.begin(), path_list.end());
-
-    return b;
+    return path_list;
 }
 
 
