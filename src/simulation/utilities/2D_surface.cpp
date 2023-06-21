@@ -313,8 +313,6 @@ std::vector<my_edge_descriptor> create_path(
     size_t size = path_list.size();
     size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
     longest_mod_two = std::vector<my_edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
-    // print the size of the path list
-    std::cout << "path_list.size() = " << longest_mod_two.size() << std::endl;
 
     return longest_mod_two;
 }
