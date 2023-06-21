@@ -44,7 +44,7 @@ void process_invalid_particle(
     // Get the nearest vertice map
     auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
 
-    // Find the new row indices of the vertices
+    // Find the new row indices of the used vertices
     auto row_indices = find_vertice_rows_index(h_v_mapping, old_ids);
 
     // Get the coordinates of the vertices based on the row indices
@@ -109,14 +109,24 @@ void process_if_not_valid(
         for (int i = 0; i < still_invalid_ids.size(); ++i) {
 
             int invalid_particle = still_invalid_ids[i];
-            std::cout << "Creating new 2D surface for particle " << invalid_particle << std::endl;
 
-            auto [h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path] = create_uv_surface_intern("Ellipsoid", invalid_particle);
+            Eigen::VectorXd particle_distance = distance_matrix_v.row(invalid_particle);  // 0-based indexing, so the "fifth" row is at index 4
+
+            Eigen::VectorXd::Index maxIndex;
+            double max_distance = particle_distance.maxCoeff(&maxIndex);
+
+            // transfrom the maxIndex to int
+            int maxIndex_int = static_cast<int>(maxIndex);
+
+            std::cout << "Creating new 2D surface for particle " << invalid_particle << " with the distance " << max_distance << " in the row " << maxIndex_int << std::endl;
+
+            // because it is on the Seam Edge line of its own mesh !!
+            auto [h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path] = create_uv_surface_intern("Ellipsoid", maxIndex_int);
             Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
 
             // Store the new meshes
-            vertices_2DTissue_map[invalid_particle] = Mesh_UV_Struct{invalid_particle, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};
-            process_invalid_particle(vertices_2DTissue_map, invalid_particle, old_vertices_3D, vertex_struct, vertex_struct[invalid_particle], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, step_size, current_step);
+            vertices_2DTissue_map[maxIndex_int] = Mesh_UV_Struct{maxIndex_int, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};
+            process_invalid_particle(vertices_2DTissue_map, maxIndex_int, old_vertices_3D, vertex_struct, vertex_struct[maxIndex_int], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, step_size, current_step);
 
             if (are_all_valid(vertex_struct)) {
                 break;

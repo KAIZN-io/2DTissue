@@ -86,4 +86,5 @@ public:
     void start();
     System update();
     bool is_finished();
+    Eigen::VectorXd get_order_parameter();
 };

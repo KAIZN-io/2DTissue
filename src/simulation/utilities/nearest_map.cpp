@@ -24,14 +24,25 @@ std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::Matrix
         vertices_2DTissue_map_keys.push_back(key);
     }
 
-    double min_distance = std::numeric_limits<double>::max();
-    int nearest_vertex = -1;
+    // double min_distance = std::numeric_limits<double>::max();
+    // int nearest_vertex = -1;
+
+    // for (int vertex : vertices_2DTissue_map_keys) {
+    //     double distance = distance_matrix(target_vertex, vertex);
+    //     if (distance < min_distance) {
+    //         min_distance = distance;
+    //         nearest_vertex = vertex;
+    //     }
+    // }
+
+    double max_distance = std::numeric_limits<double>::lowest();
+    int furthest_vertex = -1;
 
     for (int vertex : vertices_2DTissue_map_keys) {
         double distance = distance_matrix(target_vertex, vertex);
-        if (distance < min_distance) {
-            min_distance = distance;
-            nearest_vertex = vertex;
+        if (distance > max_distance) {
+            max_distance = distance;
+            furthest_vertex = vertex;
         }
     }
 
@@ -41,7 +52,7 @@ std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::Matrix
     Eigen::MatrixXd vertices_3D;
     std::string mesh_file_path;
 
-    auto it = vertices_2DTissue_map.find(nearest_vertex);
+    auto it = vertices_2DTissue_map.find(furthest_vertex);
     if (it != vertices_2DTissue_map.end()) {
         // Load the mesh
         halfedges_uv = it->second.mesh;

@@ -106,42 +106,9 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // 1. Simulate the flight of the particle on the UV mesh
     auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
 
-    // 2. Check if the particle landed inside the mesh
-    // Find the particles which landed inside the mesh
-    std::vector<int> inside_uv_row_ids = find_inside_uv_vertices_id(r_UV_new);
-    // Find the particles which landed outside the mesh
-    std::vector<int> outside_uv_row_ids = set_difference(num_part, inside_uv_row_ids);
-
-    // 3. Map UV to 3D coordinates
-    auto [old_r_3D_coord, old_vertices_3D_active] = get_r3d(r_UV, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
-    auto [new_r_3D_coord, new_vertices_3D_active] = get_r3d(r_UV_new, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
-
-    // 4. Map valid UV coordinates to their 3D coordinates
-    // Update our struct for this time step for the particles which landed Inside the mesh
-    std::vector<VertexData> vertex_data = update_vertex_data(old_r_3D_coord, new_r_3D_coord, inside_uv_row_ids, 0);
-
-    // 5. Unvalid particles
-    // Re-run invalid particles, which landed Outside the mesh
-    if (!are_all_valid(vertex_data)){
-        process_if_not_valid(vertices_2DTissue_map, old_vertices_3D_active, vertex_data, num_part, distance_matrix_v, n, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step);
-    }
-
-    // Throw an error if there are still invalid vertices
-    error_unvalid_vertices(vertex_data);
-
-    // 6. Map the 3D coordinates back to the original UV mesh
-    Eigen::MatrixXd r_3D_next(vertex_data.size(), 3);
-    for (size_t i = 0; i < vertex_data.size(); ++i) {
-        r_3D_next.row(i) = vertex_data[i].next_particle_pos;
-    }
-
-    // Update the data for the previous particles which landed Outside
-    for (int i : outside_uv_row_ids) {
-        Eigen::MatrixXd single_3D_coord = r_3D_next.row(i);
-        Eigen::MatrixXd r_new_temp_single_row = get_r2d(single_3D_coord, vertices_UV, vertices_3D, h_v_mapping);
-
-        r_UV_new.row(i) = r_new_temp_single_row.row(0);
-    }
+    // Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
+    r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
+    r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
 
     /*
     Error checkings
@@ -158,7 +125,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
 
     // Calculate the order parameter
-    // calculate_order_parameter(v_order, r_UV, r_dot, current_step);
+    calculate_order_parameter(v_order, r_UV, r_dot, current_step);
 
     return std::make_tuple(r_UV_new, r_dot, dist_length, n, particles_color);
 }

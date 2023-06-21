@@ -67,6 +67,9 @@ _2DTissue::_2DTissue(
     faces_uv = loadMeshFaces(mesh_file_path);
     vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path};
 
+    // Initialize the order parameter vector
+    v_order = Eigen::VectorXd::Zero(step_count);
+
     /*
     Prefill the vertices_2DTissue_map with the virtual meshes
     */
@@ -127,7 +130,7 @@ System _2DTissue::update(){
     }
 
     System system;
-    system.order_parameter = 1; // v_order(v_order.rows() - 1, 0);  // ! Todo: fix this
+    system.order_parameter = v_order(v_order.rows() - 1, 0);  // ! Todo: fix this
     system.particles = particles;
 
     current_step++;
@@ -137,11 +140,18 @@ System _2DTissue::update(){
 
     // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
     // save_matrix_to_csv(r, file_name, num_part);
+    // std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(r_3D, file_name_3D, num_part);
+    // std::string file_name_color = "color_data_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(particles_color, file_name_color, num_part);
 
     return system;
 }
 
-
 bool _2DTissue::is_finished() {
     return finished;
+}
+
+Eigen::VectorXd _2DTissue::get_order_parameter() {
+    return v_order;
 }

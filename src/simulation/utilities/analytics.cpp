@@ -23,5 +23,5 @@ void calculate_order_parameter(
     Eigen::MatrixXd v_norm = v_tp.rowwise().normalized();
 
     // Sum v_tp vectors and divide by number of particle to obtain order parameter of collective motion for spheroids
-    v_order(current_step - 1) = (1.0 / num_part) * v_norm.colwise().sum().norm();
+    v_order(current_step) = (1.0 / num_part) * v_norm.colwise().sum().norm();
 }
