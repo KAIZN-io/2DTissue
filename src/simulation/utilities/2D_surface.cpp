@@ -67,7 +67,7 @@ namespace My {
         using Base = CGAL::Surface_mesh<Point_3>;
         std::string name;
     };
-} // namespace My
+}
 
 #define CGAL_GRAPH_TRAITS_INHERITANCE_CLASS_NAME My::Mesh
 #define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Point_3>
@@ -130,6 +130,7 @@ std::string get_mesh_name(
 }
 
 
+// TODO: move it to mesh_loader.cpp
 /*
 Get the mesh from the file.
 Add new meshes with there path in this function
@@ -164,7 +165,7 @@ std::ifstream get_mesh_obj(
 
 
 /*
-we have to create multiple versions of the UV mesh because we need different coordination system for the particle simulation
+We have to create multiple versions of the UV mesh because we need different coordination system for the particle simulation
 in order to simulate them on top of the 2D mesh
 */
 int find_latest_mesh_creation_number(
@@ -240,24 +241,6 @@ std::vector<int64_t> create_halfedge_vertex_map(
     const Mesh& mesh,
     const SurfaceMesh& sm
 ){
-    std::vector<Point_3> points;
-    for(vertex_descriptor vd : vertices(mesh)) {
-        auto point_3D = sm.point(target(vd, sm));
-        points.push_back(point_3D);
-    }
-
-    Eigen::MatrixXd halfedge_vertex_map(points.size(), 3);
-    for (size_t i = 0; i < points.size(); ++i)
-    {
-        halfedge_vertex_map(i, 0) = points[i].x();
-        halfedge_vertex_map(i, 1) = points[i].y();
-        halfedge_vertex_map(i, 2) = points[i].z();
-    }
-
-    // Save the data
-    // std::string file_name = "vertice_3D_data.csv";
-    // save_matrix_to_csv(halfedge_vertex_map, file_name, 1);  
-
     std::vector<int64_t> halfedge_vertex_map_old;
     for(vertex_descriptor vd : vertices(mesh)) {
         int64_t target_vertice = target(vd, sm);
@@ -293,6 +276,12 @@ my_vertex_descriptor find_farthest_vertex(
 
 
 // Helper function to create a path from the start node to the target node
+/*
+! The size of the path_list multiplied with 2 is the number of vertices on the border of the UV mesh
+
+So, if you want something like an inverse 'Poincaré disk' you have to really shorten the path_list
+The same is true if you reverse the logic: If you create a spiral-like seam edge path, your mesh will results in something like a 'Poincaré disk'
+*/
 std::vector<my_edge_descriptor> create_path(
     const My::Mesh& mesh,
     my_vertex_descriptor start_node,
@@ -310,16 +299,29 @@ std::vector<my_edge_descriptor> create_path(
         current = predecessor;
     }
 
-    return path_list;
+    // Reverse the path list because we went back from target to start
+    std::reverse(path_list.begin(), path_list.end());
+
+    // Shorten the path list to 1/3 of the original length
+    // std::vector<my_edge_descriptor> shorted_cut_line;
+    // auto middle = path_list.begin() + 8;
+    // auto middle = path_list.begin() + path_list.size() / 3;
+    // shorted_cut_line = std::vector<my_edge_descriptor>(path_list.begin(), middle);
+
+    // Shorten the path list to the longest path with an even number of vertices so that the same seam edges are each on the opposite side of the UV mesh
+    std::vector<my_edge_descriptor> longest_mod_two;
+    size_t size = path_list.size();
+    size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
+    longest_mod_two = std::vector<my_edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
+
+    return longest_mod_two;
 }
 
 
 /*
 Calculate the virtual border of the mesh
-
-NOTE: We have this function not in a separate file because the C Language doesn't support returning a vector of our Edge data
 */
-std::vector<my_edge_descriptor> calc_virtual_border(
+std::vector<my_edge_descriptor> set_UV_border_edges(
     const std::string& mesh_3D,
     my_vertex_descriptor start_node
 ){
@@ -352,10 +354,7 @@ std::vector<my_edge_descriptor> calc_virtual_border(
     // Get the edges of the path between the start and the target node
     std::vector<my_edge_descriptor> path_list = create_path(mesh, start_node, target_node, predecessor_pmap);
 
-    // Overgive the path_list to the vector b because handling vectors is easier for me
-    std::vector<my_edge_descriptor> b(path_list.begin(), path_list.end());
-
-    return b;
+    return path_list;
 }
 
 
@@ -381,26 +380,17 @@ Mesh create_seam_mesh(
 /*
 Helper function to perform parameterization
 
-computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
+Computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
 The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
-! A one-to-one mapping may be guaranteed or not, depending on the chosen Parameterizer algorithm
 */
 SMP::Error_code perform_parameterization(
     Mesh& mesh,
     halfedge_descriptor bhd,
     UV_pmap& uvmap
 ){
-    // Choose the border type of the uv parametrisation: Circular or Square
-    // using Border_parameterizer = SMP::Circular_border_arc_length_parameterizer_3<Mesh>;
+    // Choose the border type of the uv parametrisation
     using Border_parameterizer = SMP::Square_border_uniform_parameterizer_3<Mesh>;
     Border_parameterizer border_parameterizer;
-
-    // Minimize Area Distortion: Iterative Authalic Parameterization
-    // from https://doi.org/10.1109/ICCVW.2019.00508
-    // using Parameterizer = SMP::Iterative_authalic_parameterizer_3<Mesh, Border_parameterizer>;
-
-    // Parameterizer parameterizer(border_parameterizer);
-    // return parameterizer.parameterize(mesh, bhd, uvmap, PARAMETERIZATION_ITERATIONS);
 
     // Minimize Angle Distortion: Discrete Conformal Map Parameterization
     // from https://doi.org/10.1145/218380.218440
@@ -410,7 +400,7 @@ SMP::Error_code perform_parameterization(
 }
 
 
-std::vector<int64_t> calculate_uv_surface(
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_surface(
     const std::string& mesh_3D,
     my_vertex_descriptor start_node,
     int uv_mesh_number
@@ -420,14 +410,14 @@ std::vector<int64_t> calculate_uv_surface(
     auto filename = get_mesh_obj(mesh_3D);
     filename >> sm;
 
-    // Calculate the virtual border
-    auto calc_edges = calc_virtual_border(mesh_3D, start_node);
+    // Set the border edges of the UV mesh
+    auto border_edges = set_UV_border_edges(mesh_3D, start_node);
 
     // Canonical Halfedges Representing a Vertex
     UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
 
     // Create the seam mesh
-    Mesh mesh = create_seam_mesh(sm, calc_edges);
+    Mesh mesh = create_seam_mesh(sm, border_edges);
 
     // Choose a halfedge on the (possibly virtual) border
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
@@ -438,47 +428,39 @@ std::vector<int64_t> calculate_uv_surface(
     // Save the uv mesh
     save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
 
-    // iterate over the halfedges inside the uvmap
-    // for (auto h : halfedges(mesh)) {
-    //     // auto v = target(h, mesh);
-    //     auto target_uv_vertex = target(h, mesh);
-    //     auto uv = get(uvmap, h);
-
-    //     auto target_vertex = target(h, sm);
-    //     auto corresponding_point = sm.point(target_vertex);
-    //     // std::cout << "uv: " << uv  << " corresponding_point 3D: " << corresponding_point << std::endl;
-    // }
-
-    // std::vector<Point_2> points;
+    std::vector<Point_2> points_uv;
     std::vector<Point_3> points;
-    for(vertex_descriptor vd : vertices(mesh)) {
+    std::vector<int64_t> ids;
+    for (vertex_descriptor vd : vertices(mesh)) {
+        int64_t target_vertice = target(vd, sm);
         auto point_3D = sm.point(target(vd, sm));
         auto uv = get(uvmap, halfedge(vd, mesh));
-        // std::cout << "uv: " << uv  << std::endl;
-        // std::cout << point_3D << std::endl;
+
+        ids.push_back(target_vertice);
         points.push_back(point_3D);
+        points_uv.push_back(uv);
     }
 
-    Eigen::MatrixXd halfedge_vertex_map(points.size(), 3);
+    Eigen::MatrixXd vertices_3D(points.size(), 3);
+    Eigen::MatrixXd vertices_UV(points.size(), 3);
     for (size_t i = 0; i < points.size(); ++i)
     {
-        halfedge_vertex_map(i, 0) = points[i].x();
-        halfedge_vertex_map(i, 1) = points[i].y();
-        halfedge_vertex_map(i, 2) = points[i].z();
-        // halfedge_vertex_map(i, 2) = 0;
+        // Get the points
+        vertices_3D(i, 0) = points[i].x();
+        vertices_3D(i, 1) = points[i].y();
+        vertices_3D(i, 2) = points[i].z();
+
+        // Get the uv points
+        vertices_UV(i, 0) = points_uv[i].x();
+        vertices_UV(i, 1) = points_uv[i].y();
+        vertices_UV(i, 2) = 0;
     }
 
-    // // Save the data
-    // std::string file_name = "vertice_3D_data.csv";
-    // save_matrix_to_csv(halfedge_vertex_map, file_name, 1);  
-
-    const auto _h_v_map = create_halfedge_vertex_map(mesh, sm);
-
-    return _h_v_map;
+    return std::make_tuple(ids, vertices_UV, vertices_3D);
 }
 
 
-std::pair<std::vector<int64_t>, std::string> create_uv_surface_intern(
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface_intern(
     std::string mesh_3D,
     int32_t start_node_int
 ){
@@ -488,9 +470,27 @@ std::pair<std::vector<int64_t>, std::string> create_uv_surface_intern(
     filename >> sm;
 
     my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-    const auto results = calculate_uv_surface(mesh_3D, start_node, start_node_int);
+    auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_3D, start_node, start_node_int);
 
     const auto mesh_file_path = meshmeta.mesh_path;
 
-    return std::make_pair(results, mesh_file_path);
+    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
+}
+
+
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface(
+    std::string mesh_path,
+    int32_t start_node_int
+){
+    // Load the 3D mesh
+    SurfaceMesh sm;
+    std::ifstream in(CGAL::data_file_path(mesh_path));
+    in >> sm;
+
+    my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
+    auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_path, start_node, start_node_int);
+
+    const auto mesh_file_path = meshmeta.mesh_path;
+
+    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
 }

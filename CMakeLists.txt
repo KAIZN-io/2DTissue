@@ -22,6 +22,9 @@ set(ASSIMP_LIBRARY_DIRS "${ASSIMP_ROOT}/lib")
 # Set the project name and version
 project(2DTissue VERSION 1.0)
 
+# Make the project foulder path available to the source code
+add_definitions("-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"")
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 
@@ -82,12 +85,14 @@ add_library(particle_simulation_lib STATIC
     src/simulation/particle_simulation/motion.cpp
     src/simulation/particle_simulation/forces.cpp
     src/simulation/particle_simulation/particle_vector.cpp
+    src/simulation/particle_simulation/simulation.cpp
 )
 target_include_directories(particle_simulation_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 add_library(utilities_lib STATIC
     src/simulation/utilities/analytics.cpp
+    src/simulation/utilities/barycentric_coord.cpp
     src/simulation/utilities/nearest_map.cpp
     src/simulation/utilities/distance.cpp
     src/simulation/utilities/init_particle.cpp
@@ -102,6 +107,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/dye_particle.cpp
     src/simulation/utilities/process_invalid_particle.cpp
     src/simulation/utilities/paths_lib.cpp
+    src/simulation/2DTissue.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost ${OpenCV_LIBS})

@@ -6,55 +6,64 @@
 
 #include <Eigen/Dense>
 #include <vector>
+#include <iostream>
 
 #include <utilities/update.h>
 #include <utilities/boundary_check.h>
 
 
 std::vector<VertexData> update_vertex_data(
-    const std::vector<int>& vertices_3D_active,
-    const Eigen::VectorXd& vertice_3D_id,
+    const Eigen::MatrixXd& old_r_3D_coord,
+    const Eigen::MatrixXd& new_r_3D_coord,
     const std::vector<int>& inside_uv_ids,
     int start_id
 ){
-    int num_r = vertices_3D_active.size();
+    int num_r = old_r_3D_coord.rows();
     std::vector<VertexData> vertex_data(num_r);
 
     // Initialize the vertex data
     for (int i = 0; i < num_r; ++i) {
-        vertex_data[i].old_id = vertices_3D_active[i];
-        vertex_data[i].next_id = vertices_3D_active[i];
-        vertex_data[i].valid = false;
-        vertex_data[i].uv_mesh_id = start_id;
+        VertexData& vd = vertex_data[i];
+
+        vd.old_particle_pos = old_r_3D_coord.row(i);
+        vd.next_particle_pos = old_r_3D_coord.row(i);
+        vd.valid = false;
+        vd.uv_mesh_id = start_id;
     }
 
     // Update the vertex data based on inside_uv_ids
     for (int i : inside_uv_ids) {
+
         if (!vertex_data[i].valid) {
-            vertex_data[i].next_id = static_cast<int>(vertice_3D_id(i));
-            vertex_data[i].uv_mesh_id = start_id;
-            vertex_data[i].valid = true;
+            // Get the vertex data
+            // ? VertexData& vd = vertex_data[inside_uv_ids[i]];
+            VertexData& vd = vertex_data[i];
+
+            vd.next_particle_pos = new_r_3D_coord.row(i);
+            vd.uv_mesh_id = start_id;
+            vd.valid = true;
         }
     }
-
     return vertex_data;
 }
 
 
 void update_if_valid(
     std::vector<VertexData>& vertex_data,
-    const Eigen::MatrixXd& r_new,
-    const Eigen::VectorXd& vertice_3D_id,
+    const Eigen::MatrixXd& r_UV_coord,
+    const Eigen::MatrixXd& r_3D_coord,
     int start_id
 ){
     // Find out which particles are inside the mesh
-    std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_new);
+    std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_UV_coord);
 
     for (int i : inside_uv_ids) {
         if (!vertex_data[i].valid) {
-            vertex_data[i].next_id = static_cast<int64_t>(vertice_3D_id[i]);
-            vertex_data[i].uv_mesh_id = start_id;
-            vertex_data[i].valid = true;
+            VertexData& vd = vertex_data[i];
+
+            vd.next_particle_pos = r_3D_coord.row(i);
+            vd.uv_mesh_id = start_id;
+            vd.valid = true;
         }
     }
 }

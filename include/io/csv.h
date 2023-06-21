@@ -8,6 +8,9 @@
 #include <Eigen/Dense>
 #include <iomanip>
 #include <iostream>
+#include <filesystem>
+
+const std::filesystem::path PROJECT_PATH_IO = PROJECT_SOURCE_DIR;
 
 
 // We need do define it in the header file or otherwise the template specialization will not be available at link time
@@ -32,7 +35,8 @@ M load_csv(const std::string &path) {
 
 template <typename MatrixType>
 void save_matrix_to_csv(const MatrixType& matrix, const std::string& file_name, int num_particles) {
-    std::ofstream file(file_name, std::ios::app); // Open the file in append mode
+    std::string path = PROJECT_PATH_IO.string() + "/data/" + file_name;
+    std::ofstream file(path, std::ios::app); // Open the file in append mode
 
     if (!file.is_open()) {
         std::cerr << "Error opening file: " << file_name << std::endl;

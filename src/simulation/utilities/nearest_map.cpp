@@ -13,7 +13,7 @@
 #include <utilities/sim_structs.h>
 
 
-std::pair<Eigen::MatrixXd, std::vector<int64_t>> find_nearest_vertice_map(
+std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_nearest_vertice_map(
     int target_vertex,
     const Eigen::MatrixXd distance_matrix,
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map
@@ -24,19 +24,44 @@ std::pair<Eigen::MatrixXd, std::vector<int64_t>> find_nearest_vertice_map(
         vertices_2DTissue_map_keys.push_back(key);
     }
 
-    double min_distance = std::numeric_limits<double>::max();
-    int nearest_vertex = -1;
+    // double min_distance = std::numeric_limits<double>::max();
+    // int nearest_vertex = -1;
+
+    // for (int vertex : vertices_2DTissue_map_keys) {
+    //     double distance = distance_matrix(target_vertex, vertex);
+    //     if (distance < min_distance) {
+    //         min_distance = distance;
+    //         nearest_vertex = vertex;
+    //     }
+    // }
+
+    double max_distance = std::numeric_limits<double>::lowest();
+    int furthest_vertex = -1;
 
     for (int vertex : vertices_2DTissue_map_keys) {
         double distance = distance_matrix(target_vertex, vertex);
-        if (distance < min_distance) {
-            min_distance = distance;
-            nearest_vertex = vertex;
+        if (distance > max_distance) {
+            max_distance = distance;
+            furthest_vertex = vertex;
         }
     }
 
-    auto [halfedges_uv, h_v_mapping] = get_mesh_data(vertices_2DTissue_map, nearest_vertex);
+    Eigen::MatrixXd halfedges_uv;
+    std::vector<int64_t> h_v_mapping;
+    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertices_3D;
+    std::string mesh_file_path;
 
-    return std::pair(halfedges_uv, h_v_mapping);
+    auto it = vertices_2DTissue_map.find(furthest_vertex);
+    if (it != vertices_2DTissue_map.end()) {
+        // Load the mesh
+        halfedges_uv = it->second.mesh;
+        h_v_mapping = it->second.h_v_mapping;
+        vertices_UV = it->second.vertices_UV;
+        vertices_3D = it->second.vertices_3D;
+        mesh_file_path = it->second.mesh_file_path;
+    }
+
+    return std::tuple(halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path);
 }
 

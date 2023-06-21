@@ -23,7 +23,9 @@
 
 void process_invalid_particle(
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
-    std::vector<VertexData>& vertex_data,
+    int old_id,
+    std::vector<int> old_ids,
+    std::vector<VertexData>& vertex_struct,
     const VertexData& particle,
     int num_part,
     const Eigen::MatrixXd& distance_matrix,
@@ -37,43 +39,33 @@ void process_invalid_particle(
     double r_adh,
     double k_adh,
     double dt,
-    double tt
+    double current_step
 ) {
-    int old_id = particle.old_id;
+    // Get the nearest vertice map
+    auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
 
-    auto [halfedges_uv, h_v_mapping] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
+    // Find the new row indices of the used vertices
+    auto row_indices = find_vertice_rows_index(h_v_mapping, old_ids);
 
-    std::vector<int64_t> old_ids(vertex_data.size());
-    for (size_t i = 0; i < vertex_data.size(); ++i) {
-        old_ids[i] = vertex_data[i].old_id;
-    }
-
-    // ! TEMPORARY SOLUTION
-    // Create a new vector of int and copy the elements from old_ids
-    std::vector<int> old_ids_int(old_ids.size());
-    for (size_t i = 0; i < old_ids.size(); ++i) {
-        old_ids_int[i] = static_cast<int>(old_ids[i]);
-    }
-
-    // Get the halfedges based on the choosen h-v mapping
-    std::vector<int64_t> halfedge_id = get_first_uv_halfedge_from_3D_vertice_id(old_ids, h_v_mapping);
-
-    // Get the coordinates of the halfedges
-    auto r_active = get_r_from_halfedge_id(halfedge_id, halfedges_uv);
+    // Get the coordinates of the vertices based on the row indices
+    auto r_active = get_coordinates(row_indices, vertices_UV);
 
     // Simulate the flight of the particle
-    auto [r_new_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids_int, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
+    auto [r_UV_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
 
     // Get the new vertice id
-    Eigen::VectorXd vertice_3D_id = get_vertice_id(r_new_virtual, halfedges_uv, h_v_mapping);
+    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
+    // Map them to the 3D coordinates
+    auto [r_3D_virtual, vertices_3D_active] = get_r3d(r_UV_virtual, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
-    update_if_valid(vertex_data, r_new_virtual, vertice_3D_id, old_id);
+    update_if_valid(vertex_struct, r_UV_virtual, r_3D_virtual, old_id);
 }
 
 
 void process_if_not_valid(
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
-    std::vector<VertexData>& vertex_data,
+    std::vector<int> old_vertices_3D,
+    std::vector<VertexData>& vertex_struct,
     int num_part,
     Eigen::MatrixXd& distance_matrix_v,
     Eigen::MatrixXd& n,
@@ -85,30 +77,29 @@ void process_if_not_valid(
     double μ,
     double r_adh,
     double k_adh,
-    double dt,
-    double tt
+    double step_size,
+    double current_step
 ) {
     std::vector<int> invalid_ids;
 
-    for (int i = 0; i < vertex_data.size(); ++i) {
-        if (!vertex_data[i].valid) {
+    for (int i = 0; i < vertex_struct.size(); ++i) {
+        if (!vertex_struct[i].valid) {
             invalid_ids.push_back(i);
         }
     }
 
     for (int invalid_id : invalid_ids) {
-        process_invalid_particle(vertices_2DTissue_map, vertex_data, vertex_data[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+        process_invalid_particle(vertices_2DTissue_map, invalid_id, old_vertices_3D, vertex_struct, vertex_struct[invalid_id], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, step_size, current_step);
 
-        if (are_all_valid(vertex_data)) {
+        if (are_all_valid(vertex_struct)) {
             break;
         }
     }
 
-    // NOTE: hope that this is a good safety net
     std::vector<int> still_invalid_ids;
 
-    for (int i = 0; i < vertex_data.size(); ++i) {
-        if (!vertex_data[i].valid) {
+    for (int i = 0; i < vertex_struct.size(); ++i) {
+        if (!vertex_struct[i].valid) {
             still_invalid_ids.push_back(i);
         }
     }
@@ -116,17 +107,28 @@ void process_if_not_valid(
 
         // Create new 2D surfaces for the still invalid ids
         for (int i = 0; i < still_invalid_ids.size(); ++i) {
-            std::cout << "Creating new 2D surface for particle " << i << std::endl;
-            auto result = create_uv_surface_intern("Ellipsoid", i);
-            std::vector<int64_t> h_v_mapping_vector = std::get<0>(result);  // halfedge-vertice mapping
-            std::string mesh_file_path = std::get<1>(result);
+
+            int invalid_particle = still_invalid_ids[i];
+
+            Eigen::VectorXd particle_distance = distance_matrix_v.row(invalid_particle);  // 0-based indexing, so the "fifth" row is at index 4
+
+            Eigen::VectorXd::Index maxIndex;
+            double max_distance = particle_distance.maxCoeff(&maxIndex);
+
+            // transfrom the maxIndex to int
+            int maxIndex_int = static_cast<int>(maxIndex);
+
+            std::cout << "Creating new 2D surface for particle " << invalid_particle << " with the distance " << max_distance << " in the row " << maxIndex_int << std::endl;
+
+            // because it is on the Seam Edge line of its own mesh !!
+            auto [h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path] = create_uv_surface_intern("Ellipsoid", maxIndex_int);
             Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
 
             // Store the new meshes
-            vertices_2DTissue_map[i] = Mesh_UV_Struct{i, halfedge_uv, h_v_mapping_vector};
-            process_invalid_particle(vertices_2DTissue_map, vertex_data, vertex_data[i], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, dt, tt);
+            vertices_2DTissue_map[maxIndex_int] = Mesh_UV_Struct{maxIndex_int, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};
+            process_invalid_particle(vertices_2DTissue_map, maxIndex_int, old_vertices_3D, vertex_struct, vertex_struct[maxIndex_int], num_part, distance_matrix_v, n, v0, k, v0_next, k_next, σ, μ, r_adh, k_adh, step_size, current_step);
 
-            if (are_all_valid(vertex_data)) {
+            if (are_all_valid(vertex_struct)) {
                 break;
             }
         }

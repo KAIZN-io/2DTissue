@@ -9,7 +9,8 @@
 #include "utilities/sim_structs.h"
 
 void process_if_not_valid(
-    std::unordered_map<int, Mesh_UV_Struct>& mesh_dict,
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
+    std::vector<int> old_vertices_3D,
     std::vector<VertexData>& vertex_data,
     int num_part,
     Eigen::MatrixXd& distance_matrix_v,
