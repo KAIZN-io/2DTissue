@@ -276,6 +276,12 @@ my_vertex_descriptor find_farthest_vertex(
 
 
 // Helper function to create a path from the start node to the target node
+/*
+! The size of the path_list multiplied with 2 is the number of vertices on the border of the UV mesh
+
+So, if you want something like an inverse 'Poincaré disk' you have to really shorten the path_list
+The same is true if you reverse the logic: If you create a spiral-like seam edge path, your mesh will results in something like a 'Poincaré disk'
+*/
 std::vector<my_edge_descriptor> create_path(
     const My::Mesh& mesh,
     my_vertex_descriptor start_node,
@@ -297,18 +303,27 @@ std::vector<my_edge_descriptor> create_path(
     std::reverse(path_list.begin(), path_list.end());
 
     // Shorten the path list to 1/3 of the original length
-    std::vector<my_edge_descriptor> shorted_cut_line;
-    auto middle = path_list.begin() + path_list.size() / 3;
-    shorted_cut_line = std::vector<my_edge_descriptor>(path_list.begin(), middle);
+    // std::vector<my_edge_descriptor> shorted_cut_line;
+    // auto middle = path_list.begin() + 8;
+    // auto middle = path_list.begin() + path_list.size() / 3;
+    // shorted_cut_line = std::vector<my_edge_descriptor>(path_list.begin(), middle);
 
-    return shorted_cut_line;
+    // Shorten the path list to the longest path with an even number of vertices so that the same seam edges are each on the opposite side of the UV mesh
+    std::vector<my_edge_descriptor> longest_mod_two;
+    size_t size = path_list.size();
+    size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
+    longest_mod_two = std::vector<my_edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
+    // print the size of the path list
+    std::cout << "path_list.size() = " << longest_mod_two.size() << std::endl;
+
+    return longest_mod_two;
 }
 
 
 /*
 Calculate the virtual border of the mesh
 */
-std::vector<my_edge_descriptor> calc_virtual_border(
+std::vector<my_edge_descriptor> set_UV_border_edges(
     const std::string& mesh_3D,
     my_vertex_descriptor start_node
 ){
@@ -397,14 +412,14 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
     auto filename = get_mesh_obj(mesh_3D);
     filename >> sm;
 
-    // Calculate the virtual border
-    auto calc_edges = calc_virtual_border(mesh_3D, start_node);
+    // Set the border edges of the UV mesh
+    auto border_edges = set_UV_border_edges(mesh_3D, start_node);
 
     // Canonical Halfedges Representing a Vertex
     UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
 
     // Create the seam mesh
-    Mesh mesh = create_seam_mesh(sm, calc_edges);
+    Mesh mesh = create_seam_mesh(sm, border_edges);
 
     // Choose a halfedge on the (possibly virtual) border
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
