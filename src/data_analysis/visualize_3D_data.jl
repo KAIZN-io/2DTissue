@@ -58,14 +58,11 @@ function update_colors!(colors, int_matrix)
     colors[] = colors.val
 end
 
-num_part = 4714
+num_part = 999
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
-mesh_loaded_uv = FileIO.load("meshes/Ellipsoid_uv.off")  # 2D mesh
+mesh_loaded_uv = FileIO.load("meshes/ellipsoid_x4_uv.off")  # 2D mesh
 vertices_3D = GeometryBasics.coordinates(mesh_loaded) |> vec_of_vec_to_array  # return the vertices of the mesh
-
-halfedges_uv = CSV.read("halfedge_uv.csv", DataFrame; header=false) |> Matrix
-halfedge_vertices_mapping = CSV.read("h_v_mapping_vector.csv", DataFrame; header=false) |> Matrix
 
 observe_r = Makie.Observable(fill(Point3f0(NaN), num_part))
 observe_r_3D =  Makie.Observable(fill(Point3f0(NaN), num_part))
@@ -119,32 +116,12 @@ meshscatter!(ax1, observe_r_3D, color = observe_colors, markersize = 0.14)
 wireframe!(ax3, mesh_loaded_uv, color=(parse(Colorant, "#000000"), 0.3), linewidth=1)
 
 
-record(figure, "assets/confined_active_particles.mp4", 1:50; framerate=10) do tt
-    r = read_data("data/data_new", "r_data_$(tt).csv")
-    # color = read_data("data/data_new", "color_data_$(tt).csv")
-    r_3D = read_data("data/data_new", "r_3D_data_$(tt).csv")
-    # update_colors!(observe_colors, color)
-    # n = read_data("data", "n_data_$(tt).csv")
+record(figure, "assets/confined_active_particles.mp4", 1:300; framerate=60) do tt
+    r = read_data("data", "r_data_$(tt).csv")
+    color = read_data("data", "color_data_$(tt).csv")
+    r_3D = read_data("data", "r_data_3D_$(tt).csv")
 
-    # n_vectors = size(r, 1)
-    # end_points = zeros(n_vectors, 3) # 1199 x 3 matrix for end points
-    # length = 0.01 # You can adjust this value
-
-    # for i in 1:n_vectors
-    #     end_points[i, :] = [
-    #         r[i, 1] + length * cosd(n[i]),
-    #         r[i, 2] + length * sind(n[i]),
-    #         0
-    #     ]
-    # end
-
+    update_colors!(observe_colors, color)
     observe_r_3D[] = array_to_vec_of_vec(r_3D)
-    # start_points = [Point3f0(r[i, 1:3]) for i in 1:4]
-    # end_points_vec = [Point3f0(end_points[i, :]) for i in 1:4]
-
-    # ! BUG: The arrows are unlogicly plotted. They almost point to to top right even if the end points are in the bottom left.
-    # ! According to the internet this is a know bug in Makie for 3D arrows ...
-    # -> https://discourse.julialang.org/t/glmakie-length-of-the-arrows/80327/2 
-    # arrows!(ax3, start_points, end_points_vec, arrowsize = 0.01, linecolor = (:red, 0.7), linewidth = 0.01, lengthscale = 0.03)
     observe_r[] = array_to_vec_of_vec(r)
 end
