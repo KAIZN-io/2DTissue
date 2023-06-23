@@ -31,14 +31,79 @@ int main()
 
     Eigen::Vector2d pointA(0.6, 0.5);
     Eigen::Vector2d point_outside(-0.2, 0.8);
+
+    auto steigung = (point_outside[1] - pointA[1]) / (point_outside[0] - pointA[0]);
+    std::cout << "Steigung: " << steigung << std::endl;
     Eigen::Vector2d new_point(2, 1);
 
+    delta_x = point_outside[0] - pointA[0];
+    delta_y = point_outside[1] - pointA[1];
+
+    // oben oder rechts
+    if (delta_x > 0 && delta_y > 0){
+        double x = 1;
+        double y = interpolateY(pointA, point_outside, x);
+
+        // rechte Grenze passiert
+        if (y < 1 && y > 0){
+
+        }
+        // obere Grenze passiert
+        else {
+
+        }
+    }
+    // oben oder links
+    else if (delta_x > 0 && delta_y < 0){
+        double x = 0;
+        double y = interpolateY(pointA, point_outside, x);
+
+        // linke Grenze passiert
+        if (y < 1 && y > 0){
+
+        }
+        // obere Grenze passiert
+        else {
+
+        }
+
+    }
+    // unten oder rechts
+    else if (delta_x < 0 && delta_y > 0){
+        double x = 1;
+        double y = interpolateY(pointA, point_outside, x);
+
+        // rechte Grenze passiert
+        if (y < 1 && y > 0){
+
+        }
+        // obere Grenze passiert
+        else {
+
+        }
+
+    }
+    // unten oder links
+    else {
+        double x = 0;
+        double y = interpolateY(pointA, point_outside, x);
+
+        // linke Grenze passiert
+        if (y < 1 && y > 0){
+
+        }
+        // obere Grenze passiert
+        else {
+
+        }
+    }
+
+    // NOTE: nach dieser Logik muss man immer 3 Grenzen testen
     // Somewhere on the left side outside of the rectangle
     if (point_outside[0] < 0)
     {
         double x_neg = 0;
         double y_neg = interpolateY(pointA, point_outside, x_neg);
-
         // linke Grenze passiert
         if (y_neg < 1 && y_neg > 0){
             Eigen::Vector2d pointC(0, y_neg);
