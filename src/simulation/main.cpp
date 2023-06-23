@@ -30,19 +30,24 @@ int main()
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
 
     Eigen::Vector2d pointA(0.6, 0.5);
-    Eigen::Vector2d point_outside(-0.2, 0.8);
+    Eigen::Vector2d point_outside(1.2, 0.8);
     Eigen::Vector2d new_point(2, 1);
-    Eigen::Vector2D entry_angle(2, 1);
+    Eigen::Vector2d entry_angle(1, 1);
 
     auto delta_x = point_outside[0] - pointA[0];
     auto delta_y = point_outside[1] - pointA[1];
     auto steigung = delta_y / delta_x;
 
-
+    int steigung_switch;
+    if (steigung != 0) {
+        steigung_switch = -1;
+    }
+    else {
+        steigung_switch = 0;
+    }
 
     // TODO: case einbauen, wenn delta_x = 0 oder delta_y = 0 -> direkt ablesbar wohin die Gerade geht
     // TODO: einbauen, dass Gerade NICHT durch eine Kante des Vierecks geht
-    // TODO: Berechnung neuen Punkt abhängig der Steigung
 
     // oben oder rechts
     if (delta_x > 0 && delta_y > 0){
@@ -53,9 +58,13 @@ int main()
         if (y < 1 && y > 0){
             Eigen::Vector2d exit_point(1, y);
             Eigen::Vector2d entry_point(y, 1);
-            auto displacement = point_outside - exit_point;
+            Eigen::Vector2d displacement = point_outside - exit_point;
+            // switch values of x and y, because we also switched the entry coordinates before
+            displacement = Eigen::Vector2d(displacement[1], displacement[0]);
 
-            new_point = entry_point - displacement;
+            entry_angle.row(0) *= steigung_switch;
+            Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
+            new_point = entry_point - rotated_displacement;
         }
         // obere Grenze passiert
         else {
@@ -64,24 +73,34 @@ int main()
 
             Eigen::Vector2d exit_point(x_back, 1);
             Eigen::Vector2d entry_point(1, x_back);
-            auto displacement = point_outside - exit_point;
+            Eigen::Vector2d displacement = point_outside - exit_point;
+            // switch values of x and y
+            displacement = Eigen::Vector2d(displacement[1], displacement[0]);
 
-            new_point = entry_point - displacement;
+            entry_angle.row(1) *= steigung_switch;
+
+            Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
+            new_point = entry_point - rotated_displacement;
         }
     }
     // unten oder rechts
-    else if (delta_x < 0 && delta_y > 0){
+    else if (delta_x > 0 && delta_y < 0){
         double x = 1;
         double y = interpolateY(pointA, point_outside, x);
-
+        std::cout << "y: " << y << std::endl;
         // rechte Grenze passiert
         if (y < 1 && y > 0){
+
             Eigen::Vector2d exit_point(1, y);
             Eigen::Vector2d entry_point(y, 1);
 
-            auto displacement = point_outside - exit_point;
+            Eigen::Vector2d displacement = point_outside - exit_point;
+            // switch values of x and y
+            displacement = Eigen::Vector2d(displacement[1], displacement[0]);
 
-            new_point = entry_point - displacement;
+            entry_angle.row(0) *= steigung_switch;
+            Eigen::Vector2d rotated_displacement = displacement.array()  * entry_angle.array();
+            new_point = entry_point - rotated_displacement;
         }
         // unten Grenze passiert
         else {
@@ -91,13 +110,16 @@ int main()
             Eigen::Vector2d exit_point(x_back_neg, 0);
             Eigen::Vector2d entry_point(0, x_back_neg);
 
-            auto displacement = point_outside - exit_point;
-
-            new_point = entry_point + displacement;
+            Eigen::Vector2d displacement = point_outside - exit_point;
+            // switch values of x and y
+            displacement = Eigen::Vector2d(displacement[1], displacement[0]);
+            entry_angle.row(1) *= steigung_switch;
+            Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
+            new_point = entry_point + rotated_displacement;
         }
     }
     // oben oder links
-    else if (delta_x > 0 && delta_y < 0){
+    else if (delta_x < 0 && delta_y > 0){
         double x = 0;
         double y = interpolateY(pointA, point_outside, x);
 
@@ -106,9 +128,12 @@ int main()
             Eigen::Vector2d exit_point(0, y);
             Eigen::Vector2d entry_point(y, 0);
 
-            auto displacement = point_outside - exit_point;
-
-            new_point = entry_point + displacement;
+            Eigen::Vector2d displacement = point_outside - exit_point;
+            // switch values of x and y
+            displacement = Eigen::Vector2d(displacement[1], displacement[0]);
+            entry_angle.row(0) *= steigung_switch;
+            Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
+            new_point = entry_point + rotated_displacement;
         }
         // obere Grenze passiert
         else {
@@ -118,9 +143,12 @@ int main()
             Eigen::Vector2d exit_point(x_back, 1);
             Eigen::Vector2d entry_point(1, x_back);
 
-            auto displacement = point_outside - exit_point;
-
-            new_point = entry_point - displacement;
+            Eigen::Vector2d displacement = point_outside - exit_point;
+            // switch values of x and y
+            displacement = Eigen::Vector2d(displacement[1], displacement[0]);
+            entry_angle.row(1) *= steigung_switch;
+            Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
+            new_point = entry_point - rotated_displacement;
         }
     }
     // unten oder links
@@ -133,9 +161,12 @@ int main()
             Eigen::Vector2d exit_point(0, y);
             Eigen::Vector2d entry_point(y, 0);
 
-            auto displacement = point_outside - exit_point;
-
-            new_point = entry_point + displacement;
+            Eigen::Vector2d displacement = point_outside - exit_point;
+            // switch values of x and y
+            displacement = Eigen::Vector2d(displacement[1], displacement[0]);
+            entry_angle.row(0) *= steigung_switch;
+            Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
+            new_point = entry_point + rotated_displacement;
         }
         // unten Grenze passiert
         else {
@@ -145,9 +176,12 @@ int main()
             Eigen::Vector2d exit_point(x_back_neg, 0);
             Eigen::Vector2d entry_point(0, x_back_neg);
 
-            auto displacement = point_outside - exit_point;
-
-            new_point = entry_point + displacement;
+            Eigen::Vector2d displacement = point_outside - exit_point;
+            // switch values of x and y
+            displacement = Eigen::Vector2d(displacement[1], displacement[0]);
+            entry_angle.row(1) *= steigung_switch;
+            Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
+            new_point = entry_point + rotated_displacement;
         }
     }
 
