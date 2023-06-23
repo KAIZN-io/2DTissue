@@ -31,13 +31,18 @@ int main()
 
     Eigen::Vector2d pointA(0.6, 0.5);
     Eigen::Vector2d point_outside(-0.2, 0.8);
-
-    auto steigung = (point_outside[1] - pointA[1]) / (point_outside[0] - pointA[0]);
-    std::cout << "Steigung: " << steigung << std::endl;
     Eigen::Vector2d new_point(2, 1);
+    Eigen::Vector2D entry_angle(2, 1);
 
-    delta_x = point_outside[0] - pointA[0];
-    delta_y = point_outside[1] - pointA[1];
+    auto delta_x = point_outside[0] - pointA[0];
+    auto delta_y = point_outside[1] - pointA[1];
+    auto steigung = delta_y / delta_x;
+
+
+
+    // TODO: case einbauen, wenn delta_x = 0 oder delta_y = 0 -> direkt ablesbar wohin die Gerade geht
+    // TODO: einbauen, dass Gerade NICHT durch eine Kante des Vierecks geht
+    // TODO: Berechnung neuen Punkt abhängig der Steigung
 
     // oben oder rechts
     if (delta_x > 0 && delta_y > 0){
@@ -46,11 +51,49 @@ int main()
 
         // rechte Grenze passiert
         if (y < 1 && y > 0){
+            Eigen::Vector2d exit_point(1, y);
+            Eigen::Vector2d entry_point(y, 1);
+            auto displacement = point_outside - exit_point;
 
+            new_point = entry_point - displacement;
         }
         // obere Grenze passiert
         else {
+            double y_back = 1;
+            double x_back = interpolateX(pointA, point_outside, y_back);
 
+            Eigen::Vector2d exit_point(x_back, 1);
+            Eigen::Vector2d entry_point(1, x_back);
+            auto displacement = point_outside - exit_point;
+
+            new_point = entry_point - displacement;
+        }
+    }
+    // unten oder rechts
+    else if (delta_x < 0 && delta_y > 0){
+        double x = 1;
+        double y = interpolateY(pointA, point_outside, x);
+
+        // rechte Grenze passiert
+        if (y < 1 && y > 0){
+            Eigen::Vector2d exit_point(1, y);
+            Eigen::Vector2d entry_point(y, 1);
+
+            auto displacement = point_outside - exit_point;
+
+            new_point = entry_point - displacement;
+        }
+        // unten Grenze passiert
+        else {
+            double y_back_neg = 0;
+            double x_back_neg = interpolateX(pointA, point_outside, y_back_neg);
+
+            Eigen::Vector2d exit_point(x_back_neg, 0);
+            Eigen::Vector2d entry_point(0, x_back_neg);
+
+            auto displacement = point_outside - exit_point;
+
+            new_point = entry_point + displacement;
         }
     }
     // oben oder links
@@ -60,28 +103,25 @@ int main()
 
         // linke Grenze passiert
         if (y < 1 && y > 0){
+            Eigen::Vector2d exit_point(0, y);
+            Eigen::Vector2d entry_point(y, 0);
 
+            auto displacement = point_outside - exit_point;
+
+            new_point = entry_point + displacement;
         }
         // obere Grenze passiert
         else {
+            double y_back = 1;
+            double x_back = interpolateX(pointA, point_outside, y_back);
 
+            Eigen::Vector2d exit_point(x_back, 1);
+            Eigen::Vector2d entry_point(1, x_back);
+
+            auto displacement = point_outside - exit_point;
+
+            new_point = entry_point - displacement;
         }
-
-    }
-    // unten oder rechts
-    else if (delta_x < 0 && delta_y > 0){
-        double x = 1;
-        double y = interpolateY(pointA, point_outside, x);
-
-        // rechte Grenze passiert
-        if (y < 1 && y > 0){
-
-        }
-        // obere Grenze passiert
-        else {
-
-        }
-
     }
     // unten oder links
     else {
@@ -90,147 +130,27 @@ int main()
 
         // linke Grenze passiert
         if (y < 1 && y > 0){
+            Eigen::Vector2d exit_point(0, y);
+            Eigen::Vector2d entry_point(y, 0);
 
+            auto displacement = point_outside - exit_point;
+
+            new_point = entry_point + displacement;
         }
-        // obere Grenze passiert
+        // unten Grenze passiert
         else {
-
-        }
-    }
-
-    // NOTE: nach dieser Logik muss man immer 3 Grenzen testen
-    // Somewhere on the left side outside of the rectangle
-    if (point_outside[0] < 0)
-    {
-        double x_neg = 0;
-        double y_neg = interpolateY(pointA, point_outside, x_neg);
-        // linke Grenze passiert
-        if (y_neg < 1 && y_neg > 0){
-            Eigen::Vector2d pointC(0, y_neg);
-            Eigen::Vector2d pointD(y_neg, 0);
-
-            new_point = pointD - (point_outside - pointC);
-        }
-        // untere Grenze passiert
-        else if (y_neg < 0){
             double y_back_neg = 0;
             double x_back_neg = interpolateX(pointA, point_outside, y_back_neg);
 
-            Eigen::Vector2d pointC(x_back_neg, 0);
-            Eigen::Vector2d pointD(0, x_back_neg);
+            Eigen::Vector2d exit_point(x_back_neg, 0);
+            Eigen::Vector2d entry_point(0, x_back_neg);
 
-            new_point =  pointD - (point_outside - pointC);
-        }
-        // obere Grenze passiert
-        else {
-            double y_back = 1;
-            double x_back = interpolateX(pointA, point_outside, y_back);
+            auto displacement = point_outside - exit_point;
 
-            Eigen::Vector2d pointC(x_back, 1);
-            Eigen::Vector2d pointD(1, x_back);
-
-            new_point =  pointD - (point_outside - pointC);
+            new_point = entry_point + displacement;
         }
     }
-    else if (point_outside[0] > 1){
-        // Leave to the positive side
-        double x = 1;
-        double y = interpolateY(pointA, point_outside, x);
 
-        // recht Grenze passiert
-        if (y < 1 && y > 0){
-            Eigen::Vector2d pointC(1, y);
-            Eigen::Vector2d pointD(y, 1);
-
-            new_point = pointD - (point_outside - pointC);
-        }
-        // untere Grenze passiert
-        else if (y < 0){
-            double y_back_neg = 0;
-            double x_back_neg = interpolateX(pointA, point_outside, y_back_neg);
-
-            Eigen::Vector2d pointC(x_back_neg, 0);
-            Eigen::Vector2d pointD(0, x_back_neg);
-
-            new_point =  pointD - (point_outside - pointC);
-        }
-        // obere Grenze passiert
-        else {
-            double y_back = 1;
-            double x_back = interpolateX(pointA, point_outside, y_back);
-
-            Eigen::Vector2d pointC(x_back, 1);
-            Eigen::Vector2d pointD(1, x_back);
-
-            new_point =  pointD - (point_outside - pointC);
-        }
-    }
-    else {
-        // Irgendwo nach oben hin verlassen
-        if (point_outside[1] > 1) {
-            double y_back = 1;
-            double x_back = interpolateX(pointA, point_outside, y_back);
-
-            // obere Grenze passiert
-            if (x_back < 1 && x_back > 0){
-                Eigen::Vector2d pointC(x_back, 1);
-                Eigen::Vector2d pointD(1, x_back);
-
-                new_point = pointD - (point_outside - pointC);
-            }
-            // linke Grenze passiert
-            else if (x_back < 0) {
-                double x_back_neg = 0;
-                double y_back_neg = interpolateY(pointA, point_outside, x_back_neg);
-
-                Eigen::Vector2d pointC(0, y_back_neg);
-                Eigen::Vector2d pointD(y_back_neg, 0);
-
-                new_point = pointD - (point_outside - pointC);
-            }
-            // rechte Grenze passiert
-            else {
-                double x_back_pos = 1;
-                double y_back_pos = interpolateY(pointA, point_outside, x_back_pos);
-
-                Eigen::Vector2d pointC(1, y_back_pos);
-                Eigen::Vector2d pointD(y_back_pos, 1);
-
-                new_point = pointD - (point_outside - pointC);
-            }
-        }
-        // Irgendwo nach unten hin verlassen
-        else if (point_outside[1] < 0) {
-            double y_back_neg = 0;
-            double x_back_neg = interpolateX(pointA, point_outside, y_back_neg);
-
-            // untere Grenze passiert
-            if (x_back_neg < 1 && x_back_neg > 0){
-                Eigen::Vector2d pointC(x_back_neg, 0);
-                Eigen::Vector2d pointD(0, x_back_neg);
-
-                new_point = pointD - (point_outside - pointC);
-            }
-            else if (x_back_neg < 0) {
-                double x_back_neg_neg = 0;
-                double y_back_neg_neg = interpolateY(pointA, point_outside, x_back_neg_neg);
-
-                Eigen::Vector2d pointC(0, y_back_neg_neg);
-                Eigen::Vector2d pointD(y_back_neg_neg, 0);
-
-                new_point = pointD - (point_outside - pointC);
-            }
-            else {
-                double x_back_neg_pos = 1;
-                double y_back_neg_pos = interpolateY(pointA, point_outside, x_back_neg_pos);
-
-                Eigen::Vector2d pointC(1, y_back_neg_pos);
-                Eigen::Vector2d pointD(y_back_neg_pos, 1);
-
-                new_point = pointD - (point_outside - pointC);
-            }
-        }
-    }
     std::cout << "New point: " << new_point << '\n';
 
 
