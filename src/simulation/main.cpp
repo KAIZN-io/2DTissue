@@ -24,12 +24,9 @@ double interpolateX(const Eigen::Vector2d& pointA, const Eigen::Vector2d& pointB
 
 int main()
 {
-    int num_frames = 300;
 
-    // Initialize the 2DTissue object
-    std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
-    Eigen::Vector2d pointA(0.6, 0.5);
-    Eigen::Vector2d point_outside(-0.2, 0.8);
+    Eigen::Vector2d pointA(0.5, 0.5);
+    Eigen::Vector2d point_outside(0.5, -0.2);
     Eigen::Vector2d new_point(2, 1);
     Eigen::Vector2d entry_angle(1, 1);
 
@@ -48,11 +45,9 @@ int main()
         steigung_switch = 0;
     }
 
-    // TODO: case einbauen, wenn delta_x = 0 oder delta_y = 0 -> direkt ablesbar wohin die Gerade geht
     // TODO: einbauen, dass Gerade NICHT durch eine Kante des Vierecks geht
-
     // oben oder rechts
-    if (delta_x > 0 && delta_y > 0){
+    if (delta_x >= 0 && delta_y >= 0){
         double x = 1;
         double y = interpolateY(pointA, point_outside, x);
 
@@ -63,9 +58,7 @@ int main()
             Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             // switch values of x and y, because we also switched the entry coordinates before
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
-
             entry_angle.row(0) *= steigung_switch;  // has to be variable
-
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
             new_point = entry_point - rotated_displacement;
         }
@@ -95,15 +88,12 @@ int main()
 
             Eigen::Vector2d exit_point(1, y);
             Eigen::Vector2d entry_point(y, 1);
-            std::cout << "entry_point: " << entry_point << std::endl;
             Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             // switch values of x and y
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
 
-            std::cout << "displacement: " << displacement << std::endl;
             entry_angle.row(0) *= steigung_switch;
             Eigen::Vector2d rotated_displacement = displacement.array()  * entry_angle.array();
-            std::cout << "rotated_displacement: " << rotated_displacement << std::endl;
             new_point = entry_point - rotated_displacement;
         }
         // unten Grenze passiert
@@ -173,7 +163,6 @@ int main()
             entry_angle.row(0) *= steigung_switch;
 
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
-            std::cout << "rotated_displacement: " << rotated_displacement << std::endl;
             new_point = entry_point + rotated_displacement;
         }
         // unten Grenze passiert
@@ -195,7 +184,10 @@ int main()
 
     std::cout << "New point: " << new_point << '\n';
 
+    int num_frames = 300;
 
+    // Initialize the 2DTissue object
+    std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
 
     // for (int num_part = 1000; num_part <= 1000; num_part += 100) {
     //     _2DTissue _2dtissue(mesh_path, num_part, num_frames);
