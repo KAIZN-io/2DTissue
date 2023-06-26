@@ -111,11 +111,24 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
     // r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
 
-    for (int i = 0; i < r_UV.rows(); ++i) {
-        Eigen::Vector2d pointA = r_UV.row(i).head<2>(); // only takes the first two columns for the ith row
-        Eigen::Vector2d point_outside = r_UV_new.row(i).head<2>(); // only takes the first two columns for the ith row
-        r_UV_new.row(i).head<2>().noalias() = processPoints(pointA, point_outside);
-    }
+    // ? TODO: ich glaube, dass ich das mapping falsch mache, wenn ein Punkt nach den ersten mapping immer noch draußen landet
+    bool valid;
+    do {
+        valid = true;
+        for (int i = 0; i < r_UV.rows(); ++i) {
+            Eigen::Vector2d pointA = r_UV.row(i).head<2>(); // only takes the first two columns for the ith row
+            Eigen::Vector2d point_outside = r_UV_new.row(i).head<2>(); // only takes the first two columns for the ith row
+            r_UV_new.row(i).head<2>().noalias() = processPoints(pointA, point_outside);
+
+            // Check the condition
+            auto row = r_UV_new.row(i).head<2>();
+            if (row[0] < 0 || row[0] > 1 || row[1] < 0 || row[1] > 1) {
+                valid = false;
+                break;
+            }
+        }
+    } while (!valid);
+
 
     /*
     Error checkings
