@@ -28,8 +28,8 @@ int main()
 
     // Initialize the 2DTissue object
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
-    Eigen::Vector2d pointA(0.2, 0.5);
-    Eigen::Vector2d point_outside(-0.2, 0.2);
+    Eigen::Vector2d pointA(0.6, 0.5);
+    Eigen::Vector2d point_outside(-0.2, 0.8);
     Eigen::Vector2d new_point(2, 1);
     Eigen::Vector2d entry_angle(1, 1);
 
@@ -38,8 +38,11 @@ int main()
     auto steigung = delta_y / delta_x;
 
     int steigung_switch;
-    if (steigung != 0) {
+    if (steigung > 0) {
         steigung_switch = -1;
+    }
+    else if (steigung < 0) {
+        steigung_switch = 1;
     }
     else {
         steigung_switch = 0;
@@ -57,12 +60,11 @@ int main()
         if (y < 1 && y > 0){
             Eigen::Vector2d exit_point(1, y);
             Eigen::Vector2d entry_point(y, 1);
-            Eigen::Vector2d displacement = point_outside - exit_point;
+            Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             // switch values of x and y, because we also switched the entry coordinates before
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
 
             entry_angle.row(0) *= steigung_switch;  // has to be variable
-            displacement.row(1) = displacement.row(1).cwiseAbs();  // has to be positive
 
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
             new_point = entry_point - rotated_displacement;
@@ -74,12 +76,10 @@ int main()
 
             Eigen::Vector2d exit_point(x_back, 1);
             Eigen::Vector2d entry_point(1, x_back);
-            Eigen::Vector2d displacement = point_outside - exit_point;
-            // switch values of x and y
+            Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
 
             entry_angle.row(1) *= steigung_switch;
-            displacement.row(0) = displacement.row(0).cwiseAbs();
 
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
             new_point = entry_point - rotated_displacement;
@@ -95,14 +95,15 @@ int main()
 
             Eigen::Vector2d exit_point(1, y);
             Eigen::Vector2d entry_point(y, 1);
-
-            Eigen::Vector2d displacement = point_outside - exit_point;
+            std::cout << "entry_point: " << entry_point << std::endl;
+            Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             // switch values of x and y
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
 
+            std::cout << "displacement: " << displacement << std::endl;
             entry_angle.row(0) *= steigung_switch;
-            displacement.row(1) = displacement.row(1).cwiseAbs();
             Eigen::Vector2d rotated_displacement = displacement.array()  * entry_angle.array();
+            std::cout << "rotated_displacement: " << rotated_displacement << std::endl;
             new_point = entry_point - rotated_displacement;
         }
         // unten Grenze passiert
@@ -113,11 +114,10 @@ int main()
             Eigen::Vector2d exit_point(x_back_neg, 0);
             Eigen::Vector2d entry_point(0, x_back_neg);
 
-            Eigen::Vector2d displacement = point_outside - exit_point;
+            Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             // switch values of x and y
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
             entry_angle.row(1) *= steigung_switch;
-            displacement.row(0) = displacement.row(0).cwiseAbs();
 
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
             new_point = entry_point + rotated_displacement;
@@ -133,11 +133,10 @@ int main()
             Eigen::Vector2d exit_point(0, y);
             Eigen::Vector2d entry_point(y, 0);
 
-            Eigen::Vector2d displacement = point_outside - exit_point;
+            Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             // switch values of x and y
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
             entry_angle.row(0) *= steigung_switch;
-            displacement.row(1) = displacement.row(1).cwiseAbs();
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
             new_point = entry_point + rotated_displacement;
         }
@@ -149,11 +148,10 @@ int main()
             Eigen::Vector2d exit_point(x_back, 1);
             Eigen::Vector2d entry_point(1, x_back);
 
-            Eigen::Vector2d displacement = point_outside - exit_point;
+            Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             // switch values of x and y
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
             entry_angle.row(1) *= steigung_switch;
-            displacement.row(0) = displacement.row(0).cwiseAbs();
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
             new_point = entry_point - rotated_displacement;
         }
@@ -167,14 +165,12 @@ int main()
         if (y < 1 && y > 0){
             Eigen::Vector2d exit_point(0, y);
             Eigen::Vector2d entry_point(y, 0);
-            std::cout << "entry_point: " << entry_point << std::endl;
-            Eigen::Vector2d displacement = point_outside - exit_point;
-            std::cout << "displacement: " << displacement << std::endl;
+            Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
+
             // switch values of x and y
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
-            std::cout << "displacement: " << displacement << std::endl;
+
             entry_angle.row(0) *= steigung_switch;
-            displacement.row(1) = displacement.row(1).cwiseAbs();
 
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
             std::cout << "rotated_displacement: " << rotated_displacement << std::endl;
@@ -188,11 +184,10 @@ int main()
             Eigen::Vector2d exit_point(x_back_neg, 0);
             Eigen::Vector2d entry_point(0, x_back_neg);
 
-            Eigen::Vector2d displacement = point_outside - exit_point;
+            Eigen::Vector2d displacement = (point_outside - exit_point).cwiseAbs();
             // switch values of x and y
             displacement = Eigen::Vector2d(displacement[1], displacement[0]);
             entry_angle.row(1) *= steigung_switch;
-            displacement.row(0) = displacement.row(0).cwiseAbs();
             Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
             new_point = entry_point + rotated_displacement;
         }
