@@ -181,22 +181,23 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
 
 int main()
 {
-    Eigen::MatrixXd r_start(3, 2);
-    r_start << 0.6, 0.5,
-               0.6, 0.5,
-               0.7, 0.5;
-    Eigen::MatrixXd r_end(3, 2);
-    r_end << 1.2, 0.8,
-             1.2, 0.2,
-             0.5, 0.9;
+    Eigen::MatrixXd r_start(3, 3);
+    r_start << 0.6, 0.5, 0,
+               0.6, 0.5, 0,
+               0.7, 0.5, 0;
+    Eigen::MatrixXd r_end(3, 3);
+    r_end << 1.2, 0.8, 0,
+             1.2, 0.2, 0,
+             0.5, 0.9, 0;
 
-    Eigen::MatrixXd new_points(r_start.rows(), r_start.cols());
+    Eigen::MatrixXd new_points = Eigen::MatrixXd::Zero(r_start.rows(), 3); // Initialize new_points to zero
 
     for(int i = 0; i < r_start.rows(); ++i) {
-        Eigen::Vector2d pointA = r_start.row(i);
-        Eigen::Vector2d point_outside = r_end.row(i);
-        new_points.row(i) = processPoints(pointA, point_outside);
+        Eigen::Vector2d pointA = r_start.row(i).head<2>(); // only takes the first two columns for the ith row
+        Eigen::Vector2d point_outside = r_end.row(i).head<2>(); // only takes the first two columns for the ith row
+        new_points.row(i).head<2>().noalias() = processPoints(pointA, point_outside);
     }
+
 
     std::cout << "New points: " << new_points << '\n';
 
