@@ -36,6 +36,7 @@
 #include <particle_simulation/particle_vector.h>
 #include <particle_simulation/simulation.h>
 
+#include <utilities/process_points.h>
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/distance.h>
@@ -107,8 +108,14 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
 
     // Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
-    r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
-    r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
+    // r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
+    // r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
+
+    for (int i = 0; i < r_UV.rows(); ++i) {
+        Eigen::Vector2d pointA = r_UV.row(i).head<2>(); // only takes the first two columns for the ith row
+        Eigen::Vector2d point_outside = r_UV_new.row(i).head<2>(); // only takes the first two columns for the ith row
+        r_UV_new.row(i).head<2>().noalias() = processPoints(pointA, point_outside);
+    }
 
     /*
     Error checkings
