@@ -43,6 +43,7 @@
 #include <utilities/init_particle.h>
 #include <utilities/matrix_algebra.h>
 #include <utilities/2D_3D_mapping.h>
+#include <utilities/2D_mapping.h>
 #include <utilities/sim_structs.h>
 #include <utilities/splay_state.h>
 #include <utilities/update.h>
@@ -107,28 +108,8 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // 1. Simulate the flight of the particle on the UV mesh
     auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
 
-    // Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
-    // r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
-    // r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
-
-    // ? TODO: ich glaube, dass ich das mapping falsch mache, wenn ein Punkt nach den ersten mapping immer noch draußen landet
-    bool valid;
-    do {
-        valid = true;
-        for (int i = 0; i < r_UV.rows(); ++i) {
-            Eigen::Vector2d pointA = r_UV.row(i).head<2>(); // only takes the first two columns for the ith row
-            Eigen::Vector2d point_outside = r_UV_new.row(i).head<2>(); // only takes the first two columns for the ith row
-            r_UV_new.row(i).head<2>().noalias() = processPoints(pointA, point_outside);
-
-            // Check the condition
-            auto row = r_UV_new.row(i).head<2>();
-            if (row[0] < 0 || row[0] > 1 || row[1] < 0 || row[1] > 1) {
-                valid = false;
-                break;
-            }
-        }
-    } while (!valid);
-
+    // Map the new UV coordinates back to the UV mesh
+    opposite_seam_edges(r_UV_new);
 
     /*
     Error checkings
