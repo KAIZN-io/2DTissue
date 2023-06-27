@@ -130,40 +130,6 @@ std::string get_mesh_name(
 }
 
 
-// TODO: move it to mesh_loader.cpp
-/*
-Get the mesh from the file.
-Add new meshes with there path in this function
-*/
-std::ifstream get_mesh_obj(
-    const std::string& mesh_name
-){
-    // Define a map to store the available meshes and their corresponding paths
-    const std::map<std::string, std::string> mesh_paths{
-        {"Ellipsoid", "ellipsoid_x4.off"},
-        {"Sphere", "sphere.off"},
-        {"Bear", "bear.off"}
-    };
-
-    // Initialize the file path variable
-    fs::path mesh_file_path;
-
-    // Check if the mesh_name exists in the map and set the file path accordingly
-    auto it = mesh_paths.find(mesh_name);
-
-    if (it != mesh_paths.end()) {
-        mesh_file_path = MESH_FOLDER / it->second;
-    } else {
-        mesh_file_path = MESH_FOLDER / mesh_name;
-    }
-
-    // Open the file using the CGAL::data_file_path() function
-    std::ifstream in(CGAL::data_file_path(mesh_file_path));
-
-    return in;
-}
-
-
 /*
 We have to create multiple versions of the UV mesh because we need different coordination system for the particle simulation
 in order to simulate them on top of the 2D mesh
@@ -201,11 +167,11 @@ int save_uv_mesh(
     Mesh _mesh,
     halfedge_descriptor _bhd,
     UV_pmap _uvmap,
-    const std::string& mesh_3D,
+    const std::string& mesh_path,
     int uv_mesh_number
 ){
     // Get the mesh name without the extension
-    auto mesh_3D_name = get_mesh_name(mesh_3D);
+    auto mesh_3D_name = get_mesh_name(mesh_path);
 
     // Create the output file path based on uv_mesh_number
     fs::path output_file_path;
@@ -322,11 +288,11 @@ std::vector<my_edge_descriptor> create_path(
 Calculate the virtual border of the mesh
 */
 std::vector<my_edge_descriptor> set_UV_border_edges(
-    const std::string& mesh_3D,
+    const std::string& mesh_file_path,
     my_vertex_descriptor start_node
 ){
     My::Mesh mesh;
-    auto in = get_mesh_obj(mesh_3D);
+    std::ifstream in(CGAL::data_file_path(mesh_file_path));
     in >> mesh;
 
     using Point_property_map = boost::property_map<My::Mesh,CGAL::vertex_point_t>::type;
@@ -401,17 +367,17 @@ SMP::Error_code perform_parameterization(
 
 
 std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_surface(
-    const std::string& mesh_3D,
+    const std::string& mesh_file_path,
     my_vertex_descriptor start_node,
     int uv_mesh_number
 ){
     // Load the 3D mesh
     SurfaceMesh sm;
-    auto filename = get_mesh_obj(mesh_3D);
-    filename >> sm;
+    std::ifstream in(CGAL::data_file_path(mesh_file_path));
+    in >> sm;
 
     // Set the border edges of the UV mesh
-    auto border_edges = set_UV_border_edges(mesh_3D, start_node);
+    auto border_edges = set_UV_border_edges(mesh_file_path, start_node);
 
     // Canonical Halfedges Representing a Vertex
     UV_pmap uvmap = sm.add_property_map<SM_halfedge_descriptor, Point_2>("h:uv").first;
@@ -426,7 +392,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
     SMP::Error_code err = perform_parameterization(mesh, bhd, uvmap);
 
     // Save the uv mesh
-    save_uv_mesh(mesh, bhd, uvmap, mesh_3D, uv_mesh_number);
+    save_uv_mesh(mesh, bhd, uvmap, mesh_file_path, uv_mesh_number);
 
     std::vector<Point_2> points_uv;
     std::vector<Point_3> points;
@@ -457,24 +423,6 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
     }
 
     return std::make_tuple(ids, vertices_UV, vertices_3D);
-}
-
-
-std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface_intern(
-    std::string mesh_3D,
-    int32_t start_node_int
-){
-    // Load the 3D mesh
-    SurfaceMesh sm;
-    auto filename = get_mesh_obj(mesh_3D);
-    filename >> sm;
-
-    my_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-    auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_3D, start_node, start_node_int);
-
-    const auto mesh_file_path = meshmeta.mesh_path;
-
-    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
 }
 
 

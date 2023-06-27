@@ -49,13 +49,17 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false)
 {
+    // Get the mesh name from the path without the file extension
+    std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
+    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
+
     // Initialize the simulation
     // Check if the distance matrix of the static 3D mesh already exists
-    std::string distance_matrix_path = PROJECT_PATH + "/meshes/data/ellipsoid_x4_distance_matrix_static.csv";
+    std::string distance_matrix_path = PROJECT_PATH + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
     if (!std::filesystem::exists(distance_matrix_path)) {
 
         // Calculate the distance matrix of the static 3D mesh
-        get_all_distances();
+        get_all_distances(mesh_path);
     }
     distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
 
@@ -82,7 +86,7 @@ _2DTissue::_2DTissue(
     for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
         int splay_state_v = splay_state_vertices_id[i];
 
-        auto [h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = create_uv_surface_intern("Ellipsoid", splay_state_v);
+        auto [h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = create_uv_surface(mesh_path, splay_state_v);
         Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path_virtual);
 
         // Store the virtual meshes
@@ -96,6 +100,8 @@ void _2DTissue::start(){
     r.resize(particle_count, 3);
     n.resize(particle_count, 1);
     init_particle_position(faces_uv, halfedge_uv, particle_count, r, n);
+    r << 0.5, 0.5, 0;  // ! ONLY FOR TESTING
+    n << 90; // ! ONLY FOR TESTING
 
     // Map the 2D coordinates to their 3D vertices counterparts
     std::tie(std::ignore, vertices_3D_active) = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
@@ -137,7 +143,6 @@ System _2DTissue::update(){
     if (current_step >= step_count) {
         finished = true;
     }
-
     // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
     // save_matrix_to_csv(r, file_name, num_part);
     // std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";

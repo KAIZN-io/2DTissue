@@ -25,7 +25,7 @@ GLMakie.set_window_config!(
 
 function read_data(folder, file_name)
     file_path = joinpath(folder, file_name)
-    df = CSV.read(file_path, DataFrame)
+    df = CSV.read(file_path, DataFrame; header=false)
     return Matrix(df)
 end
 
