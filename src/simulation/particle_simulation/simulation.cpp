@@ -3,10 +3,6 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-// CGAL
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-
 // Eigen
 #define EIGEN_DONT_PARALLELIZE
 #define EIGEN_USE_THREADS
@@ -51,11 +47,6 @@
 #include <utilities/2D_surface.h>
 #include <utilities/validity_check.h>
 #include <utilities/process_invalid_particle.h>
-
-// CGAL type aliases
-using Kernel = CGAL::Simple_cartesian<double>;
-using Point_3 = Kernel::Point_3;
-using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
 
 
 void error_unvalid_vertices(
