@@ -30,13 +30,18 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
     auto steepness = delta_y / delta_x;
     int steepness_switch = calculateSteepnessSwitch(steepness);
 
-    // TODO: einbauen, dass Gerade NICHT durch eine Kante des Vierecks geht
     if (point_outside[0] < 0 || point_outside[0] > 1 || point_outside[1] < 0 || point_outside[1] > 1) {
         // oben oder rechts
         if (delta_x >= 0 && delta_y >= 0){
             double x = 1;
             double y = interpolateY(pointA, point_outside, x);
-
+            // For the case that the point is on the edge
+            if (y == 1) {
+                y -= 0.0001;
+            }
+            else if (y == 0) {
+                y += 0.0001;
+            }
             // rechte Grenze passiert
             if (y < 1 && y > 0){
                 Eigen::Vector2d exit_point(1, y);
@@ -53,6 +58,12 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
             else {
                 double y_back = 1;
                 double x_back = interpolateX(pointA, point_outside, y_back);
+                if (x_back == 1) {
+                    x_back -= 0.0001;
+                }
+                else if (x_back == 0) {
+                    x_back += 0.0001;
+                }
 
                 Eigen::Vector2d exit_point(x_back, 1);
                 Eigen::Vector2d entry_point(1, x_back);
@@ -70,6 +81,12 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
         else if (delta_x > 0 && delta_y < 0){
             double x = 1;
             double y = interpolateY(pointA, point_outside, x);
+            if (y == 1) {
+                y -= 0.0001;
+            }
+            else if (y == 0) {
+                y += 0.0001;
+            }
             // rechte Grenze passiert
             if (y < 1 && y > 0){
 
@@ -88,7 +105,12 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
             else {
                 double y_back_neg = 0;
                 double x_back_neg = interpolateX(pointA, point_outside, y_back_neg);
-
+                if (x_back_neg == 1) {
+                    x_back_neg -= 0.0001;
+                }
+                else if (x_back_neg == 0) {
+                    x_back_neg += 0.0001;
+                }
                 Eigen::Vector2d exit_point(x_back_neg, 0);
                 Eigen::Vector2d entry_point(0, x_back_neg);
 
@@ -106,7 +128,12 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
         else if (delta_x < 0 && delta_y > 0){
             double x = 0;
             double y = interpolateY(pointA, point_outside, x);
-
+            if (y == 1) {
+                y -= 0.0001;
+            }
+            else if (y == 0) {
+                y += 0.0001;
+            }
             // linke Grenze passiert
             if (y < 1 && y > 0){
                 Eigen::Vector2d exit_point(0, y);
@@ -124,7 +151,12 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
             else {
                 double y_back = 1;
                 double x_back = interpolateX(pointA, point_outside, y_back);
-
+                if (x_back == 1) {
+                    x_back -= 0.0001;
+                }
+                else if (x_back == 0) {
+                    x_back += 0.0001;
+                }
                 Eigen::Vector2d exit_point(x_back, 1);
                 Eigen::Vector2d entry_point(1, x_back);
 
@@ -141,6 +173,12 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
         else {
             double x = 0;
             double y = interpolateY(pointA, point_outside, x);
+            if (y == 1) {
+                y -= 0.0001;
+            }
+            else if (y == 0) {
+                y += 0.0001;
+            }
             // linke Grenze passiert
             if (y < 1 && y > 0){
                 Eigen::Vector2d exit_point(0, y);
@@ -160,7 +198,12 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
             else {
                 double y_back_neg = 0;
                 double x_back_neg = interpolateX(pointA, point_outside, y_back_neg);
-
+                if (x_back_neg == 1) {
+                    x_back_neg -= 0.0001;
+                }
+                else if (x_back_neg == 0) {
+                    x_back_neg += 0.0001;
+                }
                 Eigen::Vector2d exit_point(x_back_neg, 0);
                 Eigen::Vector2d entry_point(0, x_back_neg);
 
