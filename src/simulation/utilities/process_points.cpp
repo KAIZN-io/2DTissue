@@ -22,8 +22,9 @@ int calculateSteepnessSwitch(double steepness) {
     return 0;
 }
 
-std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n) {
+std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n) {
     Eigen::Vector2d entry_angle(1, 1);
+    Eigen::Vector2d entry_point(1, 1);
     Eigen::Vector2d new_point(2, 1);
     auto delta_x = point_outside[0] - pointA[0];
     auto delta_y = point_outside[1] - pointA[1];
@@ -220,5 +221,5 @@ std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, 
     else {
         new_point = point_outside;
     }
-    return std::make_pair(new_point, n);
+    return std::tuple(new_point, n, entry_point);
 }
