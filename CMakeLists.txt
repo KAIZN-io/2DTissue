@@ -98,6 +98,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/init_particle.cpp
     src/simulation/utilities/matrix_algebra.cpp
     src/simulation/utilities/2D_3D_mapping.cpp
+    src/simulation/utilities/2D_mapping.cpp
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/splay_state.cpp
     src/simulation/utilities/update.cpp
@@ -106,6 +107,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/validity_check.cpp
     src/simulation/utilities/dye_particle.cpp
     src/simulation/utilities/process_invalid_particle.cpp
+    src/simulation/utilities/process_points.cpp
     src/simulation/utilities/paths_lib.cpp
     src/simulation/2DTissue.cpp
 )

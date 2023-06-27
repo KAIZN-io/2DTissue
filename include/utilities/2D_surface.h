@@ -9,3 +9,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     std::string mesh_file_path,
     int32_t start_node_int
 );
+
+std::string get_mesh_name(
+   const std::string& mesh_3D_path
+);

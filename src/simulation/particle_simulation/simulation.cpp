@@ -3,10 +3,6 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-// CGAL
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-
 // Eigen
 #define EIGEN_DONT_PARALLELIZE
 #define EIGEN_USE_THREADS
@@ -36,12 +32,14 @@
 #include <particle_simulation/particle_vector.h>
 #include <particle_simulation/simulation.h>
 
+#include <utilities/process_points.h>
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/distance.h>
 #include <utilities/init_particle.h>
 #include <utilities/matrix_algebra.h>
 #include <utilities/2D_3D_mapping.h>
+#include <utilities/2D_mapping.h>
 #include <utilities/sim_structs.h>
 #include <utilities/splay_state.h>
 #include <utilities/update.h>
@@ -49,11 +47,6 @@
 #include <utilities/2D_surface.h>
 #include <utilities/validity_check.h>
 #include <utilities/process_invalid_particle.h>
-
-// CGAL type aliases
-using Kernel = CGAL::Simple_cartesian<double>;
-using Point_3 = Kernel::Point_3;
-using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
 
 
 void error_unvalid_vertices(
@@ -106,9 +99,17 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // 1. Simulate the flight of the particle on the UV mesh
     auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
 
-    // Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
-    r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
-    r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
+    // Map the new UV coordinates back to the UV mesh
+    auto mesh_UV_name = get_mesh_name(mesh_file_path);
+
+    // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
+    // ? is it because of the seam edge cut line?
+    if (mesh_UV_name == "sphere_uv"){
+        opposite_seam_edges(r_UV_new);
+    }
+    else {
+        diagonal_seam_edges(r_UV, r_UV_new, n);
+    }
 
     /*
     Error checkings
