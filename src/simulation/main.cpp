@@ -15,7 +15,7 @@ int main()
     int num_frames = 300;
 
     // Initialize the 2DTissue object
-    std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
+    std::string mesh_path = PROJECT_PATH.string() + "/meshes/sphere.off";
 
     for (int num_part = 1000; num_part <= 1000; num_part += 100) {
         _2DTissue _2dtissue(mesh_path, num_part, num_frames);

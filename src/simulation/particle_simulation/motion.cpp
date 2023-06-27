@@ -139,7 +139,7 @@ Eigen::MatrixXd calculate_average_n_within_distance(
      // Set up the random number generation for noise
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> dist_noise(0.01, 0.99);
+    std::uniform_real_distribution<double> dist_noise(0.00, 0.00);  // ! No noise for now
 
     // Loop over all particles
     for (int i = 0; i < num_part; i++) {

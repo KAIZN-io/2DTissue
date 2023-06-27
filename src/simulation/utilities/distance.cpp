@@ -75,9 +75,10 @@ void fill_distance_matrix(
 }
 
 
-int get_all_distances(){
-    auto mesh_path = get_full_path("2DTissue/meshes/ellipsoid_x4.off");
+int get_all_distances(std::string mesh_path){
     std::cout << mesh_path << std::endl;
+    std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
+    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
 
     std::ifstream filename(CGAL::data_file_path(mesh_path));
     Triangle_mesh tm;
@@ -97,7 +98,7 @@ int get_all_distances(){
     const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
     std::cout << "Saving distance matrix to file..." << std::endl;
-    std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/ellipsoid_x4_distance_matrix_static.csv";
+    std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
     std::ofstream file(distance_matrix_path);
     file << distance_matrix_v.format(CSVFormat);
     file.close();
