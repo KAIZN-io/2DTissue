@@ -100,7 +100,16 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
 
     // Map the new UV coordinates back to the UV mesh
-    opposite_seam_edges(r_UV_new);
+    auto mesh_UV_name = get_mesh_name(mesh_file_path);
+
+    // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
+    // ? is it because of the seam edge cut line?
+    if (mesh_UV_name == "sphere_uv"){
+        opposite_seam_edges(r_UV_new);
+    }
+    else {
+        diagonal_seam_edges(r_UV, r_UV_new, n);
+    }
 
     /*
     Error checkings

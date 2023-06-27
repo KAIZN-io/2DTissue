@@ -4,4 +4,4 @@
 
 #include <Eigen/Dense>
 
-Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside);
+std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n);

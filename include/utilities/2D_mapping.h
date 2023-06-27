@@ -7,5 +7,6 @@
 void opposite_seam_edges(Eigen::MatrixXd& r_UV_new);
 void diagonal_seam_edges(
     Eigen::MatrixXd r_UV,
-    Eigen::MatrixXd& r_UV_new
+    Eigen::MatrixXd& r_UV_new,
+    Eigen::MatrixXd& n_UV_new
 );

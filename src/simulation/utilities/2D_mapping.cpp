@@ -18,7 +18,8 @@ void opposite_seam_edges(Eigen::MatrixXd& r_UV_new)
 // ? TODO: ich glaube, dass ich das mapping falsch mache, wenn ein Punkt nach den ersten mapping immer noch draußen landet
 void diagonal_seam_edges(
     Eigen::MatrixXd r_UV,
-    Eigen::MatrixXd& r_UV_new
+    Eigen::MatrixXd& r_UV_new,
+    Eigen::MatrixXd& n_UV_new
 ){
     bool valid;
     do {
@@ -26,9 +27,11 @@ void diagonal_seam_edges(
         for (int i = 0; i < r_UV.rows(); ++i) {
             Eigen::Vector2d pointA = r_UV.row(i).head<2>(); // only takes the first two columns for the ith row
             Eigen::Vector2d point_outside = r_UV_new.row(i).head<2>(); // only takes the first two columns for the ith row
-            r_UV_new.row(i).head<2>().noalias() = processPoints(pointA, point_outside);
-
-            // TODO: rotate the n vector by 90° as well
+            // get the first column of the ith row as double
+            double n = n_UV_new(i, 0);
+            auto results = processPoints(pointA, point_outside, n);
+            r_UV_new.row(i).head<2>().noalias() = results.first;
+            n_UV_new(i, 0) = results.second;
 
             // Check the condition
             auto row = r_UV_new.row(i).head<2>();

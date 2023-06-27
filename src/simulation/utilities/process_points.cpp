@@ -22,7 +22,7 @@ int calculateSteepnessSwitch(double steepness) {
     return 0;
 }
 
-Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside) {
+std::pair<Eigen::Vector2d, double> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n) {
     Eigen::Vector2d entry_angle(1, 1);
     Eigen::Vector2d new_point(2, 1);
     auto delta_x = point_outside[0] - pointA[0];
@@ -47,6 +47,7 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
                 entry_angle.row(0) *= steepness_switch;  // has to be variable
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point - rotated_displacement;
+                n -= 90;
             }
             // obere Grenze passiert
             else {
@@ -62,6 +63,7 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
 
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point - rotated_displacement;
+                n += 90;
             }
         }
         // unten oder rechts
@@ -80,6 +82,7 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
                 entry_angle.row(0) *= steepness_switch;
                 Eigen::Vector2d rotated_displacement = displacement.array()  * entry_angle.array();
                 new_point = entry_point - rotated_displacement;
+                n -= 90;
             }
             // unten Grenze passiert
             else {
@@ -96,6 +99,7 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
 
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point + rotated_displacement;
+                n += 90;
             }
         }
         // oben oder links
@@ -114,6 +118,7 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
                 entry_angle.row(0) *= steepness_switch;
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point + rotated_displacement;
+                n -= 90;
             }
             // obere Grenze passiert
             else {
@@ -129,6 +134,7 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
                 entry_angle.row(1) *= steepness_switch;
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point - rotated_displacement;
+                n += 90;
             }
         }
         // unten oder links
@@ -148,6 +154,7 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
 
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point + rotated_displacement;
+                n -= 90;
             }
             // unten Grenze passiert
             else {
@@ -163,11 +170,12 @@ Eigen::Vector2d processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector
                 entry_angle.row(1) *= steepness_switch;
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point + rotated_displacement;
+                n += 90;
             }
         }
     }
     else {
         new_point = point_outside;
     }
-    return new_point;
+    return std::make_pair(new_point, n);
 }
