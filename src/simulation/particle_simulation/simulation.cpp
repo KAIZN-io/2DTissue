@@ -105,10 +105,10 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
     if (mesh_UV_name == "sphere_uv"){
-        opposite_seam_edges(r_UV_new);
+        opposite_seam_edges_square_border(r_UV_new);
     }
     else {
-        diagonal_seam_edges(r_UV, r_UV_new, n);
+        diagonal_seam_edges_square_border(r_UV, r_UV_new, n);
     }
 
     /*

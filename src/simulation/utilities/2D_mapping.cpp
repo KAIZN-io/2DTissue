@@ -8,14 +8,13 @@
 
 
 // Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
-void opposite_seam_edges(Eigen::MatrixXd& r_UV_new)
-{
+void opposite_seam_edges_square_border(Eigen::MatrixXd& r_UV_new){
     r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
     r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
 }
 
 
-void diagonal_seam_edges(
+void diagonal_seam_edges_square_border(
     Eigen::MatrixXd r_UV,
     Eigen::MatrixXd& r_UV_new,
     Eigen::MatrixXd& n_UV_new
@@ -46,4 +45,18 @@ void diagonal_seam_edges(
             }
         }
     } while (!valid);
+}
+
+
+// ! TODO
+/*
+0. Calculate the exit point and the angle of the particle flight in relation to the exit point
+1. Find the two edges that are cut by the seam edge
+2. Calculate the distance between its two neighboring border vertices
+3. Map it over to the twin edge by conserving the distance ratio
+4. Calculate the new angle of the particle flight in relation to the entry point line, with got constructed by the two neighboring border vertices
+*/
+void map_between_arbitrary_seam_edges()
+{
+
 }
