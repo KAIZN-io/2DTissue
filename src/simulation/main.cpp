@@ -12,14 +12,14 @@ const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 int main()
 {
-    int num_frames = 30;
+    int step_count = 300;
 
-    // Initialize the 2DTissue object
+    // Path to the 3D mesh file
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
     // std::string mesh_path = PROJECT_PATH.string() + "/meshes/sphere.off";
 
-    for (int num_part = 200; num_part <= 200; num_part += 100) {
-        _2DTissue _2dtissue(mesh_path, num_part, num_frames);
+    for (int particle_count = 1000; particle_count <= 1000; particle_count += 100) {
+        _2DTissue _2dtissue(mesh_path, particle_count, step_count, 0.01);  // Initialize the 2DTissue object
 
         _2dtissue.start();
 
