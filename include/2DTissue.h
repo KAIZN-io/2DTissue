@@ -36,6 +36,7 @@ class _2DTissue
 private:
     // Include here your class variables (the ones used in start and update methods)
     std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
+    bool fixed_border;
     int particle_count;
     std::string mesh_path;
     int step_count;
@@ -70,6 +71,7 @@ private:
 public:
     _2DTissue(
         std::string mesh_path,
+        bool fixed_border,
         int particle_count,
         int step_count = 1,
         double v0 = 0.1,

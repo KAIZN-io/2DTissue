@@ -20,6 +20,7 @@
 
 _2DTissue::_2DTissue(
     std::string mesh_path,
+    bool fixed_border,
     int particle_count,
     int step_count,
     double v0,
@@ -34,6 +35,7 @@ _2DTissue::_2DTissue(
     int map_cache_count
 ) :
     mesh_path(mesh_path),
+    fixed_border(true),
     particle_count(particle_count),
     step_count(step_count),
     v0(v0),
@@ -74,23 +76,26 @@ _2DTissue::_2DTissue(
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
 
-    /*
-    Prefill the vertices_2DTissue_map with the virtual meshes
-    */
-    // Get the vertices that are selected for the splay state in 3D
-    auto splay_state_vertices_id = get_3D_splay_vertices(distance_matrix, map_cache_count);
+    if (!fixed_border)
+    {
+        /*
+        Prefill the vertices_2DTissue_map with the virtual meshes
+        */
+        // Get the vertices that are selected for the splay state in 3D
+        auto splay_state_vertices_id = get_3D_splay_vertices(distance_matrix, map_cache_count);
 
-    // auto [splay_state_UV_coord, splay_state_halfedges] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
-    // auto [splay_state_3D_coord, splay_state_vertices_id] = get_r3d(splay_state_UV_coord, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+        // auto [splay_state_UV_coord, splay_state_halfedges] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
+        // auto [splay_state_3D_coord, splay_state_vertices_id] = get_r3d(splay_state_UV_coord, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
-    for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
-        int splay_state_v = splay_state_vertices_id[i];
+        for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
+            int splay_state_v = splay_state_vertices_id[i];
 
-        auto [h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = create_uv_surface(mesh_path, splay_state_v);
-        Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path_virtual);
+            auto [h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = create_uv_surface(mesh_path, splay_state_v);
+            Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path_virtual);
 
-        // Store the virtual meshes
-        vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
+            // Store the virtual meshes
+            vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
+        }
     }
 }
 
