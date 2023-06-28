@@ -32,7 +32,6 @@
 #include <particle_simulation/particle_vector.h>
 #include <particle_simulation/simulation.h>
 
-#include <utilities/process_points.h>
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/distance.h>

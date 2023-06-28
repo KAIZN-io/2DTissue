@@ -108,7 +108,6 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/validity_check.cpp
     src/simulation/utilities/dye_particle.cpp
     src/simulation/utilities/process_invalid_particle.cpp
-    src/simulation/utilities/process_points.cpp
     src/simulation/utilities/paths_lib.cpp
     src/simulation/2DTissue.cpp
 )
