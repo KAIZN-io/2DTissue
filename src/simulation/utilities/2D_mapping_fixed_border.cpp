@@ -200,14 +200,24 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(const Eigen::
 }
 
 
-
-// Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
+/**
+ * @param r_UV_new new UV mesh coordinates
+ *
+ * @brief Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
+*/
 void opposite_seam_edges_square_border(Eigen::MatrixXd& r_UV_new){
     r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
     r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
 }
 
 
+/**
+ * @param r_UV old UV mesh coordinates
+ * @param r_UV_new new UV mesh coordinates
+ * @param n_UV_new particle flight direction
+ *
+ * @brief By using the '&' we pass the reference of the variable to the function, so we can change the value of the variable inside the function
+*/
 void diagonal_seam_edges_square_border(
     Eigen::MatrixXd r_UV,
     Eigen::MatrixXd& r_UV_new,
