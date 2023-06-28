@@ -109,6 +109,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/dye_particle.cpp
     src/simulation/utilities/process_invalid_particle.cpp
     src/simulation/utilities/paths_lib.cpp
+    src/simulation/utilities/error_checking.cpp
     src/simulation/2DTissue.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")

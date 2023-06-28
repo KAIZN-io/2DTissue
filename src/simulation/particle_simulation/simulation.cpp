@@ -29,41 +29,15 @@
 #include <io/mesh_loader.h>
 
 #include <particle_simulation/motion.h>
-#include <particle_simulation/particle_vector.h>
-#include <particle_simulation/simulation.h>
 
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
-#include <utilities/distance.h>
-#include <utilities/init_particle.h>
-#include <utilities/matrix_algebra.h>
-#include <utilities/2D_3D_mapping.h>
 #include <utilities/2D_mapping_fixed_border.h>
-#include <utilities/sim_structs.h>
-#include <utilities/splay_state.h>
-#include <utilities/update.h>
-#include <utilities/boundary_check.h>
+#include <utilities/2D_mapping_free_border.h>
 #include <utilities/2D_surface.h>
-#include <utilities/validity_check.h>
-#include <utilities/process_invalid_particle.h>
+#include <utilities/error_checking.h>
 
-
-void error_unvalid_vertices(
-    std::vector<VertexData> vertex_data
-){
-    if (!are_all_valid(vertex_data)) {
-        throw std::runtime_error("There are still particles outside the mesh");
-    }
-}
-
-
-void error_invalid_values(
-    Eigen::MatrixXd r_new
-){
-    if (checkForInvalidValues(r_new)) {
-        std::exit(1);  // stop script execution
-    }
-}
+#include <particle_simulation/simulation.h>
 
 
 std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd> perform_particle_simulation(
@@ -113,13 +87,8 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, E
     /*
     Error checkings
     */
-    // 1. Check if we lost particles
-    if (find_inside_uv_vertices_id(r_UV_new).size() != num_part) {
-        throw std::runtime_error("We lost particles after getting the original UV mesh coord");
-    }
-
-    // 2. Check if there are invalid values like NaN or Inf in the output
-    error_invalid_values(r_UV_new);
+    error_lost_particles(r_UV_new, num_part);  // 1. Check if we lost particles
+    error_invalid_values(r_UV_new);  // 2. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
