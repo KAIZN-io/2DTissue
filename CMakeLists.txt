@@ -98,7 +98,8 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/init_particle.cpp
     src/simulation/utilities/matrix_algebra.cpp
     src/simulation/utilities/2D_3D_mapping.cpp
-    src/simulation/utilities/2D_mapping.cpp
+    src/simulation/utilities/2D_mapping_fixed_border.cpp
+    src/simulation/utilities/2D_mapping_free_border.cpp
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/splay_state.cpp
     src/simulation/utilities/update.cpp

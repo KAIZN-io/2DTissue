@@ -1,4 +1,4 @@
-// 2D_mapping.h
+// 2D_mapping_fixed_border.h
 
 #pragma once
 

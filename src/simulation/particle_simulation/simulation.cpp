@@ -39,7 +39,7 @@
 #include <utilities/init_particle.h>
 #include <utilities/matrix_algebra.h>
 #include <utilities/2D_3D_mapping.h>
-#include <utilities/2D_mapping.h>
+#include <utilities/2D_mapping_fixed_border.h>
 #include <utilities/sim_structs.h>
 #include <utilities/splay_state.h>
 #include <utilities/update.h>
