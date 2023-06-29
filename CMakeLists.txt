@@ -75,15 +75,14 @@ create_single_source_cgal_program("src/simulation/main.cpp")
 add_library(io_lib STATIC
     src/simulation/io/csv.cpp
     src/simulation/io/mesh_loader.cpp
-    src/simulation/utilities/sim_structs.cpp
 )
 target_include_directories(io_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 add_library(particle_simulation_lib STATIC
     src/simulation/particle_simulation/cell_cell_interactions.cpp
-    src/simulation/particle_simulation/motion.cpp
     src/simulation/particle_simulation/forces.cpp
+    src/simulation/particle_simulation/motion.cpp
     src/simulation/particle_simulation/particle_vector.cpp
     src/simulation/particle_simulation/simulation.cpp
 )
@@ -91,25 +90,25 @@ target_include_directories(particle_simulation_lib PRIVATE "${CMAKE_CURRENT_SOUR
 target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 add_library(utilities_lib STATIC
+    src/simulation/2DTissue.cpp
+    src/simulation/utilities/2D_3D_mapping.cpp
+    src/simulation/utilities/2D_mapping_fixed_border.cpp
+    src/simulation/utilities/2D_mapping_free_border.cpp
+    src/simulation/utilities/2D_surface.cpp
     src/simulation/utilities/analytics.cpp
     src/simulation/utilities/barycentric_coord.cpp
-    src/simulation/utilities/nearest_map.cpp
+    src/simulation/utilities/boundary_check.cpp
     src/simulation/utilities/distance.cpp
+    src/simulation/utilities/dye_particle.cpp
+    src/simulation/utilities/error_checking.cpp
     src/simulation/utilities/init_particle.cpp
     src/simulation/utilities/matrix_algebra.cpp
-    src/simulation/utilities/2D_3D_mapping.cpp
-    src/simulation/utilities/2D_mapping.cpp
+    src/simulation/utilities/nearest_map.cpp
+    src/simulation/utilities/process_invalid_particle.cpp
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/splay_state.cpp
     src/simulation/utilities/update.cpp
-    src/simulation/utilities/boundary_check.cpp
-    src/simulation/utilities/2D_surface.cpp
     src/simulation/utilities/validity_check.cpp
-    src/simulation/utilities/dye_particle.cpp
-    src/simulation/utilities/process_invalid_particle.cpp
-    src/simulation/utilities/process_points.cpp
-    src/simulation/utilities/paths_lib.cpp
-    src/simulation/2DTissue.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost ${OpenCV_LIBS})

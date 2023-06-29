@@ -19,7 +19,6 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 #include <fstream>
 #include <vector>
 
-#include <utilities/paths_lib.h>
 #include <utilities/distance.h>
 
 using Kernel = CGAL::Simple_cartesian<double>;
