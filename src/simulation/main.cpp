@@ -19,7 +19,7 @@ int main()
     // std::string mesh_path = PROJECT_PATH.string() + "/meshes/sphere.off";
 
     for (int particle_count = 200; particle_count <= 200; particle_count += 100) {
-        _2DTissue _2dtissue(mesh_path, true, particle_count, step_count, 0.01);  // Initialize the 2DTissue object
+        _2DTissue _2dtissue(mesh_path, particle_count, step_count, 0.01);  // Initialize the 2DTissue object
 
         _2dtissue.start();
 

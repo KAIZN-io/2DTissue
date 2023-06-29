@@ -33,7 +33,7 @@
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/2D_mapping_fixed_border.h>
-#include <utilities/2D_mapping_free_border.h>
+// #include <utilities/2D_mapping_free_border.h>
 #include <utilities/2D_surface.h>
 #include <utilities/error_checking.h>
 
