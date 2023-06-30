@@ -3,6 +3,8 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
+// ! last tested and validated: 2023-06-30 (@Jan-Piotraschke)
+
 #include <vector>
 #include <algorithm>
 #include <limits>
