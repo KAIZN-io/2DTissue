@@ -74,14 +74,12 @@ namespace My {
 
 namespace _3D {
     using SurfaceMesh = CGAL::Surface_mesh<Point_3>;
-    using SM_vertex_descriptor = boost::graph_traits<SurfaceMesh>::vertex_descriptor;
-    using SM_halfedge_descriptor = boost::graph_traits<SurfaceMesh>::halfedge_descriptor;
-    using SM_edge_descriptor = boost::graph_traits<SurfaceMesh>::edge_descriptor;
-    using SM_edge_iterator = boost::graph_traits<SurfaceMesh>::edge_iterator;
-    using SM_halfedge_iterator = boost::graph_traits<SurfaceMesh>::halfedge_iterator;
-    using Seam_edge_pmap = SurfaceMesh::Property_map<SM_edge_descriptor, bool>;
-    using Seam_vertex_pmap = SurfaceMesh::Property_map<SM_vertex_descriptor, bool>;
-    using UV_pmap = SurfaceMesh::Property_map<SM_halfedge_descriptor, Point_2>;
+    using vertex_descriptor = boost::graph_traits<SurfaceMesh>::vertex_descriptor;
+    using halfedge_descriptor = boost::graph_traits<SurfaceMesh>::halfedge_descriptor;
+    using edge_descriptor = boost::graph_traits<SurfaceMesh>::edge_descriptor;
+    using Seam_edge_pmap = SurfaceMesh::Property_map<edge_descriptor, bool>;
+    using Seam_vertex_pmap = SurfaceMesh::Property_map<vertex_descriptor, bool>;
+    using UV_pmap = SurfaceMesh::Property_map<halfedge_descriptor, Point_2>;
 }
 
 namespace UV {
@@ -190,16 +188,16 @@ int find_latest_mesh_creation_number(
 
 
 // Helper function to find the farthest vertex from a given start vertex
-_3D::SM_vertex_descriptor find_farthest_vertex(
+_3D::vertex_descriptor find_farthest_vertex(
     const My::_3DMesh& mesh,
-    _3D::SM_vertex_descriptor start_node,
-    std::vector<_3D::SM_vertex_descriptor>& predecessor_pmap,
+    _3D::vertex_descriptor start_node,
+    std::vector<_3D::vertex_descriptor>& predecessor_pmap,
     std::vector<int>& distance
 ) {
     int max_distances = 0;
-    _3D::SM_vertex_descriptor target_node;
+    _3D::vertex_descriptor target_node;
 
-    for(_3D::SM_vertex_descriptor vd : vertices(mesh)){
+    for(_3D::vertex_descriptor vd : vertices(mesh)){
         if (vd != boost::graph_traits<My::_3DMesh>::null_vertex()){
             // std::cout << vd << " at " << get(ppm, vd) << " is " << distance[vd] << " hops away" << std::endl;
             if (distance[vd] > max_distances) {
@@ -221,19 +219,19 @@ _3D::SM_vertex_descriptor find_farthest_vertex(
 * So, if you want something like an inverse 'Poincaré disk' you have to really shorten the path_list
 * The same is true if you reverse the logic: If you create a spiral-like seam edge path, your mesh will results in something like a 'Poincaré disk'
 */
-std::vector<_3D::SM_edge_descriptor> get_cut_line(
+std::vector<_3D::edge_descriptor> get_cut_line(
     const My::_3DMesh& mesh,
-    const _3D::SM_vertex_descriptor start_node,
-    const _3D::SM_vertex_descriptor target_node,
-    const std::vector<_3D::SM_vertex_descriptor> predecessor_pmap
+    const _3D::vertex_descriptor start_node,
+    const _3D::vertex_descriptor target_node,
+    const std::vector<_3D::vertex_descriptor> predecessor_pmap
 ) {
-    std::vector<_3D::SM_edge_descriptor> path_list;
-    _3D::SM_vertex_descriptor current = target_node;
+    std::vector<_3D::edge_descriptor> path_list;
+    _3D::vertex_descriptor current = target_node;
 
     while (current != start_node) {
-        _3D::SM_vertex_descriptor predecessor = predecessor_pmap[current];
-        std::pair<_3D::SM_edge_descriptor, bool> edge_pair = edge(predecessor, current, mesh);
-        _3D::SM_edge_descriptor edge = edge_pair.first;
+        _3D::vertex_descriptor predecessor = predecessor_pmap[current];
+        std::pair<_3D::edge_descriptor, bool> edge_pair = edge(predecessor, current, mesh);
+        _3D::edge_descriptor edge = edge_pair.first;
         path_list.push_back(edge);
         current = predecessor;
     }
@@ -242,10 +240,10 @@ std::vector<_3D::SM_edge_descriptor> get_cut_line(
     std::reverse(path_list.begin(), path_list.end());
 
     // Shorten the path list to the longest path with an even number of vertices so that the same seam edges are each on the opposite side of the UV mesh
-    std::vector<_3D::SM_edge_descriptor> longest_mod_two;
+    std::vector<_3D::edge_descriptor> longest_mod_two;
     size_t size = path_list.size();
     size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
-    longest_mod_two = std::vector<_3D::SM_edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
+    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
 
     return longest_mod_two;
 }
@@ -254,9 +252,9 @@ std::vector<_3D::SM_edge_descriptor> get_cut_line(
 /*
 Calculate the virtual border of the mesh
 */
-std::vector<_3D::SM_edge_descriptor> set_UV_border_edges(
+std::vector<_3D::edge_descriptor> set_UV_border_edges(
     const std::string& mesh_file_path,
-    _3D::SM_vertex_descriptor start_node
+    _3D::vertex_descriptor start_node
 ){
     My::_3DMesh mesh;
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
@@ -266,7 +264,7 @@ std::vector<_3D::SM_edge_descriptor> set_UV_border_edges(
     Point_property_map ppm = get(CGAL::vertex_point, mesh);
 
     // Create vectors to store the predecessors (p) and the distances from the root (d)
-    std::vector<_3D::SM_vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
+    std::vector<_3D::vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
     auto indexmap = get(boost::vertex_index, mesh);
     std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
     auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
@@ -282,10 +280,10 @@ std::vector<_3D::SM_edge_descriptor> set_UV_border_edges(
     boost::breadth_first_search(mesh, start_node, visitor(vis));
 
     // Find the target node (farthest from the start node)
-    _3D::SM_vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, predecessor_pmap, distance);
+    _3D::vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, predecessor_pmap, distance);
 
     // Get the edges of the path between the start and the target node
-    std::vector<_3D::SM_edge_descriptor> path_list = get_cut_line(mesh, start_node, target_node, predecessor_pmap);
+    std::vector<_3D::edge_descriptor> path_list = get_cut_line(mesh, start_node, target_node, predecessor_pmap);
 
     return path_list;
 }
@@ -294,15 +292,15 @@ std::vector<_3D::SM_edge_descriptor> set_UV_border_edges(
 // Helper function to create the seam mesh
 UV::Mesh create_seam_mesh(
     _3D::SurfaceMesh& sm,
-    const std::vector<_3D::SM_edge_descriptor>& calc_edges
+    const std::vector<_3D::edge_descriptor>& calc_edges
 ){
     // Create property maps to store seam edges and vertices
-    _3D::Seam_edge_pmap seam_edge_pm = sm.add_property_map<_3D::SM_edge_descriptor, bool>("e:on_seam", false).first;   // if not false -> we can't add seam edges
-    _3D::Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<_3D::SM_vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
+    _3D::Seam_edge_pmap seam_edge_pm = sm.add_property_map<_3D::edge_descriptor, bool>("e:on_seam", false).first;   // if not false -> we can't add seam edges
+    _3D::Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<_3D::vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
 
     UV::Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
 
-    for(_3D::SM_edge_descriptor e : calc_edges) {
+    for(_3D::edge_descriptor e : calc_edges) {
         mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
     }
 
@@ -335,7 +333,7 @@ SMP::Error_code perform_parameterization(
 
 std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_surface(
     const std::string& mesh_file_path,
-    _3D::SM_vertex_descriptor start_node,
+    _3D::vertex_descriptor start_node,
     int uv_mesh_number
 ){
     // Load the 3D mesh
@@ -347,7 +345,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
     auto border_edges = set_UV_border_edges(mesh_file_path, start_node);
 
     // Canonical Halfedges Representing a Vertex
-    _3D::UV_pmap uvmap = sm.add_property_map<_3D::SM_halfedge_descriptor, Point_2>("h:uv").first;
+    _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
 
     // Create the seam mesh
     UV::Mesh mesh = create_seam_mesh(sm, border_edges);
@@ -402,7 +400,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     std::ifstream in(CGAL::data_file_path(mesh_path));
     in >> sm;
 
-    _3D::SM_vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
+    _3D::vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
     auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_path, start_node, start_node_int);
 
     const auto mesh_file_path = meshmeta.mesh_path;
