@@ -11,5 +11,5 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
 );
 
 std::string get_mesh_name(
-   const std::string& mesh_3D_path
+   const std::string mesh_3D_path
 );

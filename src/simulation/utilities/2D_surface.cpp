@@ -97,11 +97,11 @@ struct MeshMeta{
 MeshMeta meshmeta;
 
 
-/*
-Function to extract the mesh name (without extension) from its file path
+/**
+ * @brief Extract the mesh name (without extension) from its file path
 */
 std::string get_mesh_name(
-   const std::string& mesh_3D_path
+   const std::string mesh_3D_path
 ){
     // Create a filesystem path object from the input string
     fs::path path(mesh_3D_path);
@@ -113,11 +113,14 @@ std::string get_mesh_name(
 }
 
 
-int save_uv_mesh(
+/**
+ * @brief Save the generated UV mesh to a file
+*/
+int save_UV_mesh(
     UV::Mesh _mesh,
     UV::halfedge_descriptor _bhd,
     _3D::UV_pmap _uvmap,
-    const std::string& mesh_path,
+    const std::string mesh_path,
     int uv_mesh_number
 ){
     // Get the mesh name without the extension
@@ -145,52 +148,19 @@ int save_uv_mesh(
 }
 
 
-/*
-We have to create multiple versions of the UV mesh because we need different coordination system for the particle simulation
-in order to simulate them on top of the 2D mesh
+/**
+ * @brief Find the farthest vertex from a given start vertex
 */
-int find_latest_mesh_creation_number(
-    const std::string& mesh_3D = "Ellipsoid"
-){
-    int highest_number = -1;
-    std::string mesh_uv_base = mesh_3D + "_uv";
-    std::string mesh_uv = mesh_uv_base + "_";
-
-    for (const auto& dir_entry : fs::directory_iterator{MESH_FOLDER}) {
-        if (dir_entry.is_regular_file()) {
-            std::string file_stem = dir_entry.path().stem().string();
-
-            if (file_stem == mesh_uv_base) {
-                if (highest_number < 0) {
-                    highest_number = 0;
-                }
-            } else if (file_stem.rfind(mesh_uv, 0) == 0) {
-                std::string number_string = file_stem.substr(mesh_uv.size());
-                int number = std::stoi(number_string);
-
-                if (number > highest_number) {
-                    highest_number = number;
-                }
-            }
-        }
-    }
-    return highest_number;
-}
-
-
-// Helper function to find the farthest vertex from a given start vertex
 _3D::vertex_descriptor find_farthest_vertex(
-    const _3D::Mesh& mesh,
+    const _3D::Mesh mesh,
     _3D::vertex_descriptor start_node,
-    std::vector<_3D::vertex_descriptor>& predecessor_pmap,
-    std::vector<int>& distance
+    const std::vector<int> distance
 ) {
     int max_distances = 0;
     _3D::vertex_descriptor target_node;
 
     for(_3D::vertex_descriptor vd : vertices(mesh)){
         if (vd != boost::graph_traits<_3D::Mesh>::null_vertex()){
-            // std::cout << vd << " at " << get(ppm, vd) << " is " << distance[vd] << " hops away" << std::endl;
             if (distance[vd] > max_distances) {
                 max_distances = distance[vd];
                 target_node = vd;
@@ -203,7 +173,7 @@ _3D::vertex_descriptor find_farthest_vertex(
 
 
 /**
-* @brief helper function to create a path of vertices from the start node to the target node
+* @brief Create a path of vertices from the start node to the target node
 *
 * ! The size of the path_list multiplied with 2 is the number of vertices on the border of the UV mesh
 *
@@ -211,7 +181,7 @@ _3D::vertex_descriptor find_farthest_vertex(
 * The same is true if you reverse the logic: If you create a spiral-like seam edge path, your mesh will results in something like a 'Poincaré disk'
 */
 std::vector<_3D::edge_descriptor> get_cut_line(
-    const _3D::Mesh& mesh,
+    const _3D::Mesh mesh,
     const _3D::vertex_descriptor start_node,
     const _3D::vertex_descriptor target_node,
     const std::vector<_3D::vertex_descriptor> predecessor_pmap
@@ -240,13 +210,14 @@ std::vector<_3D::edge_descriptor> get_cut_line(
 }
 
 
-/*
-Calculate the virtual border of the mesh
+/**
+* @brief Calculate the virtual border of the mesh
 */
 std::vector<_3D::edge_descriptor> set_UV_border_edges(
-    const std::string& mesh_file_path,
+    const std::string mesh_file_path,
     _3D::vertex_descriptor start_node
 ){
+    // Load the mesh from the file
     _3D::Mesh mesh;
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
     in >> mesh;
@@ -271,7 +242,7 @@ std::vector<_3D::edge_descriptor> set_UV_border_edges(
     boost::breadth_first_search(mesh, start_node, visitor(vis));
 
     // Find the target node (farthest from the start node)
-    _3D::vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, predecessor_pmap, distance);
+    _3D::vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, distance);
 
     // Get the edges of the path between the start and the target node
     std::vector<_3D::edge_descriptor> path_list = get_cut_line(mesh, start_node, target_node, predecessor_pmap);
@@ -280,35 +251,37 @@ std::vector<_3D::edge_descriptor> set_UV_border_edges(
 }
 
 
-// Helper function to create the seam mesh
-UV::Mesh create_seam_mesh(
-    _3D::Mesh& sm,
-    const std::vector<_3D::edge_descriptor>& calc_edges
+/**
+ * @brief Create the UV mesh
+*/
+UV::Mesh create_UV_mesh(
+    _3D::Mesh& mesh,
+    const std::vector<_3D::edge_descriptor> calc_edges
 ){
     // Create property maps to store seam edges and vertices
-    _3D::Seam_edge_pmap seam_edge_pm = sm.add_property_map<_3D::edge_descriptor, bool>("e:on_seam", false).first;   // if not false -> we can't add seam edges
-    _3D::Seam_vertex_pmap seam_vertex_pm = sm.add_property_map<_3D::vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
+    _3D::Seam_edge_pmap seam_edge_pm = mesh.add_property_map<_3D::edge_descriptor, bool>("e:on_seam", false).first;   // if not false -> we can't add seam edges
+    _3D::Seam_vertex_pmap seam_vertex_pm = mesh.add_property_map<_3D::vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
 
-    UV::Mesh mesh(sm, seam_edge_pm, seam_vertex_pm);
+    UV::Mesh UV_mesh(mesh, seam_edge_pm, seam_vertex_pm);
 
     for(_3D::edge_descriptor e : calc_edges) {
-        mesh.add_seam(source(e, sm), target(e, sm));  // Add the seams to the seam mesh
+        UV_mesh.add_seam(source(e, mesh), target(e, mesh));  // Add the seams to the UV mesh
     }
 
-    return mesh;
+    return UV_mesh;
 }
 
 
-/*
-Helper function to perform parameterization
-
-Computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
-The mapping is piecewise linear on the triangle mesh. The result is a pair (u,v) of parameter coordinates for each vertex of the input mesh.
+/**
+ * @brief Perform UV parameterization
+*
+* Computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
+* The mapping is piecewise linear on the triangle mesh. The result is a pair (U,V) of parameter coordinates for each vertex of the input mesh.
 */
-SMP::Error_code perform_parameterization(
-    UV::Mesh& mesh,
+SMP::Error_code parameterize_UV_mesh(
+    UV::Mesh mesh,
     UV::halfedge_descriptor bhd,
-    _3D::UV_pmap& uvmap
+    _3D::UV_pmap uvmap
 ){
     // Choose the border type of the uv parametrisation
     using Border_parameterizer = SMP::Square_border_uniform_parameterizer_3<UV::Mesh>;
@@ -322,8 +295,11 @@ SMP::Error_code perform_parameterization(
 }
 
 
+/**
+ * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
+*/
 std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_surface(
-    const std::string& mesh_file_path,
+    const std::string mesh_file_path,
     _3D::vertex_descriptor start_node,
     int uv_mesh_number
 ){
@@ -339,26 +315,26 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
     _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
 
     // Create the seam mesh
-    UV::Mesh mesh = create_seam_mesh(sm, border_edges);
+    UV::Mesh mesh = create_UV_mesh(sm, border_edges);
 
     // Choose a halfedge on the (possibly virtual) border
     UV::halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
     // Perform parameterization
-    SMP::Error_code err = perform_parameterization(mesh, bhd, uvmap);
+    SMP::Error_code err = parameterize_UV_mesh(mesh, bhd, uvmap);
 
     // Save the uv mesh
-    save_uv_mesh(mesh, bhd, uvmap, mesh_file_path, uv_mesh_number);
+    save_UV_mesh(mesh, bhd, uvmap, mesh_file_path, uv_mesh_number);
 
     std::vector<Point_2> points_uv;
     std::vector<Point_3> points;
-    std::vector<int64_t> ids;
+    std::vector<int64_t> h_v_mapping_vector;
     for (UV::vertex_descriptor vd : vertices(mesh)) {
         int64_t target_vertice = target(vd, sm);
         auto point_3D = sm.point(target(vd, sm));
         auto uv = get(uvmap, halfedge(vd, mesh));
 
-        ids.push_back(target_vertice);
+        h_v_mapping_vector.push_back(target_vertice);
         points.push_back(point_3D);
         points_uv.push_back(uv);
     }
@@ -378,10 +354,13 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
         vertices_UV(i, 2) = 0;
     }
 
-    return std::make_tuple(ids, vertices_UV, vertices_3D);
+    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D);
 }
 
 
+/**
+ * @brief Create the UV surface
+*/
 std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface(
     std::string mesh_path,
     int32_t start_node_int
