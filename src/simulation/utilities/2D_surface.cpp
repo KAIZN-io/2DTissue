@@ -56,34 +56,25 @@
 #include <utilities/2D_surface.h>
 #include <io/csv.h>
 
-
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
 using Point_3 = Kernel::Point_3;
 
-namespace My {
-    struct _3DMesh: public CGAL::Surface_mesh<Point_3> {
-        using Base = CGAL::Surface_mesh<Point_3>;
-        std::string name;
-    };
-}
-
-#define CGAL_GRAPH_TRAITS_INHERITANCE_CLASS_NAME My::_3DMesh
 #define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Kernel::Point_3>
 #include <CGAL/boost/graph/graph_traits_inheritance_macros.h>
 
 namespace _3D {
-    using SurfaceMesh = CGAL::Surface_mesh<Point_3>;
-    using vertex_descriptor = boost::graph_traits<SurfaceMesh>::vertex_descriptor;
-    using halfedge_descriptor = boost::graph_traits<SurfaceMesh>::halfedge_descriptor;
-    using edge_descriptor = boost::graph_traits<SurfaceMesh>::edge_descriptor;
-    using Seam_edge_pmap = SurfaceMesh::Property_map<edge_descriptor, bool>;
-    using Seam_vertex_pmap = SurfaceMesh::Property_map<vertex_descriptor, bool>;
-    using UV_pmap = SurfaceMesh::Property_map<halfedge_descriptor, Point_2>;
+    using Mesh = CGAL::Surface_mesh<Point_3>;
+    using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
+    using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
+    using edge_descriptor = boost::graph_traits<Mesh>::edge_descriptor;
+    using Seam_edge_pmap = Mesh::Property_map<edge_descriptor, bool>;
+    using Seam_vertex_pmap = Mesh::Property_map<vertex_descriptor, bool>;
+    using UV_pmap = Mesh::Property_map<halfedge_descriptor, Point_2>;
 }
 
 namespace UV {
-    using Mesh = CGAL::Seam_mesh<_3D::SurfaceMesh,
+    using Mesh = CGAL::Seam_mesh<_3D::Mesh,
                                 _3D::Seam_edge_pmap,
                                 _3D::Seam_vertex_pmap>;
     using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
@@ -189,7 +180,7 @@ int find_latest_mesh_creation_number(
 
 // Helper function to find the farthest vertex from a given start vertex
 _3D::vertex_descriptor find_farthest_vertex(
-    const My::_3DMesh& mesh,
+    const _3D::Mesh& mesh,
     _3D::vertex_descriptor start_node,
     std::vector<_3D::vertex_descriptor>& predecessor_pmap,
     std::vector<int>& distance
@@ -198,7 +189,7 @@ _3D::vertex_descriptor find_farthest_vertex(
     _3D::vertex_descriptor target_node;
 
     for(_3D::vertex_descriptor vd : vertices(mesh)){
-        if (vd != boost::graph_traits<My::_3DMesh>::null_vertex()){
+        if (vd != boost::graph_traits<_3D::Mesh>::null_vertex()){
             // std::cout << vd << " at " << get(ppm, vd) << " is " << distance[vd] << " hops away" << std::endl;
             if (distance[vd] > max_distances) {
                 max_distances = distance[vd];
@@ -220,7 +211,7 @@ _3D::vertex_descriptor find_farthest_vertex(
 * The same is true if you reverse the logic: If you create a spiral-like seam edge path, your mesh will results in something like a 'Poincaré disk'
 */
 std::vector<_3D::edge_descriptor> get_cut_line(
-    const My::_3DMesh& mesh,
+    const _3D::Mesh& mesh,
     const _3D::vertex_descriptor start_node,
     const _3D::vertex_descriptor target_node,
     const std::vector<_3D::vertex_descriptor> predecessor_pmap
@@ -256,11 +247,11 @@ std::vector<_3D::edge_descriptor> set_UV_border_edges(
     const std::string& mesh_file_path,
     _3D::vertex_descriptor start_node
 ){
-    My::_3DMesh mesh;
+    _3D::Mesh mesh;
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
     in >> mesh;
 
-    using Point_property_map = boost::property_map<My::_3DMesh,CGAL::vertex_point_t>::type;
+    using Point_property_map = boost::property_map<_3D::Mesh, CGAL::vertex_point_t>::type;
     Point_property_map ppm = get(CGAL::vertex_point, mesh);
 
     // Create vectors to store the predecessors (p) and the distances from the root (d)
@@ -291,7 +282,7 @@ std::vector<_3D::edge_descriptor> set_UV_border_edges(
 
 // Helper function to create the seam mesh
 UV::Mesh create_seam_mesh(
-    _3D::SurfaceMesh& sm,
+    _3D::Mesh& sm,
     const std::vector<_3D::edge_descriptor>& calc_edges
 ){
     // Create property maps to store seam edges and vertices
@@ -337,7 +328,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
     int uv_mesh_number
 ){
     // Load the 3D mesh
-    _3D::SurfaceMesh sm;
+    _3D::Mesh sm;
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
     in >> sm;
 
@@ -396,7 +387,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     int32_t start_node_int
 ){
     // Load the 3D mesh
-    _3D::SurfaceMesh sm;
+    _3D::Mesh sm;
     std::ifstream in(CGAL::data_file_path(mesh_path));
     in >> sm;
 
