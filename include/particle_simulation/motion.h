@@ -7,6 +7,8 @@
 
 void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
 
+double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
+
 std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
     Eigen::VectorXd& n,

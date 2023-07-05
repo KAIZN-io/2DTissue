@@ -10,9 +10,6 @@
 #include <particle_simulation/motion.h>
 
 
-// Assuming that the function is declared in a namespace called 'your_namespace'
-void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
-
 TEST(SymmetricMatrixTest, BasicTest) {
     Eigen::MatrixXd mat(3, 3);
     mat << 1, 2, 3,
@@ -63,6 +60,29 @@ TEST(SymmetricMatrixTest, AllZerosTest) {
 
     ASSERT_TRUE(mat.isApprox(expected_mat));
 }
+
+
+TEST(UnitCircleVectorTest, ThrowsWhenInputIsEmpty) {
+    std::vector<double> empty;
+    EXPECT_THROW(mean_unit_circle_vector_angle_degrees(empty), std::invalid_argument);
+}
+
+TEST(UnitCircleVectorTest, CorrectlyCalculatesMeanAngle) {
+    std::vector<double> angles {0, 180, 90};
+    double expected_mean_angle = 90.0;
+    double actual_mean_angle = mean_unit_circle_vector_angle_degrees(angles);
+
+    EXPECT_NEAR(expected_mean_angle, actual_mean_angle, 1e-5); // 1e-5 is the allowed error
+}
+
+TEST(UnitCircleVectorTest, CorrectlyHandlesNegativeAngles) {
+    std::vector<double> angles {-45, -90, -135, -180, -225, -270, -315};
+    double expected_mean_angle = 180.0;
+    double actual_mean_angle = mean_unit_circle_vector_angle_degrees(angles);
+
+    EXPECT_NEAR(expected_mean_angle, actual_mean_angle, 1e-5); // 1e-5 is the allowed error
+}
+
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

@@ -86,17 +86,15 @@ double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
         throw std::invalid_argument("The input vector should not be empty.");
     }
 
-    Eigen::Vector2d sum_vector(0.0, 0.0);
+    Eigen::Vector2d mean_vector(0.0, 0.0);
 
     for (const auto& angle_degrees : angles) {
         double angle_radians = angle_degrees * M_PI / 180.0;
 
         // Convert the angle to a 2D unit vector
         Eigen::Vector2d vec(cos(angle_radians), sin(angle_radians));
-        sum_vector += vec;
+        mean_vector += vec;
     }
-
-    Eigen::Vector2d mean_vector = sum_vector / static_cast<double>(angles.size());
 
     // Normalize the mean vector to keep it on the unit circle
     mean_vector.normalize();
