@@ -10,7 +10,7 @@
 #include <particle_simulation/forces.h>
 
 
-Eigen::MatrixXd calculate_forces_between_particles(
+Eigen::Matrix<double, Eigen::Dynamic, 2> calculate_forces_between_particles(
     const std::vector<Eigen::MatrixXd>& dist_vect,
     const Eigen::MatrixXd& dist_length,
     double k,
@@ -22,7 +22,7 @@ Eigen::MatrixXd calculate_forces_between_particles(
     int num_part = dist_vect[0].rows();
 
     // Initialize force matrix with zeros
-    Eigen::MatrixXd F(num_part, 3);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> F(num_part, 2);
     F.setZero();
 
     // Loop over all particle pairs
@@ -44,7 +44,7 @@ Eigen::MatrixXd calculate_forces_between_particles(
             }
 
             // Eigen::Vector3d for the 3D distance vector
-            Eigen::Vector3d dist_v(dist_vect[0](i, j), dist_vect[1](i, j), dist_vect[2](i, j));
+            Eigen::Vector2d dist_v(dist_vect[0](i, j), dist_vect[1](i, j));
 
             // Calculate the force between particles A and B
             F.row(i) += repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);

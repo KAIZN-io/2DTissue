@@ -27,13 +27,13 @@
 /**
 * @brief: Cells can attract or repel each other as they move depending on their distance.
 */
-Eigen::Vector3d repulsive_adhesion_motion(
+Eigen::Vector2d repulsive_adhesion_motion(
     double k,
     double σ,
     double dist,
     double r_adh,
     double k_adh,
-    const Eigen::Vector3d& dist_v
+    const Eigen::Vector2d& dist_v
 ) {
     double Fij_rep = 0;
     double Fij_adh = 0;

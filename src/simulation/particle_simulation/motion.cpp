@@ -190,7 +190,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::Mat
 }
 
 std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
-    Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::MatrixXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
@@ -203,8 +203,8 @@ std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::Mat
     double step_size
 ){
     // Get distance vectors and calculate distances between particles
-    auto dist_vect = get_dist_vect(r);
-    auto dist_length = get_distances_between_particles(r, distance_matrix_v, vertices_3D_active);
+    auto dist_vect = get_dist_vect(r_UV);
+    auto dist_length = get_distances_between_particles(r_UV, distance_matrix_v, vertices_3D_active);
     transform_into_symmetric_matrix(dist_length);
 
     // Calculate force between particles which pulls the particle in one direction within the 2D plane
@@ -222,7 +222,7 @@ std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::Mat
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot = n_vec.array().colwise() * abs_F.array();
 
     // Calculate the new position of each particle
-    Eigen::Matrix<double, Eigen::Dynamic, 2> r_new = r + r_dot * step_size;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_new = r_UV + r_dot * step_size;
 
     // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
     calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
