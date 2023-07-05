@@ -4,15 +4,15 @@
 #include <vector>
 #include <Eigen/Dense>
 
-Eigen::MatrixXd correct_n(
+Eigen::VectorXd correct_n(
     const Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
-    const Eigen::MatrixXd n,
+    const Eigen::VectorXd n,
     double τ,
     double dt
 );
 
-std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
-    Eigen::Matrix<double, Eigen::Dynamic, 2> &r_dot,
-    Eigen::MatrixXd n,
-    double dt
-);
+// std::pair<Eigen::VectorXd, Eigen::VectorXd> calculate_particle_vectors(
+//     Eigen::Matrix<double, Eigen::Dynamic, 2> &r_dot,
+//     Eigen::VectorXd n,
+//     double dt
+// );

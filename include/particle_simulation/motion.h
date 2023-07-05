@@ -7,7 +7,7 @@
 
 std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
-    Eigen::MatrixXd& n,
+    Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
     double v0,

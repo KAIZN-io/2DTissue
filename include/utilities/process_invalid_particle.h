@@ -14,7 +14,7 @@ void process_if_not_valid(
     std::vector<VertexData>& vertex_data,
     int num_part,
     Eigen::MatrixXd& distance_matrix_v,
-    Eigen::MatrixXd& n,
+    Eigen::VectorXd& n,
     double v0,
     double k,
     double k_next,

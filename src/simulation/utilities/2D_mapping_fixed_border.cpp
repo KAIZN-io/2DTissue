@@ -221,7 +221,7 @@ void opposite_seam_edges_square_border(Eigen::Matrix<double, Eigen::Dynamic, 2>&
 void diagonal_seam_edges_square_border(
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_new,
-    Eigen::MatrixXd& n_UV_new
+    Eigen::VectorXd& n_UV_new
 ){
     bool valid;
     do {
@@ -229,11 +229,11 @@ void diagonal_seam_edges_square_border(
         for (int i = 0; i < r_UV.rows(); ++i) {
             Eigen::Vector2d pointA = r_UV.row(i).head<2>(); // only takes the first two columns for the ith row
             Eigen::Vector2d point_outside = r_UV_new.row(i).head<2>(); // only takes the first two columns for the ith row
-            double n = n_UV_new(i, 0);
+            double n = n_UV_new(i);
 
             auto results = processPoints(pointA, point_outside, n);
             auto new_point = std::get<0>(results);
-            n_UV_new(i, 0) = std::get<1>(results);
+            n_UV_new(i) = std::get<1>(results);
             auto entry_point = std::get<2>(results);
 
             // ! TODO: this logic can be improved

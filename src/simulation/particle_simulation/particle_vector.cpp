@@ -14,9 +14,9 @@
 
 Vicsek-type n correction adapted from "Phys. Rev. E 74, 061908"
 */
-Eigen::MatrixXd correct_n(
+Eigen::VectorXd correct_n(
     const Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
-    const Eigen::MatrixXd n,
+    const Eigen::VectorXd n,
     double τ,
     double dt
 ){
@@ -25,29 +25,29 @@ Eigen::MatrixXd correct_n(
     auto cross_3D = calculate_3D_cross_product(n, r_dot);
     auto ncross = cross_3D.cwiseQuotient(norm_3D);
 
-    Eigen::MatrixXd n_cross_correction = (1.0 / τ) * ncross * dt;
+    Eigen::VectorXd n_cross_correction = (1.0 / τ) * ncross * dt;
 
-    Eigen::MatrixXd new_n = n - calculate_3D_cross_product(n, n_cross_correction);
+    Eigen::VectorXd new_n = n - calculate_3D_cross_product(n, n_cross_correction);
 
     return new_n.rowwise().normalized();
 }
 
 
-// TODO: dies könnte vlt nicht bei 2D gelten
-std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculate_particle_vectors(
-    Eigen::Matrix<double, Eigen::Dynamic, 2> &r_dot,
-    Eigen::MatrixXd n,
-    double dt
-){
-    // std::cout << "r_dot: " << r_dot << std::endl;
+// // TODO: dies könnte vlt nicht bei 2D gelten
+// std::pair<Eigen::VectorXd, Eigen::VectorXd> calculate_particle_vectors(
+//     Eigen::Matrix<double, Eigen::Dynamic, 2> &r_dot,
+//     Eigen::VectorXd n,
+//     double dt
+// ){
+//     // std::cout << "r_dot: " << r_dot << std::endl;
 
-    double τ = 1;
-    // make a small correct for n according to Vicsek
-    n = correct_n(r_dot, n, τ, dt);
+//     double τ = 1;
+//     // make a small correct for n according to Vicsek
+//     n = correct_n(r_dot, n, τ, dt);
 
-    // Project the orientation of the corresponding faces using normal vectors
-    n = n.rowwise().normalized();
-    Eigen::MatrixXd nr_dot = r_dot.rowwise().normalized();
+//     // Project the orientation of the corresponding faces using normal vectors
+//     n = n.rowwise().normalized();
+//     Eigen::VectorXd nr_dot = r_dot.rowwise().normalized();
 
-    return std::pair(n, nr_dot);
-}
+//     return std::pair(n, nr_dot);
+// }

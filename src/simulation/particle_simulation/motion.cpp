@@ -119,17 +119,17 @@ double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
 At each time step, each particle aligns with its neighbours within a given distance with an uncertainity due
 to a noise.
 */
-Eigen::MatrixXd calculate_average_n_within_distance(
+void calculate_average_n_within_distance(
     const std::vector<Eigen::MatrixXd> dist_vect,
     const Eigen::MatrixXd dist_length,
-    Eigen::MatrixXd& n,
+    Eigen::VectorXd& n,
     double σ
 ){
     // Get the number of particles
     int num_part = dist_vect[0].rows();
 
     // Initialize an Eigen::MatrixXd to store average n values
-    Eigen::MatrixXd avg_n(num_part, 1);
+    Eigen::VectorXd avg_n(num_part);
     avg_n.setZero();
 
      // Set up the random number generation for noise
@@ -158,18 +158,17 @@ Eigen::MatrixXd calculate_average_n_within_distance(
         }
 
         // Calculate the average angle for particle i
-        avg_n(i, 0) = mean_unit_circle_vector_angle_degrees(angles);
+        avg_n(i) = mean_unit_circle_vector_angle_degrees(angles);
 
         // Add noise to the average angle
-        avg_n(i, 0) += dist_noise(gen);
+        avg_n(i) += dist_noise(gen);
     }
 
     n = avg_n;
-    return avg_n;
 }
 
 
-Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::MatrixXd& avg_n) {
+Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::VectorXd& avg_n) {
     if (avg_n.cols() != 1) {
         throw std::invalid_argument("The input matrix must have exactly 1 column.");
     }
@@ -178,7 +177,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::Mat
     Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec(avg_n.rows(), 2);
 
     for (int i = 0; i < avg_n.rows(); ++i) {
-        double angle_degrees = avg_n(i, 0);
+        double angle_degrees = avg_n(i);
         double angle_radians = angle_degrees * M_PI / 180.0;
 
         // Convert the angle to a 2D unit vector
@@ -191,7 +190,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::Mat
 
 std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
-    Eigen::MatrixXd& n,
+    Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
     double v0,
