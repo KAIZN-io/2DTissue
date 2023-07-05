@@ -40,6 +40,8 @@ find_package(Boost 1.80.0 REQUIRED)
 find_package(Eigen3 3.4.0 REQUIRED)
 find_package(OpenMP)
 find_package(OpenCV REQUIRED)
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
 
 # Check if Boost is found
 if(NOT Boost_FOUND)
@@ -96,6 +98,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/2D_mapping_free_border.cpp
     src/simulation/utilities/2D_surface.cpp
     src/simulation/utilities/analytics.cpp
+    src/simulation/utilities/angles_to_unit_vectors.cpp
     src/simulation/utilities/barycentric_coord.cpp
     src/simulation/utilities/boundary_check.cpp
     src/simulation/utilities/distance.cpp
@@ -113,6 +116,18 @@ target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost ${
 
 # Link required libraries to the targets
 target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
+
+# Create a test executable
+add_executable(angles_to_unit_vectors_test tests/simulation/utilities/test_angles_to_unit_vectors.cpp)
+
+# Link the test executable with the Google Test libraries
+target_link_libraries(angles_to_unit_vectors_test ${GTEST_BOTH_LIBRARIES})
+
+# Link your libraries to the test executable
+target_link_libraries(angles_to_unit_vectors_test io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
+
+# Link the pthread library, which is required by Google Test
+target_link_libraries(angles_to_unit_vectors_test pthread)
 
 # Install the target
 install(TARGETS main
