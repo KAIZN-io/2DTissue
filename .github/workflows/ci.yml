@@ -1,0 +1,36 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        brew install cmake
+        brew install llvm
+        brew install eigen
+        brew install boost
+        brew install opencv
+        brew install google-test
+        brew install assimp
+        brew install cgal
+
+    - name: Build
+      run: |
+        export PATH="/usr/local/opt/llvm/bin:$PATH"
+        export LDFLAGS="-L/usr/local/opt/llvm/lib $LDFLAGS"
+        export CPPFLAGS="-I/usr/local/opt/llvm/include $CPPFLAGS"
+        mkdir build
+        cd build
+        cmake ..
+        make -j2
+
+    - name: Run Tests
+      run: |
+        cd build
+        ./all_tests
