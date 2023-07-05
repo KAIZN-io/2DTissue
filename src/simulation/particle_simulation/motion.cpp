@@ -14,9 +14,8 @@
 #include <particle_simulation/motion.h>
 
 
-/*
-Reminder: if you access the input variable with the '&' sign, you can change the variable in the function, without to return the new value.
-The variable is Changed In the Memory and with that also in the main function
+/**
+* @brief Transform a matrix into a symmetric matrix
 */
 void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
     int n = A.rows();
@@ -56,6 +55,9 @@ std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dy
 }
 
 
+/**
+ * @brief Calculate the distance between each pair of particles
+*/
 Eigen::MatrixXd get_distances_between_particles(
     Eigen::Matrix<double, Eigen::Dynamic, 2> r,
     Eigen::MatrixXd distance_matrix,
@@ -80,6 +82,9 @@ Eigen::MatrixXd get_distances_between_particles(
 }
 
 
+/**
+ * @brief Calculate the mean direction angle of a set of angles in degrees
+*/
 double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
     if (angles.empty()) {
         throw std::invalid_argument("The input vector should not be empty.");
@@ -113,11 +118,10 @@ double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
 }
 
 
-/*
-{\displaystyle \Theta _{i}(t+\Delta t)=\langle \Theta _{j}\rangle _{|r_{i}-r_{j}|<r}+\eta _{i}(t)}
-
-At each time step, each particle aligns with its neighbours within a given distance with an uncertainity due
-to a noise.
+/**
+* {\displaystyle \Theta _{i}(t+\Delta t)=\langle \Theta _{j}\rangle _{|r_{i}-r_{j}|<r}+\eta _{i}(t)}
+*
+* @brief At each time step, each particle aligns with its neighbours within a given distance with an uncertainity due to a noise.
 */
 void calculate_average_n_within_distance(
     const std::vector<Eigen::MatrixXd> dist_vect,
@@ -168,6 +172,9 @@ void calculate_average_n_within_distance(
 }
 
 
+/**
+ * @brief Convert the angle degree to 2D unit vectors
+*/
 Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::VectorXd& avg_n) {
     if (avg_n.cols() != 1) {
         throw std::invalid_argument("The input matrix must have exactly 1 column.");
