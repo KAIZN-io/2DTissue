@@ -39,7 +39,6 @@ find_package(CGAL 5.5.1 REQUIRED)
 find_package(Boost 1.80.0 REQUIRED)
 find_package(Eigen3 3.4.0 REQUIRED)
 find_package(OpenMP)
-find_package(OpenCV REQUIRED)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
@@ -62,8 +61,6 @@ include(CGAL_Eigen3_support)
 # Include the Assimp headers and libraries
 include_directories(${ASSIMP_INCLUDE_DIRS})
 link_directories(${ASSIMP_LIBRARY_DIRS})
-
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 # ##########################################################
 # Creating entries for all C++ files with "main" routine
@@ -112,7 +109,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/validity_check.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost ${OpenCV_LIBS})
+target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 # Link required libraries to the targets
 target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)

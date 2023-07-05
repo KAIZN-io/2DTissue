@@ -33,16 +33,15 @@ check_dependencies:
 		which emcc >/dev/null || (echo "Installing Emscripten via Homebrew..."; brew install emscripten); \
 		which assimp >/dev/null || (echo "Installing Assimp via Homebrew..."; brew install assimp); \
 		which yarn >/dev/null || (echo "Installing Yarn via Homebrew..."; brew install yarn); \
-		pkg-config --exists opencv4 || (echo "Installing OpenCV via Homebrew..."; brew install opencv); \
 	elif [ "$$OS" == "Linux" ]; then \
-		MAKEFILE_DEPS="llvm clang emscripten assimp yarn opencv"; \
+		MAKEFILE_DEPS="llvm clang emscripten assimp yarn"; \
 		for DEP in $$MAKEFILE_DEPS; do \
 			which $$DEP >/dev/null || (echo "Installing $$DEP via package manager..."; sudo apt-get install -y $$DEP); \
 		done; \
 	elif [ "$$OS" == "MINGW64_NT-10.0" ]; then \
-		@echo "Please ensure you have installed LLVM, Emscripten, Assimp, OpenCV and Yarn manually, and they are available in the PATH."; \
+		@echo "Please ensure you have installed LLVM, Emscripten, Assimp, and Yarn manually, and they are available in the PATH."; \
 	else \
-		@echo "Homebrew installation only works on macOS. Please install LLVM, Emscripten, Assimp, OpenCV and Yarn manually."; \
+		@echo "Homebrew installation only works on macOS. Please install LLVM, Emscripten, Assimp, and Yarn manually."; \
 	fi
 	@echo "Dependencies check complete."
 

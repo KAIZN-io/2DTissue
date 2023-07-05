@@ -15,7 +15,6 @@ jobs:
         brew install llvm
         brew install eigen
         brew install boost
-        brew install opencv
         brew install googletest
         brew install assimp
         brew install cgal
