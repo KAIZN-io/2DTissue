@@ -98,41 +98,11 @@ _2DTissue::_2DTissue(
 
 void _2DTissue::start(){
     // Initialize the particles in 2D
-    r.resize(particle_count, 3);
+    r.resize(particle_count, Eigen::NoChange);
     n.resize(particle_count, 1);
+
     init_particle_position(faces_uv, halfedge_uv, particle_count, r, n);
 
-    // ! ONLY FOR TESTING
-    // r << 0.9, 1, 0,
-    //      0.8, 1, 0,
-    //     0.7, 1, 0,
-    //     0.6, 1, 0,
-    //     0.5, 1, 0,
-    //     0.4, 1, 0,
-    //     0.3, 1, 0,
-    //     0.2, 1, 0,
-    //     0.1, 1, 0,
-    //     1, 0.1, 0,
-    //     1, 0.2, 0,
-    //     1, 0.3, 0,
-    //     1, 0.4, 0,
-    //     1, 0.5, 0,
-    //     1, 0.6, 0,
-    //     1, 0.7, 0,
-    //     1, 0.8, 0,
-    //     1, 0.9, 0,
-    //     0, 0.1, 0,
-    //     0, 0.2, 0,
-    //     0, 0.3, 0,
-    //     0, 0.4, 0,
-    //     0, 0.5, 0,
-    //     0, 0.6, 0,
-    //     0, 0.7, 0,
-    //     0, 0.8, 0,
-    //     0, 0.9, 0;
-
-    
-    // // n << 90; // ! ONLY FOR TESTING
     // auto [coord_test, active_test] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
     // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";

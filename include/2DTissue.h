@@ -52,7 +52,7 @@ private:
     int map_cache_count;
     bool finished;
 
-    Eigen::MatrixXd r;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r;
     Eigen::MatrixXd n;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;

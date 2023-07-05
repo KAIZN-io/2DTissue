@@ -15,7 +15,7 @@ bool are_all_valid(const std::vector<VertexData>& vertex_data) {
 }
 
 bool checkForInvalidValues(
-    const Eigen::MatrixXd& matrix
+    const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix
 ) {
     for (int i = 0; i < matrix.rows(); ++i) {
         for (int j = 0; j < matrix.cols(); ++j) {

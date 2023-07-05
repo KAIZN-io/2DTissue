@@ -35,33 +35,29 @@ void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
 }
 
 
-std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::MatrixXd& r) {
+std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
     Eigen::VectorXd dist_x = r.col(0);
     Eigen::VectorXd dist_y = r.col(1);
-    Eigen::VectorXd dist_z = r.col(2);
 
     // Replicate each column into a square matrix
     Eigen::MatrixXd square_x = dist_x.replicate(1, r.rows());
     Eigen::MatrixXd square_y = dist_y.replicate(1, r.rows());
-    Eigen::MatrixXd square_z = dist_z.replicate(1, r.rows());
 
     // Compute the difference between each pair of rows
     Eigen::MatrixXd diff_x = square_x.array().rowwise() - dist_x.transpose().array();
     Eigen::MatrixXd diff_y = square_y.array().rowwise() - dist_y.transpose().array();
-    Eigen::MatrixXd diff_z = square_z.array().rowwise() - dist_z.transpose().array();
 
     // Store the difference matrices in a vector
     std::vector<Eigen::MatrixXd> dist_vect;
     dist_vect.push_back(diff_x);
     dist_vect.push_back(diff_y);
-    dist_vect.push_back(diff_z);
 
     return dist_vect;
 }
 
 
 Eigen::MatrixXd get_distances_between_particles(
-    Eigen::MatrixXd r,
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r,
     Eigen::MatrixXd distance_matrix,
     std::vector<int> vertice_3D_id
 ){
@@ -173,13 +169,13 @@ Eigen::MatrixXd calculate_average_n_within_distance(
 }
 
 
-Eigen::MatrixXd angles_to_unit_vectors(const Eigen::MatrixXd& avg_n) {
+Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::MatrixXd& avg_n) {
     if (avg_n.cols() != 1) {
         throw std::invalid_argument("The input matrix must have exactly 1 column.");
     }
 
     // Initialize an Eigen::MatrixXd to store the 2D unit vectors
-    Eigen::MatrixXd n_vec(avg_n.rows(), 3);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec(avg_n.rows(), 2);
 
     for (int i = 0; i < avg_n.rows(); ++i) {
         double angle_degrees = avg_n(i, 0);
@@ -189,13 +185,12 @@ Eigen::MatrixXd angles_to_unit_vectors(const Eigen::MatrixXd& avg_n) {
         Eigen::Vector2d vec(cos(angle_radians), sin(angle_radians));
         n_vec.row(i) = vec;
     }
-    n_vec.col(2).setZero();
 
     return n_vec;
 }
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
-    Eigen::MatrixXd& r,
+std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
     Eigen::MatrixXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
@@ -216,7 +211,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
     Eigen::VectorXd abs_F = F_track.rowwise().norm();
 
-    Eigen::MatrixXd n_vec = angles_to_unit_vectors(n);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = angles_to_unit_vectors(n);
 
     // Velocity of each particle
     // 1. Every particle moves with a constant velocity v0 in the direction of the normal vector n
@@ -224,12 +219,10 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     abs_F = abs_F.array() + v0;
 
     // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
-    Eigen::MatrixXd r_dot = n_vec.array().colwise() * abs_F.array();
-    r_dot.col(2).setZero();
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot = n_vec.array().colwise() * abs_F.array();
 
     // Calculate the new position of each particle
-    Eigen::MatrixXd r_new = r + r_dot * step_size;
-    r_new.col(2).setZero();
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_new = r + r_dot * step_size;
 
     // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
     calculate_average_n_within_distance(dist_vect, dist_length, n, σ);

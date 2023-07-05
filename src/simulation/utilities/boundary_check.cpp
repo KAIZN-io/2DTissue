@@ -15,7 +15,7 @@ bool is_inside_uv(const Eigen::Vector2d& r) {
     return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
 }
 
-std::vector<int> find_inside_uv_vertices_id(const Eigen::MatrixXd& r) {
+std::vector<int> find_inside_uv_vertices_id(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
     int nrows = r.rows();
     std::vector<int> inside_id;
 

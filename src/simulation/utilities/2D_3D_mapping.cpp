@@ -20,7 +20,7 @@ const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 // (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
 std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
-    const Eigen::MatrixXd r,
+    const Eigen::Matrix<double, Eigen::Dynamic, 2> r,
     const Eigen::MatrixXd halfedges_uv,
     const Eigen::MatrixXi faces_uv,
     const Eigen::MatrixXd vertices_uv,
@@ -42,7 +42,7 @@ std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
 
 
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
-Eigen::MatrixXd get_r2d(
+Eigen::Matrix<double, Eigen::Dynamic, 2> get_r2d(
     const Eigen::MatrixXd r,
     const Eigen::MatrixXd vertices_uv,
     const Eigen::MatrixXd vertices_3D,
@@ -53,13 +53,12 @@ Eigen::MatrixXd get_r2d(
     Eigen::MatrixXi faces_3D_static = loadMeshFaces(mesh_3D_file_path);
 
     int num_r = r.rows();
-    Eigen::MatrixXd new_2D_points(num_r, 3);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> new_2D_points(num_r, 2);
 
     for (int i = 0; i < num_r; ++i) {
         auto uv_coord = calculate_barycentric_2D_coord(r, faces_3D_static, vertices_uv, vertices_3D, h_v_mapping, i);
 
         new_2D_points.row(i) = uv_coord;
-        new_2D_points.row(i).col(2).setZero();
     }
 
     return new_2D_points;

@@ -3,20 +3,20 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-/*
-BACKGROUND:
-
-Cell-cell interactions (e.g. via cell-cell signaling) are important for the development of multicellular organisms.
-
-Cancer cells escape the cooperative rules.
-
-Interesting are syntethic oncogenes -> they are mutations that are not oncogenic on their own but,
-when they appear with other mutations, they drive tumor formation.
-
-The proliferation behavoir of cancer cells is still poorly understood in part because it is difficult to
-experimentally study the transmisson of Proliferative Factors from one cell to its neighbors.
-
-In this file we want to collect the different types of Cell-Cell Information Fluxes that we want to simulate.
+/**
+* BACKGROUND:
+*
+* Cell-cell interactions (e.g. via cell-cell signaling) are important for the development of multicellular organisms.
+*
+* Cancer cells escape the cooperative rules.
+*
+* Interesting are syntethic oncogenes -> they are mutations that are not oncogenic on their own but,
+* when they appear with other mutations, they drive tumor formation.
+*
+* The proliferation behavoir of cancer cells is still poorly understood in part because it is difficult to
+* experimentally study the transmisson of Proliferative Factors from one cell to its neighbors.
+*
+* In this file we want to collect the different types of Cell-Cell Information Fluxes that we want to simulate.
 */
 
 #include <Eigen/Dense>
@@ -24,8 +24,8 @@ In this file we want to collect the different types of Cell-Cell Information Flu
 #include <particle_simulation/cell_cell_interactions.h>
 
 
-/*
-Idea: Cells can attract or repel each other as they move depending on their distance.
+/**
+* @brief: Cells can attract or repel each other as they move depending on their distance.
 */
 Eigen::Vector3d repulsive_adhesion_motion(
     double k,

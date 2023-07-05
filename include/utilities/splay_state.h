@@ -8,7 +8,7 @@
 
 using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
 
-std::tuple<Eigen::MatrixXd, std::vector<int>> get_splay_state_vertices(
+std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, std::vector<int>> get_splay_state_vertices(
     const Matrix3Xi& mesh_loaded_uv,
     const Eigen::MatrixXd& halfedges_uv,
     int modula_mode = 10

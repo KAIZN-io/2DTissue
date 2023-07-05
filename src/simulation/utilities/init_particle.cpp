@@ -29,7 +29,7 @@ void init_particle_position(
     const Eigen::MatrixXi faces_uv,
     const Eigen::MatrixXd halfedges_uv,
     int num_part,
-    Eigen::MatrixXd& r,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
     Eigen::MatrixXd& n
 ) {
     int faces_length = faces_uv.rows();
@@ -54,6 +54,4 @@ void init_particle_position(
 
         n.row(i) << dis_angle(gen);
     }
-
-    r.col(2).setZero();
 }

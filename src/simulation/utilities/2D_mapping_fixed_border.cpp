@@ -205,7 +205,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(const Eigen::
  *
  * @brief Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
 */
-void opposite_seam_edges_square_border(Eigen::MatrixXd& r_UV_new){
+void opposite_seam_edges_square_border(Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_new){
     r_UV_new.col(0) = r_UV_new.col(0).array() - r_UV_new.col(0).array().floor();  // Wrap x values
     r_UV_new.col(1) = r_UV_new.col(1).array() - r_UV_new.col(1).array().floor();  // Wrap y values
 }
@@ -219,8 +219,8 @@ void opposite_seam_edges_square_border(Eigen::MatrixXd& r_UV_new){
  * @brief By using the '&' we pass the reference of the variable to the function, so we can change the value of the variable inside the function
 */
 void diagonal_seam_edges_square_border(
-    Eigen::MatrixXd r_UV,
-    Eigen::MatrixXd& r_UV_new,
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_new,
     Eigen::MatrixXd& n_UV_new
 ){
     bool valid;

@@ -40,8 +40,8 @@
 #include <particle_simulation/simulation.h>
 
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd> perform_particle_simulation(
-    Eigen::MatrixXd& r_UV,
+std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd> perform_particle_simulation(
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::MatrixXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,

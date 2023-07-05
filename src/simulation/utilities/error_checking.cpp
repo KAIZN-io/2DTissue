@@ -23,15 +23,15 @@ void error_unvalid_vertices(
 }
 
 void error_invalid_values(
-    Eigen::MatrixXd r_new
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_new
 ){
-    if (checkForInvalidValues(r_new)) {
+    if (checkForInvalidValues(r_UV_new)) {
         std::exit(1);  // stop script execution
     }
 }
 
 void error_lost_particles(
-    Eigen::MatrixXd r_UV_new,
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_new,
     int num_part
 ){
     if (find_inside_uv_vertices_id(r_UV_new).size() != num_part) {

@@ -5,7 +5,7 @@
 #include <Eigen/Dense>
 
 std::pair<Eigen::Vector3d, int> calculate_barycentric_3D_coord(
-    const Eigen::MatrixXd r,
+    const Eigen::Matrix<double, Eigen::Dynamic, 2> r,
     const Eigen::MatrixXd halfedges_uv,
     const Eigen::MatrixXi faces_uv,
     Eigen::MatrixXd vertices_uv,
