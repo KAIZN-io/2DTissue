@@ -117,18 +117,6 @@ target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost ${
 # Link required libraries to the targets
 target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
 
-# Create a test executable
-add_executable(angles_to_unit_vectors_test tests/simulation/utilities/test_angles_to_unit_vectors.cpp)
-
-# Link the test executable with the Google Test libraries
-target_link_libraries(angles_to_unit_vectors_test ${GTEST_BOTH_LIBRARIES})
-
-# Link your libraries to the test executable
-target_link_libraries(angles_to_unit_vectors_test io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
-
-# Link the pthread library, which is required by Google Test
-target_link_libraries(angles_to_unit_vectors_test pthread)
-
 # Install the target
 install(TARGETS main
         RUNTIME DESTINATION bin
@@ -136,3 +124,17 @@ install(TARGETS main
         ARCHIVE DESTINATION lib
 )
 
+# Collect all test source files
+file(GLOB TEST_SOURCES tests/simulation/**/*.cpp)
+
+# Create a test executable for all available tests
+add_executable(all_tests ${TEST_SOURCES})
+
+# Link the test executable with the Google Test libraries
+target_link_libraries(all_tests ${GTEST_BOTH_LIBRARIES})
+
+# Link your libraries to the test executable
+target_link_libraries(all_tests io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
+
+# Link the pthread library, which is required by Google Test
+target_link_libraries(all_tests pthread)
