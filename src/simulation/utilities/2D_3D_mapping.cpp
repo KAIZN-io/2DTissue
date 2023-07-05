@@ -56,7 +56,8 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> get_r2d(
     Eigen::Matrix<double, Eigen::Dynamic, 2> new_2D_points(num_r, 2);
 
     for (int i = 0; i < num_r; ++i) {
-        auto uv_coord = calculate_barycentric_2D_coord(r, faces_3D_static, vertices_uv, vertices_3D, h_v_mapping, i);
+        Eigen::Vector3d uv_coord_test = calculate_barycentric_2D_coord(r, faces_3D_static, vertices_uv, vertices_3D, h_v_mapping, i);
+        Eigen::Vector2d uv_coord(uv_coord_test[0], uv_coord_test[1]);
 
         new_2D_points.row(i) = uv_coord;
     }

@@ -11,15 +11,16 @@
 #include <utilities/init_particle.h>
 
 
-Eigen::Vector3d get_face_gravity_center_coord(
+Eigen::Vector2d get_face_gravity_center_coord(
     const Eigen::MatrixXd& vertices,
     const Eigen::Vector3i& r_face
 ) {
-    Eigen::Vector3d center_face(0, 0, 0);
+    Eigen::Vector3d center_face_test(0, 0, 0);
 
     for (int j = 0; j < 3; ++j) {
-        center_face += vertices.row(r_face[j]);
+        center_face_test += vertices.row(r_face[j]);
     }
+    Eigen::Vector2d center_face = center_face_test.head(2);
 
     return center_face / 3.0;
 }
