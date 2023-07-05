@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <Eigen/Dense>
-#include <iostream>
+
 #include <utilities/angles_to_unit_vectors.h>
 
 
@@ -16,7 +16,7 @@ TEST(AngleToUnitVectorTest, BasicAssertions) {
 
     // Call the function
     Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = angles_to_unit_vectors(avg_n);
-    std::cout << n_vec << std::endl;
+
     // Check the results
     ASSERT_NEAR(n_vec(0, 0), 1, 1e-9);
     ASSERT_NEAR(n_vec(0, 1), 0, 1e-9);
