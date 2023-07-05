@@ -17,20 +17,14 @@
 
 
 /**
-* @brief Transform a matrix into a symmetric matrix
+* @brief Transform a matrix into a symmetric matrix where the choosen value is the minimum of the two values
 */
 void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
     int n = A.rows();
 
     for (int i = 0; i < n; i++) {
         for (int j = i+1; j < n; j++) {
-            if (A(i, j) != 0 && A(j, i) != 0) {
-                A(i, j) = A(j, i) = std::min(A(i, j), A(j, i));
-            } else if (A(i, j) == 0) {
-                A(i, j) = A(j, i);
-            } else {
-                A(j, i) = A(i, j);
-            }
+            A(i, j) = A(j, i) = std::min(A(i, j), A(j, i));
         }
     }
 }

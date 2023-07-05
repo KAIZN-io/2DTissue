@@ -36,10 +36,3 @@ TEST(AngleToUnitVectorTest, BasicAssertions) {
     ASSERT_NEAR(n_vec(5, 0), 1, 1e-9);
     ASSERT_NEAR(n_vec(5, 1), 0, 1e-9);
 }
-
-// Run all the tests
-int main(int argc, char **argv) {
-    // The function ::testing::InitGoogleTest(&argc, argv) initializes the Google Test framework.
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

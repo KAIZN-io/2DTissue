@@ -5,6 +5,8 @@
 #include <vector>
 #include <Eigen/Dense>
 
+void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
+
 std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
     Eigen::VectorXd& n,
