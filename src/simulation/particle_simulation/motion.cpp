@@ -19,7 +19,7 @@
 /**
 * @brief Transform a matrix into a symmetric matrix where the choosen value is the minimum of the two values
 *
-* @info: Unitests implemented
+* @info: Unittest implemented
 */
 void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
     int n = A.rows();
@@ -35,7 +35,7 @@ void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
 /**
  *
  *
- * @info: Unitests implemented
+ * @info: Unittest implemented
 */
 std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
     Eigen::VectorXd dist_x = r.col(0);
@@ -90,7 +90,7 @@ Eigen::MatrixXd get_distances_between_particles(
 /**
  * @brief Calculate the mean direction angle of a set of angles in degrees
  *
- * @info: Unitests implemented
+ * @info: Unittest implemented
 */
 double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
     if (angles.empty()) {
@@ -128,7 +128,7 @@ double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
 *
 * @brief At each time step, each particle aligns with its neighbours within a given distance with an uncertainity due to a noise.
 *
-* @info: Unitest implemented
+* @info: Unittest implemented
 */
 void calculate_average_n_within_distance(
     const std::vector<Eigen::MatrixXd> dist_vect,
