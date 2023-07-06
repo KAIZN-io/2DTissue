@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y llvm clang emscripten assimp yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev libcgal-dev googletest
+        sudo apt-get install -y llvm clang emscripten libassimp-dev yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev libcgal-dev googletest
 
     - name: Configure
       run: |
