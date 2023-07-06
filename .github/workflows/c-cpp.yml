@@ -17,8 +17,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew update
-        brew upgrade
         brew install llvm
         brew install cmake
         brew install emscripten
@@ -29,7 +27,7 @@ jobs:
         brew install cgal
         brew install googletest
 
-    - name: Build
+    - name: Build 2DTissue
       run: |
         mkdir build
         cd build
