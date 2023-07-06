@@ -18,6 +18,8 @@
 
 /**
 * @brief Transform a matrix into a symmetric matrix where the choosen value is the minimum of the two values
+*
+* @info: Unitests implemented
 */
 void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
     int n = A.rows();
@@ -30,6 +32,9 @@ void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
 }
 
 
+/**
+ * @info: Unitests implemented
+*/
 std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
     Eigen::VectorXd dist_x = r.col(0);
     Eigen::VectorXd dist_y = r.col(1);
@@ -80,6 +85,8 @@ Eigen::MatrixXd get_distances_between_particles(
 
 /**
  * @brief Calculate the mean direction angle of a set of angles in degrees
+ *
+ * @info: Unitests implemented
 */
 double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
     if (angles.empty()) {
