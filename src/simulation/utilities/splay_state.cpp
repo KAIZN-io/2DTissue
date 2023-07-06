@@ -57,7 +57,7 @@ std::vector<int> order_of_edges_vertices(const Eigen::MatrixXi& border_edges_arr
     return border_edges_vec;
 }
 
-std::tuple<Eigen::MatrixXd, std::vector<int>> get_splay_state_vertices(const Matrix3Xi& mesh_loaded_uv,
+std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, std::vector<int>> get_splay_state_vertices(const Matrix3Xi& mesh_loaded_uv,
                                                       const Eigen::MatrixXd& halfedges_uv,
                                                       int modula_mode) {
     std::set<std::pair<int, int>> border_edges = find_border_edges(mesh_loaded_uv);
@@ -79,12 +79,14 @@ std::tuple<Eigen::MatrixXd, std::vector<int>> get_splay_state_vertices(const Mat
         }
     }
 
-    Eigen::MatrixXd splay_state_vertices(border_vertices.size(), 3);
+    Eigen::MatrixXd splay_state_vertices_test(border_vertices.size(), 3);
     for (size_t i = 0; i < border_vertices.size(); ++i) {
-        splay_state_vertices.row(i) = halfedges_uv.row(border_vertices[i]);
+        splay_state_vertices_test.row(i) = halfedges_uv.row(border_vertices[i]);
     }
 
-    splay_state_vertices.col(2).setZero();
+    Eigen::Matrix<double, Eigen::Dynamic, 2> splay_state_vertices;
+    // copy the first two columns of splay_state_vertices_test for each row into splay_state_vertices
+    splay_state_vertices = splay_state_vertices_test.block(0, 0, splay_state_vertices_test.rows(), 2);
 
     return {splay_state_vertices, border_vertices};
 }

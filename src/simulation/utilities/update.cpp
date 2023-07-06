@@ -50,7 +50,7 @@ std::vector<VertexData> update_vertex_data(
 
 void update_if_valid(
     std::vector<VertexData>& vertex_data,
-    const Eigen::MatrixXd& r_UV_coord,
+    const Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_coord,
     const Eigen::MatrixXd& r_3D_coord,
     int start_id
 ){

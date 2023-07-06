@@ -52,8 +52,8 @@ private:
     int map_cache_count;
     bool finished;
 
-    Eigen::MatrixXd r;
-    Eigen::MatrixXd n;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r;
+    Eigen::VectorXd n;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;
     Eigen::VectorXd v_order;

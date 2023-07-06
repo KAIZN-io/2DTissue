@@ -3,11 +3,11 @@
 
 #include <Eigen/Dense>
 
-Eigen::Vector3d repulsive_adhesion_motion(
+Eigen::Vector2d repulsive_adhesion_motion(
     double k,
     double σ,
     double dist,
     double r_adh,
     double k_adh,
-    const Eigen::Vector3d& dist_v
+    const Eigen::Vector2d& dist_v
 );

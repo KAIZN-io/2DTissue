@@ -5,7 +5,7 @@
 
 void calculate_order_parameter(
     Eigen::VectorXd& v_order, 
-    Eigen::MatrixXd r, 
-    Eigen::MatrixXd r_dot, 
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r, 
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot, 
     int tt
 );

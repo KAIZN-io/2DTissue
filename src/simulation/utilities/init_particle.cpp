@@ -11,15 +11,16 @@
 #include <utilities/init_particle.h>
 
 
-Eigen::Vector3d get_face_gravity_center_coord(
+Eigen::Vector2d get_face_gravity_center_coord(
     const Eigen::MatrixXd& vertices,
     const Eigen::Vector3i& r_face
 ) {
-    Eigen::Vector3d center_face(0, 0, 0);
+    Eigen::Vector3d center_face_test(0, 0, 0);
 
     for (int j = 0; j < 3; ++j) {
-        center_face += vertices.row(r_face[j]);
+        center_face_test += vertices.row(r_face[j]);
     }
+    Eigen::Vector2d center_face = center_face_test.head(2);
 
     return center_face / 3.0;
 }
@@ -29,8 +30,8 @@ void init_particle_position(
     const Eigen::MatrixXi faces_uv,
     const Eigen::MatrixXd halfedges_uv,
     int num_part,
-    Eigen::MatrixXd& r,
-    Eigen::MatrixXd& n
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
+    Eigen::VectorXd& n
 ) {
     int faces_length = faces_uv.rows();
     std::vector<int> faces_list(faces_length);
@@ -54,6 +55,4 @@ void init_particle_position(
 
         n.row(i) << dis_angle(gen);
     }
-
-    r.col(2).setZero();
 }

@@ -28,7 +28,6 @@ int main()
         while(!_2dtissue.is_finished()) {
             System data = _2dtissue.update();
         }
-
         std::cout << _2dtissue.get_order_parameter() << '\n';
 
         std::clock_t end = std::clock();

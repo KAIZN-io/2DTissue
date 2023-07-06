@@ -39,7 +39,8 @@ find_package(CGAL 5.5.1 REQUIRED)
 find_package(Boost 1.80.0 REQUIRED)
 find_package(Eigen3 3.4.0 REQUIRED)
 find_package(OpenMP)
-find_package(OpenCV REQUIRED)
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
 
 # Check if Boost is found
 if(NOT Boost_FOUND)
@@ -60,8 +61,6 @@ include(CGAL_Eigen3_support)
 # Include the Assimp headers and libraries
 include_directories(${ASSIMP_INCLUDE_DIRS})
 link_directories(${ASSIMP_LIBRARY_DIRS})
-
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 # ##########################################################
 # Creating entries for all C++ files with "main" routine
@@ -96,6 +95,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/2D_mapping_free_border.cpp
     src/simulation/utilities/2D_surface.cpp
     src/simulation/utilities/analytics.cpp
+    src/simulation/utilities/angles_to_unit_vectors.cpp
     src/simulation/utilities/barycentric_coord.cpp
     src/simulation/utilities/boundary_check.cpp
     src/simulation/utilities/distance.cpp
@@ -103,15 +103,13 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/error_checking.cpp
     src/simulation/utilities/init_particle.cpp
     src/simulation/utilities/matrix_algebra.cpp
-    src/simulation/utilities/nearest_map.cpp
-    src/simulation/utilities/process_invalid_particle.cpp
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/splay_state.cpp
     src/simulation/utilities/update.cpp
     src/simulation/utilities/validity_check.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost ${OpenCV_LIBS})
+target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 # Link required libraries to the targets
 target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
@@ -123,3 +121,17 @@ install(TARGETS main
         ARCHIVE DESTINATION lib
 )
 
+# Collect all test source files
+file(GLOB TEST_SOURCES tests/simulation/**/*.cpp)
+
+# Create a test executable for all available tests
+add_executable(all_tests ${TEST_SOURCES})
+
+# Link the test executable with the Google Test libraries
+target_link_libraries(all_tests ${GTEST_BOTH_LIBRARIES})
+
+# Link your libraries to the test executable
+target_link_libraries(all_tests io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
+
+# Link the pthread library, which is required by Google Test
+target_link_libraries(all_tests pthread)

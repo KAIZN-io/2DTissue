@@ -9,4 +9,4 @@
 
 bool are_all_valid(const std::vector<VertexData>& vertex_data);
 
-bool checkForInvalidValues(const Eigen::MatrixXd& matrix);
+bool checkForInvalidValues(const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix);

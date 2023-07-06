@@ -10,58 +10,61 @@
 #include <random>
 #include <cmath>
 
+#include <utilities/angles_to_unit_vectors.h>
+
 #include <particle_simulation/forces.h>
 #include <particle_simulation/motion.h>
 
 
-/*
-Reminder: if you access the input variable with the '&' sign, you can change the variable in the function, without to return the new value.
-The variable is Changed In the Memory and with that also in the main function
+/**
+* @brief Transform a matrix into a symmetric matrix where the choosen value is the minimum of the two values
+*
+* @info: Unittest implemented
 */
 void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
     int n = A.rows();
 
     for (int i = 0; i < n; i++) {
         for (int j = i+1; j < n; j++) {
-            if (A(i, j) != 0 && A(j, i) != 0) {
-                A(i, j) = A(j, i) = std::min(A(i, j), A(j, i));
-            } else if (A(i, j) == 0) {
-                A(i, j) = A(j, i);
-            } else {
-                A(j, i) = A(i, j);
-            }
+            A(i, j) = A(j, i) = std::min(A(i, j), A(j, i));
         }
     }
 }
 
 
-std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::MatrixXd& r) {
+/**
+ *
+ *
+ * @info: Unittest implemented
+*/
+std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
     Eigen::VectorXd dist_x = r.col(0);
     Eigen::VectorXd dist_y = r.col(1);
-    Eigen::VectorXd dist_z = r.col(2);
 
     // Replicate each column into a square matrix
     Eigen::MatrixXd square_x = dist_x.replicate(1, r.rows());
     Eigen::MatrixXd square_y = dist_y.replicate(1, r.rows());
-    Eigen::MatrixXd square_z = dist_z.replicate(1, r.rows());
 
     // Compute the difference between each pair of rows
     Eigen::MatrixXd diff_x = square_x.array().rowwise() - dist_x.transpose().array();
     Eigen::MatrixXd diff_y = square_y.array().rowwise() - dist_y.transpose().array();
-    Eigen::MatrixXd diff_z = square_z.array().rowwise() - dist_z.transpose().array();
 
     // Store the difference matrices in a vector
     std::vector<Eigen::MatrixXd> dist_vect;
     dist_vect.push_back(diff_x);
     dist_vect.push_back(diff_y);
-    dist_vect.push_back(diff_z);
 
     return dist_vect;
 }
 
 
+/**
+ *
+ *
+ * @brief Calculate the distance between each pair of particles
+*/
 Eigen::MatrixXd get_distances_between_particles(
-    Eigen::MatrixXd r,
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r,
     Eigen::MatrixXd distance_matrix,
     std::vector<int> vertice_3D_id
 ){
@@ -84,22 +87,25 @@ Eigen::MatrixXd get_distances_between_particles(
 }
 
 
+/**
+ * @brief Calculate the mean direction angle of a set of angles in degrees
+ *
+ * @info: Unittest implemented
+*/
 double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
     if (angles.empty()) {
         throw std::invalid_argument("The input vector should not be empty.");
     }
 
-    Eigen::Vector2d sum_vector(0.0, 0.0);
+    Eigen::Vector2d mean_vector(0.0, 0.0);
 
     for (const auto& angle_degrees : angles) {
         double angle_radians = angle_degrees * M_PI / 180.0;
 
         // Convert the angle to a 2D unit vector
         Eigen::Vector2d vec(cos(angle_radians), sin(angle_radians));
-        sum_vector += vec;
+        mean_vector += vec;
     }
-
-    Eigen::Vector2d mean_vector = sum_vector / static_cast<double>(angles.size());
 
     // Normalize the mean vector to keep it on the unit circle
     mean_vector.normalize();
@@ -117,23 +123,24 @@ double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
 }
 
 
-/*
-{\displaystyle \Theta _{i}(t+\Delta t)=\langle \Theta _{j}\rangle _{|r_{i}-r_{j}|<r}+\eta _{i}(t)}
-
-At each time step, each particle aligns with its neighbours within a given distance with an uncertainity due
-to a noise.
+/**
+* {\displaystyle \Theta _{i}(t+\Delta t)=\langle \Theta _{j}\rangle _{|r_{i}-r_{j}|<r}+\eta _{i}(t)}
+*
+* @brief At each time step, each particle aligns with its neighbours within a given distance with an uncertainity due to a noise.
+*
+* @info: Unittest implemented
 */
-Eigen::MatrixXd calculate_average_n_within_distance(
+void calculate_average_n_within_distance(
     const std::vector<Eigen::MatrixXd> dist_vect,
     const Eigen::MatrixXd dist_length,
-    Eigen::MatrixXd& n,
+    Eigen::VectorXd& n,
     double σ
 ){
     // Get the number of particles
     int num_part = dist_vect[0].rows();
 
     // Initialize an Eigen::MatrixXd to store average n values
-    Eigen::MatrixXd avg_n(num_part, 1);
+    Eigen::VectorXd avg_n(num_part);
     avg_n.setZero();
 
      // Set up the random number generation for noise
@@ -162,41 +169,19 @@ Eigen::MatrixXd calculate_average_n_within_distance(
         }
 
         // Calculate the average angle for particle i
-        avg_n(i, 0) = mean_unit_circle_vector_angle_degrees(angles);
+        avg_n(i) = mean_unit_circle_vector_angle_degrees(angles);
 
         // Add noise to the average angle
-        avg_n(i, 0) += dist_noise(gen);
+        avg_n(i) += dist_noise(gen);
     }
 
     n = avg_n;
-    return avg_n;
 }
 
 
-Eigen::MatrixXd angles_to_unit_vectors(const Eigen::MatrixXd& avg_n) {
-    if (avg_n.cols() != 1) {
-        throw std::invalid_argument("The input matrix must have exactly 1 column.");
-    }
-
-    // Initialize an Eigen::MatrixXd to store the 2D unit vectors
-    Eigen::MatrixXd n_vec(avg_n.rows(), 3);
-
-    for (int i = 0; i < avg_n.rows(); ++i) {
-        double angle_degrees = avg_n(i, 0);
-        double angle_radians = angle_degrees * M_PI / 180.0;
-
-        // Convert the angle to a 2D unit vector
-        Eigen::Vector2d vec(cos(angle_radians), sin(angle_radians));
-        n_vec.row(i) = vec;
-    }
-    n_vec.col(2).setZero();
-
-    return n_vec;
-}
-
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
-    Eigen::MatrixXd& r,
-    Eigen::MatrixXd& n,
+std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
+    Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
     double v0,
@@ -208,15 +193,15 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     double step_size
 ){
     // Get distance vectors and calculate distances between particles
-    auto dist_vect = get_dist_vect(r);
-    auto dist_length = get_distances_between_particles(r, distance_matrix_v, vertices_3D_active);
+    auto dist_vect = get_dist_vect(r_UV);
+    auto dist_length = get_distances_between_particles(r_UV, distance_matrix_v, vertices_3D_active);
     transform_into_symmetric_matrix(dist_length);
 
     // Calculate force between particles which pulls the particle in one direction within the 2D plane
     Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
     Eigen::VectorXd abs_F = F_track.rowwise().norm();
 
-    Eigen::MatrixXd n_vec = angles_to_unit_vectors(n);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = angles_to_unit_vectors(n);
 
     // Velocity of each particle
     // 1. Every particle moves with a constant velocity v0 in the direction of the normal vector n
@@ -224,12 +209,10 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     abs_F = abs_F.array() + v0;
 
     // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
-    Eigen::MatrixXd r_dot = n_vec.array().colwise() * abs_F.array();
-    r_dot.col(2).setZero();
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot = n_vec.array().colwise() * abs_F.array();
 
     // Calculate the new position of each particle
-    Eigen::MatrixXd r_new = r + r_dot * step_size;
-    r_new.col(2).setZero();
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_new = r_UV + r_dot * step_size;
 
     // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
     calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
