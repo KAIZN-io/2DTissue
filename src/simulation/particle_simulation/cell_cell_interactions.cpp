@@ -26,6 +26,8 @@
 
 /**
 * @brief: Cells can attract or repel each other as they move depending on their distance.
+*
+* @info: Unittest implemented
 */
 Eigen::Vector2d repulsive_adhesion_motion(
     double k,
