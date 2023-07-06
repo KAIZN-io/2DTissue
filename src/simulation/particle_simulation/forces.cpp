@@ -10,6 +10,11 @@
 #include <particle_simulation/forces.h>
 
 
+/**
+* @brief: Calculate the force that each particle feels due to all the other particles
+*
+* @info: Unittest implemented
+*/
 Eigen::Matrix<double, Eigen::Dynamic, 2> calculate_forces_between_particles(
     const std::vector<Eigen::MatrixXd>& dist_vect,
     const Eigen::MatrixXd& dist_length,
