@@ -235,11 +235,15 @@ TEST(AverageNWithinDistance, Test1){
 
     Eigen::VectorXd n(10);
     n << 168, 154, 290, 83, 110, 46, 48, 144, 227, 48;
-
+    std::cout << "n: " << n << std::endl;
+    std::cout << "dist_length: " << dist_length << std::endl;
+    std::cout << "diff_y: " << diff_y << std::endl;
+    std::cout << "diff_x: " << diff_x << std::endl;
     calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
     Eigen::VectorXd expected_n(10);
     expected_n << 161, 161, 191.31, 83, 191.31, 46, 48, 144, 227, 48;
+    std::cout << "n: " << n << std::endl;
 
     double tolerance = 1e-5;
     ASSERT_TRUE(expected_n.isApprox(n, tolerance));
