@@ -5,14 +5,11 @@
 cmake_minimum_required(VERSION 3.14)
 
 # Set the Assimp path
-find_program(ASSIMP_EXECUTABLE NAMES assimp)
-if(ASSIMP_EXECUTABLE)
-  get_filename_component(ASSIMP_ROOT_DIR "${ASSIMP_EXECUTABLE}" DIRECTORY)
-  get_filename_component(ASSIMP_ROOT_DIR "${ASSIMP_ROOT_DIR}/.." ABSOLUTE)
-  message(STATUS "Found Assimp executable: ${ASSIMP_EXECUTABLE}")
-  message(STATUS "Assimp root directory: ${ASSIMP_ROOT_DIR}")
+find_package(ASSIMP REQUIRED)
+if(ASSIMP_FOUND)
+  message(STATUS "Found Assimp library")
 else()
-  message(FATAL_ERROR "Assimp executable not found. Please install Assimp library.")
+  message(FATAL_ERROR "Assimp library not found. Please install Assimp library.")
 endif()
 
 set(ASSIMP_ROOT "${ASSIMP_ROOT_DIR}")
