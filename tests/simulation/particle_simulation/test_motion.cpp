@@ -243,6 +243,7 @@ TEST(AverageNWithinDistance, Test1){
 
     Eigen::VectorXd expected_n(10);
     expected_n << 161, 161, 191.31, 83, 191.31, 46, 48, 144, 227, 48;
+    std::cout << "expected_n: " << expected_n << std::endl;
     std::cout << "n: " << n << std::endl;
 
     double tolerance = 1e-5;
