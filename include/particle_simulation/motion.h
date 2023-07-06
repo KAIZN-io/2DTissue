@@ -6,8 +6,17 @@
 #include <Eigen/Dense>
 
 void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
+
 std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
+
 double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
+
+void calculate_average_n_within_distance(
+    const std::vector<Eigen::MatrixXd> dist_vect,
+    const Eigen::MatrixXd dist_length,
+    Eigen::VectorXd& n,
+    double σ
+);
 
 std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r,

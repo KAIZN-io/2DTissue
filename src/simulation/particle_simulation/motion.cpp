@@ -33,6 +33,8 @@ void transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
 
 
 /**
+ *
+ *
  * @info: Unitests implemented
 */
 std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
@@ -57,6 +59,8 @@ std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dy
 
 
 /**
+ *
+ *
  * @brief Calculate the distance between each pair of particles
 */
 Eigen::MatrixXd get_distances_between_particles(
@@ -123,6 +127,8 @@ double mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
 * {\displaystyle \Theta _{i}(t+\Delta t)=\langle \Theta _{j}\rangle _{|r_{i}-r_{j}|<r}+\eta _{i}(t)}
 *
 * @brief At each time step, each particle aligns with its neighbours within a given distance with an uncertainity due to a noise.
+*
+* @info: Unitest implemented
 */
 void calculate_average_n_within_distance(
     const std::vector<Eigen::MatrixXd> dist_vect,
