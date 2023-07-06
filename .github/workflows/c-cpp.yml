@@ -8,26 +8,32 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+
+    runs-on: macos-latest
 
     steps:
-    - name: Check out source code
+    - name: Checkout repository
       uses: actions/checkout@v3
 
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y llvm clang emscripten libassimp-dev yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev libcgal-dev googletest
-
-    - name: Configure
-      run: |
-        mkdir build
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2" -DCMAKE_C_COMPILER=$(which clang) -DCMAKE_CXX_COMPILER=$(which clang++)
+        brew update
+        brew install llvm
+        brew install cmake
+        brew install emscripten
+        brew install assimp
+        brew install yarn
+        brew install boost
+        brew install eigen
+        brew install cgal
+        brew install googletest
 
     - name: Build
       run: |
-        make -C build -j $(nproc)
+        mkdir build
+        cd build
+        cmake ..
+        make
 
     - name: Test
-      run: |
-        ./build/all_tests
+      run: ./build/all_tests
