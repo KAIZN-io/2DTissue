@@ -173,8 +173,6 @@ void calculate_average_n_within_distance(
 }
 
 
-
-
 std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::VectorXd& n,
