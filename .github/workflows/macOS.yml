@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: macOS C/C++ CI
 
 on:
   push:
@@ -27,11 +27,17 @@ jobs:
         brew install cgal
         brew install googletest
 
+    - name: Set environment
+      run: |
+        echo "LLVM_PATH=$(brew --prefix llvm)" >> $GITHUB_ENV
+        echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
+        echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
+
     - name: Build 2DTissue
       run: |
         mkdir build
         cd build
-        cmake ..
+        cmake -DCMAKE_CXX_STANDARD=17 ..
         make
 
     - name: Test
