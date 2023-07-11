@@ -4,14 +4,6 @@
 # Set the minimum version of CMake required
 cmake_minimum_required(VERSION 3.14)
 
-# Set the Assimp path
-find_package(assimp CONFIG REQUIRED)
-if(assimp_FOUND)
-  message(STATUS "Found Assimp library")
-else()
-  message(FATAL_ERROR "Assimp library not found. Please install Assimp library.")
-endif()
-
 # Set the project name and version
 project(2DTissue VERSION 1.0)
 
@@ -28,12 +20,20 @@ set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 # Find required packages
-find_package(CGAL 5.5.1 REQUIRED)
-find_package(Boost 1.80.0 REQUIRED)
-find_package(Eigen3 3.4.0 REQUIRED)
+find_package(assimp CONFIG REQUIRED)
+find_package(CGAL REQUIRED)
+find_package(Boost REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(OpenMP)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
+
+# Set the Assimp path
+if(assimp_FOUND)
+  message(STATUS "Found Assimp library")
+else()
+  message(FATAL_ERROR "Assimp library not found. Please install Assimp library.")
+endif()
 
 # Check if Boost is found
 if(NOT Boost_FOUND)
