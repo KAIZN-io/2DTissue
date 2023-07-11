@@ -16,7 +16,7 @@
 #include <io/mesh_loader.h>
 #include <utilities/sim_structs.h>
 
-Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {
+Eigen::MatrixXd loadMeshVertices(const std::string filepath) {
     // Create an instance of the Importer class
     Assimp::Importer importer;
 
@@ -51,7 +51,7 @@ Eigen::MatrixXd loadMeshVertices(const std::string& filepath) {
 }
 
 
-Eigen::MatrixXi loadMeshFaces(const std::string& filepath) {
+Eigen::MatrixXi loadMeshFaces(const std::string filepath) {
     // Create an instance of the Importer class
     Assimp::Importer importer;
 
