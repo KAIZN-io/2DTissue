@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <Eigen/Dense>
 
+#include <io/mesh_loader.h>
+#include <io/csv.h>
 
 std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(
     const Eigen::Matrix<double, Eigen::Dynamic, 2> r,

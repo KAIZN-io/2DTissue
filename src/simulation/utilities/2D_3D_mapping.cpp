@@ -13,8 +13,6 @@
 
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/barycentric_coord.h>
-#include <io/mesh_loader.h>
-#include <io/csv.h>
 
 const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 

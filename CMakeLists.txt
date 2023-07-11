@@ -65,7 +65,7 @@ add_library(io_lib STATIC
     src/simulation/io/mesh_loader.cpp
 )
 target_include_directories(io_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost)
+target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
 
 add_library(particle_simulation_lib STATIC
     src/simulation/particle_simulation/cell_cell_interactions.cpp
@@ -75,7 +75,7 @@ add_library(particle_simulation_lib STATIC
     src/simulation/particle_simulation/simulation.cpp
 )
 target_include_directories(particle_simulation_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost)
+target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
 
 add_library(utilities_lib STATIC
     src/simulation/2DTissue.cpp
@@ -98,7 +98,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/validity_check.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost)
+target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
 
 # Link required libraries to the targets
 target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp Boost::filesystem)
