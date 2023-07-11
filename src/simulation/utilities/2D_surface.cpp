@@ -54,8 +54,8 @@ using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
 using Point_3 = Kernel::Point_3;
 
-#define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Kernel::Point_3>
-#include <CGAL/boost/graph/graph_traits_inheritance_macros.h>
+// #define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Kernel::Point_3>
+// #include <CGAL/boost/graph/graph_traits_inheritance_macros.h>
 
 namespace _3D {
     using Mesh = CGAL::Surface_mesh<Point_3>;
