@@ -367,7 +367,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     _3D::vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
     auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_path, start_node, start_node_int);
 
-    const auto mesh_file_path = meshmeta.mesh_path;
+    std::string mesh_file_path = meshmeta.mesh_path;
 
     return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
 }
