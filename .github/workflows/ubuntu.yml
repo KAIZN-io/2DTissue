@@ -32,7 +32,7 @@ jobs:
         sudo update-alternatives --install /usr/bin/cc cc $(which clang) 100
         sudo update-alternatives --install /usr/bin/c++ c++ $(which clang++) 100
         mkdir build
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2" -DASSIMP_DIR=/usr/local/lib/cmake/assimp-5.2.5
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2" -DCMAKE_PREFIX_PATH=/usr/local
 
     - name: Build
       run: |
