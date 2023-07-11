@@ -35,8 +35,9 @@ jobs:
         sudo update-alternatives --install /usr/bin/cc cc $(which clang) 100
         sudo update-alternatives --install /usr/bin/c++ c++ $(which clang++) 100
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 ..
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-stdlib=libstdc++" ..
         make -j $(nproc)
+
 
     - name: Test
       run: |
