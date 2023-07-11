@@ -34,7 +34,6 @@ jobs:
       run: |
         sudo update-alternatives --install /usr/bin/cc cc $(which clang) 100
         sudo update-alternatives --install /usr/bin/c++ c++ $(which clang++) 100
-        mkdir build
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2"
 
     - name: Build
