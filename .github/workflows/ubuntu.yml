@@ -19,15 +19,16 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev libcgal-dev googletest libgtest-dev libomp-dev libassimp-dev
+        sudo apt-get install -y llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev
 
-    # - name: Build and Install ASSIMP from source
-    #   run: |
-    #     git clone -b 'v5.2.5' --single-branch --depth 1 https://github.com/assimp/assimp.git
-    #     cd assimp
-    #     cmake CMakeLists.txt -DBUILD_SHARED_LIBS=OFF
-    #     make
-    #     sudo make install
+    - name: Build and Install CGAL from source
+      run: |
+        git clone -b releases/CGAL-5.4 --single-branch --depth 1 https://github.com/CGAL/cgal.git
+        mkdir -p build/cgal
+        cd build/cgal
+        cmake ../../cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF
+        make
+        sudo make install
 
     - name: Configure
       run: |
