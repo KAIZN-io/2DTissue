@@ -4,11 +4,11 @@
 // version: 0.2.0
 
 #include <iostream>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 
 #include <2DTissue.h>
 
-const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
+const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 int main()
 {

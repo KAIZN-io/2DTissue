@@ -14,6 +14,7 @@ Disclaimer: The heat method solver is the bottle neck of the algorithm.
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
+#include <boost/filesystem.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -94,7 +95,7 @@ int get_all_distances(std::string mesh_path){
     // save the distance matrix to a csv file using comma as delimiter
     const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
 
-    const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
+    const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
     std::cout << "Saving distance matrix to file..." << std::endl;
     std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";

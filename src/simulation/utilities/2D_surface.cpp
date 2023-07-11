@@ -8,7 +8,6 @@
 // Standard Library
 #include <algorithm>
 #include <cstddef>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <list>
@@ -26,6 +25,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/property_map/property_map.hpp>
+#include <boost/filesystem.hpp>
 
 // CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -76,7 +76,7 @@ namespace UV {
 }
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
-namespace fs = std::filesystem;
+namespace fs = boost::filesystem;
 
 const fs::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 const fs::path MESH_FOLDER = PROJECT_PATH  / "meshes";
@@ -130,7 +130,7 @@ int save_UV_mesh(
     }
 
     // Create the output file stream
-    std::ofstream out(output_file_path);
+    std::ofstream out(output_file_path.string());
 
     // Write the UV map to the output file
     SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);

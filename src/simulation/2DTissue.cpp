@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <Eigen/Dense>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 
 #include <particle_simulation/simulation.h>
 #include <utilities/init_particle.h>
@@ -56,7 +56,7 @@ _2DTissue::_2DTissue(
     // Initialize the simulation
     // Check if the distance matrix of the static 3D mesh already exists
     std::string distance_matrix_path = PROJECT_PATH + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
-    if (!std::filesystem::exists(distance_matrix_path)) {
+    if (!boost::filesystem::exists(distance_matrix_path)) {
 
         // Calculate the distance matrix of the static 3D mesh
         get_all_distances(mesh_path);

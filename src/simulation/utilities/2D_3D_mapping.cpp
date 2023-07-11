@@ -9,14 +9,14 @@
 #include <cstdint>
 #include <Eigen/Dense>
 #include <unordered_set>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/barycentric_coord.h>
 #include <io/mesh_loader.h>
 #include <io/csv.h>
 
-const std::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
+const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 // (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
 std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d(

@@ -8,9 +8,9 @@
 #include <Eigen/Dense>
 #include <iomanip>
 #include <iostream>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 
-const std::filesystem::path PROJECT_PATH_IO = PROJECT_SOURCE_DIR;
+const boost::filesystem::path PROJECT_PATH_IO = PROJECT_SOURCE_DIR;
 
 
 // We need do define it in the header file or otherwise the template specialization will not be available at link time

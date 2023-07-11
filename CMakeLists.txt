@@ -22,7 +22,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 # Find required packages
 find_package(assimp CONFIG REQUIRED)
 find_package(CGAL REQUIRED)
-find_package(Boost REQUIRED)
+find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(GTest REQUIRED)
@@ -101,7 +101,7 @@ target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/in
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp)
+target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp Boost::filesystem)
 
 # Install the target
 install(TARGETS main
@@ -120,7 +120,7 @@ add_executable(all_tests ${TEST_SOURCES})
 target_link_libraries(all_tests ${GTEST_BOTH_LIBRARIES})
 
 # Link your libraries to the test executable
-target_link_libraries(all_tests io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp ${GTEST_BOTH_LIBRARIES})
+target_link_libraries(all_tests io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp ${GTEST_BOTH_LIBRARIES} Boost::filesystem)
 
 # Link the pthread library, which is required by Google Test
 target_link_libraries(all_tests pthread)
