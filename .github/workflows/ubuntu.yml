@@ -17,23 +17,14 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev libcgal-dev googletest
-
-    - name: Build and Install ASSIMP from source
-      run: |
-        git clone -b 'v5.2.5' --single-branch --depth 1 https://github.com/assimp/assimp.git
-        cd assimp
-        cmake CMakeLists.txt -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=$(pwd)/install
-        make
-        sudo make install
-        echo "ASSIMP_DIR=$(pwd)/install" >> $GITHUB_ENV
+        sudo apt-get install -y llvm libassimp-dev clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev libcgal-dev googletest
 
     - name: Configure
       run: |
         sudo update-alternatives --install /usr/bin/cc cc $(which clang) 100
         sudo update-alternatives --install /usr/bin/c++ c++ $(which clang++) 100
         mkdir build
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2" -DCMAKE_PREFIX_PATH=$ASSIMP_DIR
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2"
 
     - name: Build
       run: |
