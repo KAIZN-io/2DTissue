@@ -101,7 +101,7 @@ target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/in
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp Boost::filesystem)
+target_link_libraries(main PUBLIC io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp Boost::filesystem)
 
 # Install the target
 install(TARGETS main
