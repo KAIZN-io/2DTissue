@@ -34,7 +34,7 @@ jobs:
       run: |
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 ..
-        make -j $(nproc)
+        make
 
     - name: Test
       run: |
