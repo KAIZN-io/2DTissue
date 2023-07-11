@@ -1,44 +1,44 @@
-name: macOS C/C++ CI
+# name: macOS C/C++ CI
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+# on:
+#   push:
+#     branches: [ "main" ]
+#   pull_request:
+#     branches: [ "main" ]
 
-jobs:
-  build:
+# jobs:
+#   build:
 
-    runs-on: macos-latest
+#     runs-on: macos-latest
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+#     steps:
+#     - name: Checkout repository
+#       uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: |
-        brew install llvm
-        brew install cmake
-        brew install emscripten
-        brew install assimp
-        brew install yarn
-        brew install boost
-        brew install eigen
-        brew install cgal
-        brew install googletest
+#     - name: Install dependencies
+#       run: |
+#         brew install llvm
+#         brew install cmake
+#         brew install emscripten
+#         brew install assimp
+#         brew install yarn
+#         brew install boost
+#         brew install eigen
+#         brew install cgal
+#         brew install googletest
 
-    - name: Set environment
-      run: |
-        LLVM_PATH=$(brew --prefix llvm)
-        echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
-        echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
+#     - name: Set environment
+#       run: |
+#         LLVM_PATH=$(brew --prefix llvm)
+#         echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
+#         echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
 
-    - name: Build 2DTissue
-      run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_CXX_STANDARD=17 ..
-        make
+#     - name: Build 2DTissue
+#       run: |
+#         mkdir build
+#         cd build
+#         cmake -DCMAKE_CXX_STANDARD=17 ..
+#         make
 
-    - name: Test
-      run: ./build/all_tests
+#     - name: Test
+#       run: ./build/all_tests

@@ -19,15 +19,18 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y llvm clang emscripten libassimp-dev yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev libcgal-dev googletest
 
-    # - name: Configure
-    #   run: |
-    #     mkdir build
-    #     cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2" -DCMAKE_C_COMPILER=$(which clang) -DCMAKE_CXX_COMPILER=$(which clang++)
+    - name: Configure
+      run: |
+        sudo update-alternatives --install /usr/bin/cc cc $(which clang) 100
+        sudo update-alternatives --install /usr/bin/c++ c++ $(which clang++) 100
+        mkdir build
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-O2"
 
-    # - name: Build
-    #   run: |
-    #     make -C build -j $(nproc)
 
-    # - name: Test
-    #   run: |
-    #     ./build/all_tests
+    - name: Build
+      run: |
+        make -C build -j $(nproc)
+
+    - name: Test
+      run: |
+        ./build/all_tests
