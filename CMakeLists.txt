@@ -5,16 +5,12 @@
 cmake_minimum_required(VERSION 3.14)
 
 # Set the Assimp path
-find_package(ASSIMP REQUIRED)
-if(ASSIMP_FOUND)
+find_package(assimp CONFIG REQUIRED)
+if(assimp_FOUND)
   message(STATUS "Found Assimp library")
 else()
   message(FATAL_ERROR "Assimp library not found. Please install Assimp library.")
 endif()
-
-set(ASSIMP_ROOT "${ASSIMP_ROOT_DIR}")
-set(ASSIMP_INCLUDE_DIRS "${ASSIMP_ROOT}/include")
-set(ASSIMP_LIBRARY_DIRS "${ASSIMP_ROOT}/lib")
 
 # Set the project name and version
 project(2DTissue VERSION 1.0)
@@ -54,10 +50,6 @@ endif()
 # Include directories for local header files
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include(CGAL_Eigen3_support)
-
-# Include the Assimp headers and libraries
-include_directories(${ASSIMP_INCLUDE_DIRS})
-link_directories(${ASSIMP_LIBRARY_DIRS})
 
 # ##########################################################
 # Creating entries for all C++ files with "main" routine
@@ -109,7 +101,7 @@ target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/in
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost)
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
+target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp)
 
 # Install the target
 install(TARGETS main
@@ -128,7 +120,7 @@ add_executable(all_tests ${TEST_SOURCES})
 target_link_libraries(all_tests ${GTEST_BOTH_LIBRARIES})
 
 # Link your libraries to the test executable
-target_link_libraries(all_tests io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp)
+target_link_libraries(all_tests io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp ${GTEST_BOTH_LIBRARIES})
 
 # Link the pthread library, which is required by Google Test
 target_link_libraries(all_tests pthread)
