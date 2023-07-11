@@ -23,7 +23,7 @@ jobs:
 
     - name: Build and Install CGAL from source
       run: |
-        git clone -b releases/v5.5.2 --single-branch --depth 1 https://github.com/CGAL/cgal.git
+        git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git
         mkdir -p build/cgal
         cd build/cgal
         cmake ../../cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF
