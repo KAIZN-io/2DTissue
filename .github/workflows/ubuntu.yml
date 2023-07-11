@@ -30,15 +30,12 @@ jobs:
         make
         sudo make install
 
-    - name: Configure
+    - name: Build 2DTissue
       run: |
         sudo update-alternatives --install /usr/bin/cc cc $(which clang) 100
         sudo update-alternatives --install /usr/bin/c++ c++ $(which clang++) 100
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS="-O2"
-
-    - name: Build
-      run: |
+        cmake -DCMAKE_CXX_STANDARD=17 ..
         make -C build -j $(nproc)
 
     - name: Test
