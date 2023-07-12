@@ -65,7 +65,7 @@ add_library(io_lib STATIC
     src/simulation/io/mesh_loader.cpp
 )
 target_include_directories(io_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
+target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
 
 add_library(particle_simulation_lib STATIC
     src/simulation/particle_simulation/cell_cell_interactions.cpp
@@ -101,7 +101,7 @@ target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/in
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp Boost::filesystem)
+target_link_libraries(main PRIVATE CGAL::Eigen3_support io_lib particle_simulation_lib utilities_lib)
 
 # Install the target
 install(TARGETS main
@@ -116,11 +116,6 @@ file(GLOB TEST_SOURCES tests/simulation/**/*.cpp)
 # Create a test executable for all available tests
 add_executable(all_tests ${TEST_SOURCES})
 
-# Link the test executable with the Google Test libraries
-target_link_libraries(all_tests ${GTEST_BOTH_LIBRARIES})
-
 # Link your libraries to the test executable
-target_link_libraries(all_tests io_lib particle_simulation_lib utilities_lib CGAL::Eigen3_support assimp::assimp ${GTEST_BOTH_LIBRARIES} Boost::filesystem)
+target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support io_lib particle_simulation_lib utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)
 
-# Link the pthread library, which is required by Google Test
-target_link_libraries(all_tests pthread)
