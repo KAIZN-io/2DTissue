@@ -5,12 +5,6 @@ SHELL := /bin/bash
 # Path to project directory
 PROJECT_DIR := $(shell pwd)
 
-# CMake flags
-CMAKE_FLAGS := -DCMAKE_BUILD_TYPE=Release \
-               -DCMAKE_CXX_FLAGS="-O2" \
-				-DCMAKE_C_COMPILER=$(shell brew --prefix llvm)/bin/clang \
-			   -DCMAKE_CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++;
-
 .PHONY: all
 all: check_dependencies build_cgal build
 
@@ -59,11 +53,20 @@ build_cgal:
 
 .PHONY: build
 build:
-	cmake -S $(PROJECT_DIR) \
-		  -B $(PROJECT_DIR)/build \
-		  $(CMAKE_FLAGS)
-	$(MAKE) -C $(PROJECT_DIR)/build -j $(shell nproc)
-	@echo "Build finished. The binaries are in $(PROJECT_DIR)/build/lib"
+	@OS=$$(uname -s); \
+	if [ "$$OS" == "Darwin" ]; then \
+		cmake -S $(PROJECT_DIR) \
+			-B $(PROJECT_DIR)/build \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_C_COMPILER=$(shell brew --prefix llvm)/bin/clang \
+			-DCMAKE_CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++;\
+	elif [ "$$OS" == "Linux" ]; then \
+		echo "Building for Linux..."; \
+		cmake -S $(PROJECT_DIR) \
+			-B $(PROJECT_DIR)/build \
+			-DCMAKE_BUILD_TYPE=Release; \
+	fi
+	$(MAKE) -C $(PROJECT_DIR)/build -j $$(nproc); \
 
 ########################################################################################################################
 # Setup                                                                                                                #
