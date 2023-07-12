@@ -29,7 +29,6 @@ check_dependencies:
 		export PATH="$$LLVM_PATH/bin:$$PATH"; \
 		export LDFLAGS="-L$$LLVM_PATH/lib $$LDFLAGS"; \
 		export CPPFLAGS="-I$$LLVM_PATH/include $$CPPFLAGS"; \
-		CMAKE_FLAGS="$$CMAKE_FLAGS -DCMAKE_C_COMPILER=$$LLVM_PATH/bin/clang -DCMAKE_CXX_COMPILER=$$LLVM_PATH/bin/clang++"; \
 		which emcc >/dev/null || (echo "Installing Emscripten via Homebrew..."; brew install emscripten); \
 		which assimp >/dev/null || (echo "Installing Assimp via Homebrew..."; brew install assimp); \
 		which yarn >/dev/null || (echo "Installing Yarn via Homebrew..."; brew install yarn); \
