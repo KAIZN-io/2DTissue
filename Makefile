@@ -65,6 +65,8 @@ build:
 		cmake -S $(PROJECT_DIR) \
 			-B $(PROJECT_DIR)/build \
 			-DCMAKE_BUILD_TYPE=Release; \
+			-DCMAKE_C_COMPILER=/usr/bin/gcc \
+			-DCMAKE_CXX_COMPILER=/usr/bin/g++; \
 	fi
 	$(MAKE) -C $(PROJECT_DIR)/build -j $$(nproc); \
 
