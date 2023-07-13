@@ -93,6 +93,8 @@ MeshMeta meshmeta;
 
 /**
  * @brief Extract the mesh name (without extension) from its file path
+ *
+ * @info: Unittest implemented
 */
 std::string get_mesh_name(
    const std::string mesh_3D_path
