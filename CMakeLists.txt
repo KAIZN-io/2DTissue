@@ -92,6 +92,7 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/error_checking.cpp
     src/simulation/utilities/init_particle.cpp
     src/simulation/utilities/matrix_algebra.cpp
+    src/simulation/utilities/mesh_descriptor.cpp
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/splay_state.cpp
     src/simulation/utilities/update.cpp

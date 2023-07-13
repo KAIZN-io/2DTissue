@@ -22,20 +22,13 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graph_traits.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/filesystem.hpp>
 
 // CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Simple_cartesian.h>
 #include <CGAL/Timer.h>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/boost/graph/Seam_mesh.h>
-#include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/breadth_first_search.h>
-#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
 #include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
@@ -47,33 +40,9 @@
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
+#include <utilities/mesh_descriptor.h>
 #include <utilities/2D_surface.h>
 #include <io/csv.h>
-
-using Kernel = CGAL::Simple_cartesian<double>;
-using Point_2 = Kernel::Point_2;
-using Point_3 = Kernel::Point_3;
-
-// #define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Kernel::Point_3>
-// #include <CGAL/boost/graph/graph_traits_inheritance_macros.h>
-
-namespace _3D {
-    using Mesh = CGAL::Surface_mesh<Point_3>;
-    using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
-    using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
-    using edge_descriptor = boost::graph_traits<Mesh>::edge_descriptor;
-    using Seam_edge_pmap = Mesh::Property_map<edge_descriptor, bool>;
-    using Seam_vertex_pmap = Mesh::Property_map<vertex_descriptor, bool>;
-    using UV_pmap = Mesh::Property_map<halfedge_descriptor, Point_2>;
-}
-
-namespace UV {
-    using Mesh = CGAL::Seam_mesh<_3D::Mesh,
-                                _3D::Seam_edge_pmap,
-                                _3D::Seam_vertex_pmap>;
-    using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
-    using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
-}
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = boost::filesystem;
@@ -130,15 +99,16 @@ int save_UV_mesh(
     } else {
         output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv_" + std::to_string(uv_mesh_number) + ".off");
     }
+    std::string output_file_path_str = output_file_path.string();
 
     // Create the output file stream
-    std::ofstream out(output_file_path.string());
+    std::ofstream out(output_file_path_str);
 
     // Write the UV map to the output file
     SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
 
     // Store the file path as a meta data
-    meshmeta.mesh_path = output_file_path.string();
+    meshmeta.mesh_path = output_file_path_str;
 
     return 0;
 }
@@ -373,3 +343,4 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
 
     return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
 }
+
