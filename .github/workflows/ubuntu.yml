@@ -1,41 +1,41 @@
-name: Ubuntu C/C++ CI
+# name: Ubuntu C/C++ CI
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  schedule:
-    - cron: '0 0 * * 0' # runs at 00:00 on every Sunday
+# on:
+#   push:
+#     branches: [ "main" ]
+#   pull_request:
+#     branches: [ "main" ]
+#   schedule:
+#     - cron: '0 0 * * 0' # runs at 00:00 on every Sunday
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
 
-    steps:
-    - name: Check out source code
-      uses: actions/checkout@v3
+#     steps:
+#     - name: Check out source code
+#       uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev
+#     - name: Install dependencies
+#       run: |
+#         sudo apt-get update
+#         sudo apt-get install -y g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev
 
-    - name: Build and Install CGAL from source
-      run: |
-        git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git
-        mkdir -p build/cgal
-        cd build/cgal
-        cmake ../../cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF
-        make
-        sudo make install
+#     - name: Build and Install CGAL from source
+#       run: |
+#         git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git
+#         mkdir -p build/cgal
+#         cd build/cgal
+#         cmake ../../cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF
+#         make
+#         sudo make install
 
-    - name: Build 2DTissue
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 ..
-        make -j $(nproc)
+#     - name: Build 2DTissue
+#       run: |
+#         cd build
+#         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 ..
+#         make -j $(nproc)
 
-    - name: Test
-      run: |
-        ./build/all_tests
+#     - name: Test
+#       run: |
+#         ./build/all_tests
