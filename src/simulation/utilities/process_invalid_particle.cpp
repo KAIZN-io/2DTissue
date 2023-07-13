@@ -54,7 +54,9 @@ void process_invalid_particle(
     auto [r_UV_virtual, r_dot, dist_length] = simulate_flight(r_active, n, old_ids, distance_matrix, v0, k, σ, μ, r_adh, k_adh, dt);
 
     // Get the new vertice id
-    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
+    Eigen::MatrixXi faces_uv;
+    loadMeshFaces(mesh_file_path, faces_uv);
+
     // Map them to the 3D coordinates
     auto [r_3D_virtual, vertices_3D_active] = get_r3d(r_UV_virtual, halfedges_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
@@ -122,7 +124,8 @@ void process_if_not_valid(
 
             // because it is on the Seam Edge line of its own mesh !!
             auto [h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path] = create_uv_surface("Ellipsoid", maxIndex_int);
-            Eigen::MatrixXd halfedge_uv = loadMeshVertices(mesh_file_path);
+            Eigen::MatrixXd halfedge_uv;
+            loadMeshVertices(mesh_file_path, halfedge_uv);
 
             // Store the new meshes
             vertices_2DTissue_map[maxIndex_int] = Mesh_UV_Struct{maxIndex_int, halfedge_uv, h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path};

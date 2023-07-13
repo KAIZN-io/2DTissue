@@ -67,8 +67,8 @@ _2DTissue::_2DTissue(
     // std::ignore is used to ignore values you don't need from the returned tuple.
     std::tie(h_v_mapping, vertices_UV, vertices_3D, mesh_file_path) = create_uv_surface(mesh_path, 0);
 
-    halfedge_uv = loadMeshVertices(mesh_file_path);
-    faces_uv = loadMeshFaces(mesh_file_path);
+    loadMeshVertices(mesh_file_path, halfedge_uv);
+    loadMeshFaces(mesh_file_path, faces_uv);
     vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path};
 
     // Initialize the order parameter vector

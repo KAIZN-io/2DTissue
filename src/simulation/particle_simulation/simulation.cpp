@@ -67,7 +67,8 @@ std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::Mat
     Eigen::MatrixXd vertices_UV = mesh_struct.vertices_UV;
     Eigen::MatrixXd vertices_3D = mesh_struct.vertices_3D;
     std::string mesh_file_path = mesh_struct.mesh_file_path;
-    Eigen::MatrixXi faces_uv = loadMeshFaces(mesh_file_path);
+    Eigen::MatrixXi faces_uv;
+    loadMeshFaces(mesh_file_path, faces_uv);
 
     // 1. Simulate the flight of the particle on the UV mesh
     auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);

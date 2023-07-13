@@ -1,7 +1,7 @@
 // author: @Jan-Piotraschke
-// date: 2023-04-19
+// date: 2023-07-13
 // license: Apache License 2.0
-// version: 0.1.0
+// version: 0.2.0
 
 #include <iostream>
 #include <cstdint>
@@ -16,7 +16,8 @@
 #include <io/mesh_loader.h>
 #include <utilities/sim_structs.h>
 
-Eigen::MatrixXd loadMeshVertices(std::string filepath) {
+
+void loadMeshVertices(std::string filepath, Eigen::MatrixXd& vertices) {
     // Create an instance of the Importer class
     Assimp::Importer importer;
 
@@ -27,14 +28,13 @@ Eigen::MatrixXd loadMeshVertices(std::string filepath) {
 
     if (!scene) {
         std::cerr << "Failed to load model: " << filepath << std::endl;
-        return Eigen::MatrixXd(0, 0);
     }
 
     // Get the first mesh in the scene
     const aiMesh* mesh = scene->mMeshes[0];
 
-    // Create an Eigen matrix to store the vertices coordinates
-    Eigen::MatrixXd vertices(mesh->mNumVertices, 3);
+    // Resize the Eigen matrix to store the vertices coordinates
+    vertices.resize(mesh->mNumVertices, 3);
 
     // Copy the vertices coordinates from the mesh to the Eigen matrix
     for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -43,15 +43,10 @@ Eigen::MatrixXd loadMeshVertices(std::string filepath) {
         vertices(i, 1) = vertex.y;
         vertices(i, 2) = vertex.z;
     }
-
-    // Free the memory allocated by the importer
-    importer.FreeScene();
-
-    return vertices;
 }
 
 
-Eigen::MatrixXi loadMeshFaces(std::string filepath) {
+void loadMeshFaces(std::string filepath, Eigen::MatrixXi& faces) {
     // Create an instance of the Importer class
     Assimp::Importer importer;
 
@@ -62,14 +57,13 @@ Eigen::MatrixXi loadMeshFaces(std::string filepath) {
 
     if (!scene) {
         std::cerr << "Failed to load model: " << filepath << std::endl;
-        return Eigen::MatrixXi(0, 0);
     }
 
     // Get the first mesh in the scene
     const aiMesh* mesh = scene->mMeshes[0];
 
-        // Create an Eigen matrix to store the face indices
-    Eigen::MatrixXi faces(mesh->mNumFaces, 3);
+    // Resize the Eigen matrix to store the face indices
+    faces.resize(mesh->mNumFaces, 3);
 
     // Copy the face indices from the mesh to the Eigen matrix
     for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
@@ -80,11 +74,6 @@ Eigen::MatrixXi loadMeshFaces(std::string filepath) {
             faces(i, 2) = face.mIndices[2];
         }
     }
-
-    // Free the memory allocated by the importer
-    importer.FreeScene();
-
-    return faces;
 }
 
 

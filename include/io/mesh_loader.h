@@ -13,9 +13,9 @@
 
 #include <utilities/sim_structs.h>
 
-Eigen::MatrixXd loadMeshVertices(std::string filepath);
+void loadMeshVertices(std::string filepath, Eigen::MatrixXd& vertices);
 
-Eigen::MatrixXi loadMeshFaces(std::string filepath);
+void loadMeshFaces(std::string filepath, Eigen::MatrixXi& faces);
 
 std::pair<Eigen::MatrixXd, std::vector<int64_t>> get_mesh_data(
     std::unordered_map<int, Mesh_UV_Struct> mesh_dict,

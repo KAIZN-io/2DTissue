@@ -48,7 +48,9 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> get_r2d(
 ){
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
-    Eigen::MatrixXi faces_3D_static = loadMeshFaces(mesh_3D_file_path);
+
+    Eigen::MatrixXi faces_3D_static;
+    loadMeshFaces(mesh_3D_file_path, faces_3D_static);
 
     int num_r = r.rows();
     Eigen::Matrix<double, Eigen::Dynamic, 2> new_2D_points(num_r, 2);
