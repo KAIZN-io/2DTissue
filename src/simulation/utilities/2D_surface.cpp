@@ -5,75 +5,28 @@
 
 // known Issue: https://github.com/CGAL/cgal/issues/2994
 
-// Standard Library
-#include <algorithm>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
-#include <list>
-#include <map>
-#include <sstream>
 #include <string>
-#include <tuple>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
-// Boost
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graph_traits.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/filesystem.hpp>
 
-// CGAL
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Timer.h>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/boost/graph/Seam_mesh.h>
-#include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/breadth_first_search.h>
-#include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
-#include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
-#include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
+
 // Surface Parameterization Methods
-#include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>
-#include <CGAL/Surface_mesh_parameterization/Discrete_authalic_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/IO/File_off.h>
+#include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
-#include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
-#include <utilities/2D_surface.h>
 #include <io/csv.h>
-
-using Kernel = CGAL::Simple_cartesian<double>;
-using Point_2 = Kernel::Point_2;
-using Point_3 = Kernel::Point_3;
-
-// #define CGAL_GRAPH_TRAITS_INHERITANCE_BASE_CLASS_NAME CGAL::Surface_mesh<::Kernel::Point_3>
-// #include <CGAL/boost/graph/graph_traits_inheritance_macros.h>
-
-namespace _3D {
-    using Mesh = CGAL::Surface_mesh<Point_3>;
-    using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
-    using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
-    using edge_descriptor = boost::graph_traits<Mesh>::edge_descriptor;
-    using Seam_edge_pmap = Mesh::Property_map<edge_descriptor, bool>;
-    using Seam_vertex_pmap = Mesh::Property_map<vertex_descriptor, bool>;
-    using UV_pmap = Mesh::Property_map<halfedge_descriptor, Point_2>;
-}
-
-namespace UV {
-    using Mesh = CGAL::Seam_mesh<_3D::Mesh,
-                                _3D::Seam_edge_pmap,
-                                _3D::Seam_vertex_pmap>;
-    using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
-    using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
-}
+#include <utilities/mesh_descriptor.h>
+#include <utilities/2D_surface.h>
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = boost::filesystem;
@@ -93,6 +46,8 @@ MeshMeta meshmeta;
 
 /**
  * @brief Extract the mesh name (without extension) from its file path
+ *
+ * @info: Unittest implemented
 */
 std::string get_mesh_name(
    const std::string mesh_3D_path
@@ -128,22 +83,52 @@ int save_UV_mesh(
     } else {
         output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv_" + std::to_string(uv_mesh_number) + ".off");
     }
+    std::string output_file_path_str = output_file_path.string();
 
     // Create the output file stream
-    std::ofstream out(output_file_path.string());
+    std::ofstream out(output_file_path_str);
 
     // Write the UV map to the output file
     SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
 
     // Store the file path as a meta data
-    meshmeta.mesh_path = output_file_path.string();
+    meshmeta.mesh_path = output_file_path_str;
 
     return 0;
 }
 
 
 /**
+ * @brief Calculate the distances from a given start vertex to all other vertices
+ *
+ * @info: Unittest implemented
+*/
+void calculate_distances(
+    _3D::Mesh mesh,
+    _3D::vertex_descriptor start_node,
+    std::vector<_3D::vertex_descriptor>& predecessor_pmap,
+    std::vector<int>& distance
+){
+    auto indexmap = get(boost::vertex_index, mesh);
+
+    auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
+
+    // BFS with visitors for recording distances and predecessors
+    auto vis = boost::make_bfs_visitor(
+        std::make_pair(
+            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
+            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
+        )
+    );
+
+    boost::breadth_first_search(mesh, start_node, visitor(vis));
+}
+
+
+/**
  * @brief Find the farthest vertex from a given start vertex
+ *
+ * @info: Unittest implemented
 */
 _3D::vertex_descriptor find_farthest_vertex(
     const _3D::Mesh mesh,
@@ -169,6 +154,8 @@ _3D::vertex_descriptor find_farthest_vertex(
 /**
 * @brief Create a path of vertices from the start node to the target node
 *
+* @info: Unittest implemented
+*
 * ! The size of the path_list multiplied with 2 is the number of vertices on the border of the UV mesh
 *
 * So, if you want something like an inverse 'Poincaré disk' you have to really shorten the path_list
@@ -177,11 +164,10 @@ _3D::vertex_descriptor find_farthest_vertex(
 std::vector<_3D::edge_descriptor> get_cut_line(
     const _3D::Mesh mesh,
     const _3D::vertex_descriptor start_node,
-    const _3D::vertex_descriptor target_node,
+    _3D::vertex_descriptor current,
     const std::vector<_3D::vertex_descriptor> predecessor_pmap
 ) {
     std::vector<_3D::edge_descriptor> path_list;
-    _3D::vertex_descriptor current = target_node;
 
     while (current != start_node) {
         _3D::vertex_descriptor predecessor = predecessor_pmap[current];
@@ -206,6 +192,8 @@ std::vector<_3D::edge_descriptor> get_cut_line(
 
 /**
 * @brief Calculate the virtual border of the mesh
+*
+* @info: Unittest implemented
 */
 std::vector<_3D::edge_descriptor> set_UV_border_edges(
     const std::string mesh_file_path,
@@ -216,24 +204,12 @@ std::vector<_3D::edge_descriptor> set_UV_border_edges(
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
     in >> mesh;
 
-    using Point_property_map = boost::property_map<_3D::Mesh, CGAL::vertex_point_t>::type;
-    Point_property_map ppm = get(CGAL::vertex_point, mesh);
-
     // Create vectors to store the predecessors (p) and the distances from the root (d)
     std::vector<_3D::vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
-    auto indexmap = get(boost::vertex_index, mesh);
     std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
-    auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
 
-    // BFS with visitors for recording distances and predecessors
-    auto vis = boost::make_bfs_visitor(
-        std::make_pair(
-            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
-            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
-        )
-    );
-
-    boost::breadth_first_search(mesh, start_node, visitor(vis));
+    // Calculate the distances from the start node to all other vertices
+    calculate_distances(mesh, start_node, predecessor_pmap, distance);
 
     // Find the target node (farthest from the start node)
     _3D::vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, distance);
@@ -292,10 +268,12 @@ SMP::Error_code parameterize_UV_mesh(
 /**
  * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
 */
-std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_surface(
+std::vector<int64_t> calculate_uv_surface(
     const std::string mesh_file_path,
     _3D::vertex_descriptor start_node,
-    int uv_mesh_number
+    int uv_mesh_number,
+    Eigen::MatrixXd& vertices_UV,
+    Eigen::MatrixXd& vertices_3D
 ){
     // Load the 3D mesh
     _3D::Mesh sm;
@@ -333,8 +311,8 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
         points_uv.push_back(uv);
     }
 
-    Eigen::MatrixXd vertices_3D(points.size(), 3);
-    Eigen::MatrixXd vertices_UV(points.size(), 3);
+    vertices_3D.resize(points.size(), 3);
+    vertices_UV.resize(points.size(), 3);
     for (size_t i = 0; i < points.size(); ++i)
     {
         // Get the points
@@ -348,7 +326,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
         vertices_UV(i, 2) = 0;
     }
 
-    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D);
+    return h_v_mapping_vector;
 }
 
 
@@ -364,10 +342,13 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     std::ifstream in(CGAL::data_file_path(mesh_path));
     in >> sm;
 
-    _3D::vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-    auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_path, start_node, start_node_int);
+    _3D::vertex_descriptor start_node(start_node_int);
+    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertices_3D;
+    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertices_UV, vertices_3D);
 
     std::string mesh_file_path = meshmeta.mesh_path;
 
     return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
 }
+

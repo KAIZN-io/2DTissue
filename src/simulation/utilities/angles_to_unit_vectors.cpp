@@ -11,6 +11,8 @@
 
 /**
  * @brief Convert the angle degree to 2D unit vectors
+ *
+ * @info: Unittest implemented
 */
 Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::VectorXd& avg_n) {
     if (avg_n.cols() != 1) {
