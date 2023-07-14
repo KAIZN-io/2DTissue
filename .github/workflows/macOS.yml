@@ -28,6 +28,7 @@ jobs:
         brew install eigen
         brew install cgal
         brew install googletest
+        brew install ninja
 
     - name: Set environment
       run: |
@@ -39,8 +40,8 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake -DCMAKE_CXX_STANDARD=17 ..
-        make
+        cmake -DCMAKE_CXX_STANDARD=20 -G Ninja ..
+        ninja
 
     - name: Test
       run: ./build/all_tests
