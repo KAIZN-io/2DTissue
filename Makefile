@@ -4,6 +4,8 @@ SHELL := /bin/bash
 
 # Path to project directory
 PROJECT_DIR := $(shell pwd)
+DATA_DIR := $(PROJECT_DIR)/data
+ASSETS_DIR := $(PROJECT_DIR)/assets
 
 .PHONY: all
 all: check_dependencies build_cgal build
@@ -53,7 +55,7 @@ build_cgal:
 	fi
 
 .PHONY: build
-build:
+build: $(DATA_DIR)
 	@OS=$$(uname -s); \
 	if [ "$$OS" == "Darwin" ]; then \
 		cmake -S $(PROJECT_DIR) \
@@ -74,6 +76,9 @@ build:
 		ninja -C $(PROJECT_DIR)/build -j $$(nproc); \
 	fi
 
+$(DATA_DIR):
+	mkdir -p $(DATA_DIR)
+	mkdir -p $(ASSETS_DIR)
 
 ########################################################################################################################
 # Setup                                                                                                                #
@@ -81,7 +86,11 @@ build:
 
 .PHONY: clean
 clean:
-	rm -rf $(PROJECT_DIR)/build
+	rm -rf $(PROJECT_DIR)/build $(DATA_DIR) $(ASSETS_DIR)
+
+.PHONY: clean_data
+clean_data:
+	rm -rf $(DATA_DIR) $(ASSETS_DIR)
 
 .PHONY: distclean
 distclean: clean
