@@ -1,7 +1,6 @@
 // motion.h
 #pragma once
 
-#include <tuple>
 #include <vector>
 #include <Eigen/Dense>
 
@@ -18,8 +17,9 @@ void calculate_average_n_within_distance(
     double σ
 );
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
+Eigen::MatrixXd simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
     Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,

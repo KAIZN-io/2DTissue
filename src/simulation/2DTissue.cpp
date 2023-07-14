@@ -100,6 +100,7 @@ void _2DTissue::start(){
     // Initialize the particles in 2D
     r.resize(particle_count, Eigen::NoChange);
     r_old.resize(particle_count, Eigen::NoChange);
+    r_dot.resize(particle_count, Eigen::NoChange);
     n.resize(particle_count);
 
     init_particle_position(faces_uv, halfedge_uv, particle_count, r, n);
@@ -118,8 +119,7 @@ void _2DTissue::start(){
 
 System _2DTissue::update(){
     // Simulate the particles on the 2D surface
-    auto [r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, r_old, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step, particle_count, vertices_2DTissue_map);
-    n = n_new;
+    auto particles_color = perform_particle_simulation(r, r_old, r_dot, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step, particle_count, vertices_2DTissue_map);
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
     auto [r_3D, new_vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
@@ -150,10 +150,10 @@ System _2DTissue::update(){
     if (current_step >= step_count) {
         finished = true;
     }
-    std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
-    save_matrix_to_csv(r, file_name, num_part);
-    std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
-    save_matrix_to_csv(r_3D, file_name_3D, num_part);
+    // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(r, file_name, num_part);
+    // std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(r_3D, file_name_3D, num_part);
     // std::string file_name_color = "color_data_" + std::to_string(current_step) + ".csv";
     // save_matrix_to_csv(particles_color, file_name_color, num_part);
 

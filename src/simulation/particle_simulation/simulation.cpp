@@ -40,9 +40,10 @@
 #include <particle_simulation/simulation.h>
 
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd> perform_particle_simulation(
+Eigen::VectorXd perform_particle_simulation(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
     Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
@@ -72,7 +73,7 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd> p
     loadMeshFaces(mesh_file_path, faces_uv);
 
     // 1. Simulate the flight of the particle on the UV mesh
-    auto [r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
+    auto dist_length = simulate_flight(r_UV, r_dot, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
 
     // Map the new UV coordinates back to the UV mesh
     auto mesh_UV_name = get_mesh_name(mesh_file_path);
@@ -95,8 +96,9 @@ std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd> p
     // Dye the particles based on their distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
     r_UV_old = r_UV;
+
     // Calculate the order parameter
     calculate_order_parameter(v_order, r_UV, r_dot, current_step);
 
-    return std::make_tuple(r_dot, dist_length, n, particles_color);
+    return particles_color;
 }

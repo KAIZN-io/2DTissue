@@ -8,9 +8,10 @@
 #include <utilities/sim_structs.h>
 
 
-std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd> perform_particle_simulation(
+Eigen::VectorXd perform_particle_simulation(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
     Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
