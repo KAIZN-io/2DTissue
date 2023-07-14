@@ -47,3 +47,30 @@ TEST(SetUVBorderEdges, Test1) {
     int expected = 44;
     EXPECT_EQ(result.size(), expected);
 }
+
+TEST(FarthestVertex, Test1) {
+    std::string mesh_file_path = (MESH_FOLDER / "ellipsoid_x4.off").string();
+
+    // Load the 3D mesh
+    _3D::Mesh mesh;
+    std::ifstream in(CGAL::data_file_path(mesh_file_path));
+    in >> mesh;
+
+    int start_node_int = 0;
+    _3D::Mesh::Vertex_index start_node(start_node_int);
+
+    // Create vectors to store the predecessors (p) and the distances from the root (d)
+    std::vector<_3D::vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
+    std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
+
+    // Calculate the distances from the start node to all other vertices
+    calculate_distances(mesh, start_node, predecessor_pmap, distance);
+
+    // Find the farthest vertex from the start node
+    _3D::vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, distance);
+
+    int expected = 1798;
+    _3D::Mesh::Vertex_index vertex_expected(expected);
+
+    EXPECT_EQ(target_node, vertex_expected);
+}
