@@ -1,12 +1,12 @@
-# name: Ubuntu C/C++ CI
+name: Ubuntu C/C++ CI
 
-# on:
-#   push:
-#     branches: [ "main" ]
-#   pull_request:
-#     branches: [ "main" ]
-#   schedule:
-#     - cron: '0 0 * * 0' # runs at 00:00 on every Sunday
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * 0' # runs at 00:00 on every Sunday
 
 # jobs:
 #   build:
