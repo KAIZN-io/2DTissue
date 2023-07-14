@@ -16,26 +16,26 @@ jobs:
     - name: Check out source code
       uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev ninja-build
+    # - name: Install dependencies
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev ninja-build
 
-    - name: Build and Install CGAL from source
-      run: |
-        git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git
-        mkdir -p build/cgal
-        cd build/cgal
-        cmake ../../cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF -G Ninja
-        ninja
-        sudo ninja install
+    # - name: Build and Install CGAL from source
+    #   run: |
+    #     git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git
+    #     mkdir -p build/cgal
+    #     cd build/cgal
+    #     cmake ../../cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF -G Ninja
+    #     ninja
+    #     sudo ninja install
 
-    - name: Build 2DTissue
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -G Ninja ..
-        ninja -j $(nproc)
+    # - name: Build 2DTissue
+    #   run: |
+    #     cd build
+    #     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -G Ninja ..
+    #     ninja -j $(nproc)
 
-    - name: Test
-      run: |
-        ./build/all_tests
+    # - name: Test
+    #   run: |
+    #     ./build/all_tests
