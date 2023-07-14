@@ -40,11 +40,12 @@
 #include <particle_simulation/simulation.h>
 
 
-Eigen::VectorXd perform_particle_simulation(
+void perform_particle_simulation(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
     Eigen::VectorXd& n,
+    Eigen::VectorXi& particles_color,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
     Eigen::VectorXd& v_order,
@@ -94,11 +95,11 @@ Eigen::VectorXd perform_particle_simulation(
     error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
-    Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
+    particles_color = dye_particles(dist_length, σ);
+
+    // The new UV coordinates are the old ones for the next step
     r_UV_old = r_UV;
 
     // Calculate the order parameter
     calculate_order_parameter(v_order, r_UV, r_dot, current_step);
-
-    return particles_color;
 }
