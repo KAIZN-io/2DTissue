@@ -4,4 +4,4 @@
 #include <Eigen/Core>
 #include <vector>
 
-Eigen::VectorXi dye_particles(const Eigen::MatrixXd dist_length, double σ);
+std::vector<int> dye_particles(const Eigen::MatrixXd dist_length, double σ);

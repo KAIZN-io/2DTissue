@@ -9,15 +9,14 @@
 #include <utilities/dye_particle.h>
 
 
-Eigen::VectorXi count_particle_neighbors(const Eigen::MatrixXd dist_length, double σ) {
+std::vector<int> count_particle_neighbors(const Eigen::MatrixXd dist_length, double σ) {
     int num_rows = dist_length.rows();
-    Eigen::VectorXi num_partic(num_rows); // create an empty vector
-    num_partic.setZero(); // initialize to zero
+    std::vector<int> num_partic(num_rows); // create an empty vector
 
     for (int i = 0; i < num_rows; i++) {
         for (int j = 0; j < dist_length.cols(); j++) {
             if (dist_length(i, j) != 0 && dist_length(i, j) <= 2.4 * σ) {
-                num_partic(i) += 1;
+                num_partic[i] += 1;
             }
         }
     }
@@ -26,9 +25,9 @@ Eigen::VectorXi count_particle_neighbors(const Eigen::MatrixXd dist_length, doub
 }
 
 
-Eigen::VectorXi dye_particles(const Eigen::MatrixXd dist_length, double σ) {
+std::vector<int> dye_particles(const Eigen::MatrixXd dist_length, double σ) {
     // Count the number of neighbours for each particle
-    Eigen::VectorXi number_neighbors = count_particle_neighbors(dist_length, σ);
+    std::vector<int> number_neighbors = count_particle_neighbors(dist_length, σ);
 
     return number_neighbors;
 }

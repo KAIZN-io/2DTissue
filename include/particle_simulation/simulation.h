@@ -13,7 +13,7 @@ void perform_particle_simulation(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
     Eigen::VectorXd& n,
-    Eigen::VectorXi& particles_color,
+    std::vector<int>& particles_color,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
     Eigen::VectorXd& v_order,

@@ -151,12 +151,12 @@ System _2DTissue::update(){
     if (current_step >= step_count) {
         finished = true;
     }
-    std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
-    save_matrix_to_csv(r, file_name, num_part);
-    std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
-    save_matrix_to_csv(r_3D, file_name_3D, num_part);
-    std::string file_name_color = "color_data_" + std::to_string(current_step) + ".csv";
-    save_matrix_to_csv(particles_color, file_name_color, num_part);
+    // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(r, file_name, num_part);
+    // std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(r_3D, file_name_3D, num_part);
+    // std::string file_name_color = "color_data_" + std::to_string(current_step) + ".csv";
+    // save_matrix_to_csv(particles_color, file_name_color, num_part);
 
     return system;
 }
