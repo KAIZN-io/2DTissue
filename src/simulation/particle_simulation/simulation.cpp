@@ -95,7 +95,7 @@ void perform_particle_simulation(
     error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
-    particles_color = dye_particles(dist_length, σ);
+    count_particle_neighbors(particles_color, dist_length, σ);
 
     // The new UV coordinates are the old ones for the next step
     r_UV_old = r_UV;
