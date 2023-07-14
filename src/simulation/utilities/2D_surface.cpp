@@ -26,12 +26,9 @@
 #include <boost/filesystem.hpp>
 
 // CGAL
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Timer.h>
 #include <CGAL/boost/graph/breadth_first_search.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
-#include <CGAL/Surface_mesh_parameterization/Circular_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 // Surface Parameterization Methods
 #include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>
@@ -40,9 +37,10 @@
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
-#include <utilities/mesh_descriptor.h>
-#include <utilities/2D_surface.h>
 #include <io/csv.h>
+#include <utilities/mesh_descriptor.h>
+
+#include <utilities/2D_surface.h>
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = boost::filesystem;
@@ -111,6 +109,32 @@ int save_UV_mesh(
     meshmeta.mesh_path = output_file_path_str;
 
     return 0;
+}
+
+
+/**
+ * @brief Calculate the distances from a given start vertex to all other vertices
+ *
+*/
+void calculate_distances(
+    _3D::Mesh mesh,
+    _3D::vertex_descriptor start_node,
+    std::vector<_3D::vertex_descriptor>& predecessor_pmap,
+    std::vector<int>& distance
+){
+    auto indexmap = get(boost::vertex_index, mesh);
+
+    auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
+
+    // BFS with visitors for recording distances and predecessors
+    auto vis = boost::make_bfs_visitor(
+        std::make_pair(
+            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
+            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
+        )
+    );
+
+    boost::breadth_first_search(mesh, start_node, visitor(vis));
 }
 
 
@@ -188,24 +212,12 @@ std::vector<_3D::edge_descriptor> set_UV_border_edges(
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
     in >> mesh;
 
-    using Point_property_map = boost::property_map<_3D::Mesh, CGAL::vertex_point_t>::type;
-    Point_property_map ppm = get(CGAL::vertex_point, mesh);
-
     // Create vectors to store the predecessors (p) and the distances from the root (d)
     std::vector<_3D::vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
-    auto indexmap = get(boost::vertex_index, mesh);
     std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
-    auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
 
-    // BFS with visitors for recording distances and predecessors
-    auto vis = boost::make_bfs_visitor(
-        std::make_pair(
-            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
-            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
-        )
-    );
-
-    boost::breadth_first_search(mesh, start_node, visitor(vis));
+    // Calculate the distances from the start node to all other vertices
+    calculate_distances(mesh, start_node, predecessor_pmap, distance);
 
     // Find the target node (farthest from the start node)
     _3D::vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, distance);
