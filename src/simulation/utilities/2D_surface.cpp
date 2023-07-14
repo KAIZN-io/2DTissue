@@ -5,41 +5,27 @@
 
 // known Issue: https://github.com/CGAL/cgal/issues/2994
 
-// Standard Library
-#include <algorithm>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
-#include <list>
-#include <map>
-#include <sstream>
 #include <string>
-#include <tuple>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
-// Boost
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/filesystem.hpp>
 
-// CGAL
 #include <CGAL/boost/graph/breadth_first_search.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
-#include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
+
 // Surface Parameterization Methods
-#include <CGAL/Surface_mesh_parameterization/Iterative_authalic_parameterizer_3.h>
-#include <CGAL/Surface_mesh_parameterization/Discrete_authalic_parameterizer_3.h>
+#include <CGAL/Surface_mesh_parameterization/IO/File_off.h>
+#include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
-#include <CGAL/Surface_mesh_parameterization/Fixed_border_parameterizer_3.h>
 
 #include <io/csv.h>
 #include <utilities/mesh_descriptor.h>
-
 #include <utilities/2D_surface.h>
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
@@ -282,10 +268,12 @@ SMP::Error_code parameterize_UV_mesh(
 /**
  * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
 */
-std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_surface(
+std::vector<int64_t> calculate_uv_surface(
     const std::string mesh_file_path,
     _3D::vertex_descriptor start_node,
-    int uv_mesh_number
+    int uv_mesh_number,
+    Eigen::MatrixXd& vertices_UV,
+    Eigen::MatrixXd& vertices_3D
 ){
     // Load the 3D mesh
     _3D::Mesh sm;
@@ -323,8 +311,8 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
         points_uv.push_back(uv);
     }
 
-    Eigen::MatrixXd vertices_3D(points.size(), 3);
-    Eigen::MatrixXd vertices_UV(points.size(), 3);
+    vertices_3D.resize(points.size(), 3);
+    vertices_UV.resize(points.size(), 3);
     for (size_t i = 0; i < points.size(); ++i)
     {
         // Get the points
@@ -338,7 +326,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd> calculate_uv_
         vertices_UV(i, 2) = 0;
     }
 
-    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D);
+    return h_v_mapping_vector;
 }
 
 
@@ -354,8 +342,10 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     std::ifstream in(CGAL::data_file_path(mesh_path));
     in >> sm;
 
-    _3D::vertex_descriptor start_node = *(vertices(sm).first + start_node_int);
-    auto [h_v_mapping_vector, vertices_UV, vertices_3D] = calculate_uv_surface(mesh_path, start_node, start_node_int);
+    _3D::vertex_descriptor start_node(start_node_int);
+    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertices_3D;
+    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertices_UV, vertices_3D);
 
     std::string mesh_file_path = meshmeta.mesh_path;
 
