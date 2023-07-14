@@ -21,6 +21,13 @@ _3D::vertex_descriptor find_farthest_vertex(
     const std::vector<int> distance
 );
 
+std::vector<_3D::edge_descriptor> get_cut_line(
+    const _3D::Mesh mesh,
+    const _3D::vertex_descriptor start_node,
+    _3D::vertex_descriptor current,
+    const std::vector<_3D::vertex_descriptor> predecessor_pmap
+);
+
 std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface(
     std::string mesh_file_path,
     int32_t start_node_int

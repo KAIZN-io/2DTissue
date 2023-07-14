@@ -115,6 +115,7 @@ int save_UV_mesh(
 /**
  * @brief Calculate the distances from a given start vertex to all other vertices
  *
+ * @info: Unittest implemented
 */
 void calculate_distances(
     _3D::Mesh mesh,
@@ -140,6 +141,8 @@ void calculate_distances(
 
 /**
  * @brief Find the farthest vertex from a given start vertex
+ *
+ * @info: Unittest implemented
 */
 _3D::vertex_descriptor find_farthest_vertex(
     const _3D::Mesh mesh,
@@ -165,6 +168,8 @@ _3D::vertex_descriptor find_farthest_vertex(
 /**
 * @brief Create a path of vertices from the start node to the target node
 *
+* @info: Unittest implemented
+*
 * ! The size of the path_list multiplied with 2 is the number of vertices on the border of the UV mesh
 *
 * So, if you want something like an inverse 'Poincaré disk' you have to really shorten the path_list
@@ -173,11 +178,10 @@ _3D::vertex_descriptor find_farthest_vertex(
 std::vector<_3D::edge_descriptor> get_cut_line(
     const _3D::Mesh mesh,
     const _3D::vertex_descriptor start_node,
-    const _3D::vertex_descriptor target_node,
+    _3D::vertex_descriptor current,
     const std::vector<_3D::vertex_descriptor> predecessor_pmap
 ) {
     std::vector<_3D::edge_descriptor> path_list;
-    _3D::vertex_descriptor current = target_node;
 
     while (current != start_node) {
         _3D::vertex_descriptor predecessor = predecessor_pmap[current];
@@ -202,6 +206,8 @@ std::vector<_3D::edge_descriptor> get_cut_line(
 
 /**
 * @brief Calculate the virtual border of the mesh
+*
+* @info: Unittest implemented
 */
 std::vector<_3D::edge_descriptor> set_UV_border_edges(
     const std::string mesh_file_path,
