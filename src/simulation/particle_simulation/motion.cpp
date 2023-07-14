@@ -179,7 +179,7 @@ void calculate_average_n_within_distance(
 }
 
 
-std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
@@ -212,10 +212,10 @@ std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::Mat
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot = n_vec.array().colwise() * abs_F.array();
 
     // Calculate the new position of each particle
-    Eigen::Matrix<double, Eigen::Dynamic, 2> r_new = r_UV + r_dot * step_size;
+    r_UV += r_dot * step_size;
 
     // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
     calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
-    return std::make_tuple(r_new, r_dot, dist_length);
+    return std::make_tuple(r_dot, dist_length);
 }

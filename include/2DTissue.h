@@ -53,6 +53,7 @@ private:
     bool finished;
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> r;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_old;
     Eigen::VectorXd n;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;

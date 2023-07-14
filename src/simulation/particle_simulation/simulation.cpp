@@ -40,8 +40,9 @@
 #include <particle_simulation/simulation.h>
 
 
-std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd> perform_particle_simulation(
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd> perform_particle_simulation(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
     Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
@@ -71,7 +72,7 @@ std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::Mat
     loadMeshFaces(mesh_file_path, faces_uv);
 
     // 1. Simulate the flight of the particle on the UV mesh
-    auto [r_UV_new, r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
+    auto [r_dot, dist_length] = simulate_flight(r_UV, n, vertices_3D_active, distance_matrix_v, v0, k, σ, μ, r_adh, k_adh, step_size);
 
     // Map the new UV coordinates back to the UV mesh
     auto mesh_UV_name = get_mesh_name(mesh_file_path);
@@ -79,23 +80,23 @@ std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::Mat
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
     if (mesh_UV_name == "sphere_uv"){
-        opposite_seam_edges_square_border(r_UV_new);
+        opposite_seam_edges_square_border(r_UV);
     }
     else {
-        diagonal_seam_edges_square_border(r_UV, r_UV_new, n);
+        diagonal_seam_edges_square_border(r_UV_old, r_UV, n);
     }
 
     /*
     Error checkings
     */
-    error_lost_particles(r_UV_new, num_part);  // 1. Check if we lost particles
-    error_invalid_values(r_UV_new);  // 2. Check if there are invalid values like NaN or Inf in the output
+    error_lost_particles(r_UV, num_part);  // 1. Check if we lost particles
+    error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
     Eigen::VectorXd particles_color = dye_particles(dist_length, σ);
-
+    r_UV_old = r_UV;
     // Calculate the order parameter
     calculate_order_parameter(v_order, r_UV, r_dot, current_step);
 
-    return std::make_tuple(r_UV_new, r_dot, dist_length, n, particles_color);
+    return std::make_tuple(r_dot, dist_length, n, particles_color);
 }

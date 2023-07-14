@@ -99,10 +99,11 @@ _2DTissue::_2DTissue(
 void _2DTissue::start(){
     // Initialize the particles in 2D
     r.resize(particle_count, Eigen::NoChange);
+    r_old.resize(particle_count, Eigen::NoChange);
     n.resize(particle_count);
 
     init_particle_position(faces_uv, halfedge_uv, particle_count, r, n);
-
+    r_old = r;
     // auto [coord_test, active_test] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 
     // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
@@ -117,8 +118,7 @@ void _2DTissue::start(){
 
 System _2DTissue::update(){
     // Simulate the particles on the 2D surface
-    auto [r_new, r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step, particle_count, vertices_2DTissue_map);
-    r = r_new;
+    auto [r_dot, dist_length, n_new, particles_color] = perform_particle_simulation(r, r_old, n, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step, particle_count, vertices_2DTissue_map);
     n = n_new;
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates

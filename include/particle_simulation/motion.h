@@ -18,7 +18,7 @@ void calculate_average_n_within_distance(
     double σ
 );
 
-std::tuple<Eigen::Matrix<double, Eigen::Dynamic, 2>, Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
+std::tuple<Eigen::MatrixXd, Eigen::MatrixXd> simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r,
     Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
