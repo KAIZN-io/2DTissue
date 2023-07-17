@@ -4,6 +4,8 @@ SHELL := /bin/bash
 
 # Path to project directory
 PROJECT_DIR := $(shell pwd)
+DATA_DIR := $(PROJECT_DIR)/data
+ASSETS_DIR := $(PROJECT_DIR)/assets
 
 .PHONY: all
 all: check_dependencies build_cgal build
@@ -26,9 +28,10 @@ check_dependencies:
 		which emcc >/dev/null || (echo "Installing Emscripten via Homebrew..."; brew install emscripten); \
 		which assimp >/dev/null || (echo "Installing Assimp via Homebrew..."; brew install assimp); \
 		which yarn >/dev/null || (echo "Installing Yarn via Homebrew..."; brew install yarn); \
+		which ninja >/dev/null || (echo "Installing Ninja via Homebrew..."; brew install ninja); \
 	elif [ "$$OS" == "Linux" ]; then \
 		sudo apt-get update; \
-		MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev"; \
+		MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev ninja-build"; \
 		for DEP in $$MAKEFILE_DEPS; do \
 			dpkg -s $$DEP >/dev/null 2>&1 || (echo "Installing $$DEP via package manager..."; sudo apt-get install -y $$DEP); \
 		done; \
@@ -52,23 +55,30 @@ build_cgal:
 	fi
 
 .PHONY: build
-build:
+build: $(DATA_DIR)
 	@OS=$$(uname -s); \
 	if [ "$$OS" == "Darwin" ]; then \
 		cmake -S $(PROJECT_DIR) \
 			-B $(PROJECT_DIR)/build \
 			-DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_C_COMPILER=$(shell brew --prefix llvm)/bin/clang \
-			-DCMAKE_CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++;\
+			-DCMAKE_CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++ \
+			-GNinja; \
+		ninja -C $(PROJECT_DIR)/build -j $$(sysctl -n hw.logicalcpu); \
 	elif [ "$$OS" == "Linux" ]; then \
 		echo "Building for Linux..."; \
 		cmake -S $(PROJECT_DIR) \
 			-B $(PROJECT_DIR)/build \
-			-DCMAKE_BUILD_TYPE=Release; \
+			-DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_C_COMPILER=/usr/bin/gcc \
-			-DCMAKE_CXX_COMPILER=/usr/bin/g++; \
+			-DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+			-GNinja; \
+		ninja -C $(PROJECT_DIR)/build -j $$(nproc); \
 	fi
-	$(MAKE) -C $(PROJECT_DIR)/build -j $$(nproc); \
+
+$(DATA_DIR):
+	mkdir -p $(DATA_DIR)
+	mkdir -p $(ASSETS_DIR)
 
 ########################################################################################################################
 # Setup                                                                                                                #
@@ -76,7 +86,11 @@ build:
 
 .PHONY: clean
 clean:
-	rm -rf $(PROJECT_DIR)/build
+	rm -rf $(PROJECT_DIR)/build $(DATA_DIR) $(ASSETS_DIR)
+
+.PHONY: clean_data
+clean_data:
+	rm -rf $(DATA_DIR) $(ASSETS_DIR)
 
 .PHONY: distclean
 distclean: clean
