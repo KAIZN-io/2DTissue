@@ -35,6 +35,7 @@ class _2DTissue
 {
 private:
     // Include here your class variables (the ones used in start and update methods)
+    bool save_data;
     std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
     int particle_count;
     std::string mesh_path;
@@ -52,8 +53,8 @@ private:
     int map_cache_count;
     bool finished;
 
-    Eigen::Matrix<double, Eigen::Dynamic, 2> r;
-    Eigen::Matrix<double, Eigen::Dynamic, 2> r_old;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
     Eigen::VectorXd n;
     std::vector<int> particles_color;
@@ -70,8 +71,12 @@ private:
     int num_part;
     std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
+    void perform_particle_simulation();
+    void save_our_data();
+
 public:
     _2DTissue(
+        bool save_data,
         std::string mesh_path,
         int particle_count,
         int step_count = 1,

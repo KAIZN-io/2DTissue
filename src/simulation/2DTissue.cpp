@@ -1,24 +1,39 @@
 // TODO: implement the 2DTissue.h '    System update( // Get vector with particle back);' ' Code here and move the main.cpp to this new structure
 // We should start this simulation from here
 
-#include <iostream>
-#include <Eigen/Dense>
+#include <cmath>
+#include <cstddef>
+#include <fstream>
+#include <iomanip>
+#include <map>
+#include <stdexcept>
+#include <vector>
+#include <limits>
+#include <omp.h>
 #include <boost/filesystem.hpp>
-
-#include <particle_simulation/simulation.h>
-#include <utilities/init_particle.h>
-#include <utilities/2D_3D_mapping.h>
-#include <utilities/2D_surface.h>
-#include <utilities/distance.h>
-#include <utilities/splay_state.h>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 #include <io/csv.h>
 #include <io/mesh_loader.h>
+
+#include <particle_simulation/motion.h>
+
+#include <utilities/2D_3D_mapping.h>
+#include <utilities/2D_mapping_fixed_border.h>
+#include <utilities/2D_surface.h>
+#include <utilities/analytics.h>
+#include <utilities/dye_particle.h>
+#include <utilities/error_checking.h>
+#include <utilities/init_particle.h>
+#include <utilities/distance.h>
+#include <utilities/splay_state.h>
 
 #include <2DTissue.h>
 
 
 _2DTissue::_2DTissue(
+    bool save_data,
     std::string mesh_path,
     int particle_count,
     int step_count,
@@ -33,6 +48,7 @@ _2DTissue::_2DTissue(
     double step_size,
     int map_cache_count
 ) :
+    save_data(save_data),
     mesh_path(mesh_path),
     particle_count(particle_count),
     step_count(step_count),
@@ -92,46 +108,90 @@ _2DTissue::_2DTissue(
     //     // Store the virtual meshes
     //     vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
     // }
-
 }
 
 
 void _2DTissue::start(){
     // Initialize the particles in 2D
-    r.resize(particle_count, Eigen::NoChange);
-    r_old.resize(particle_count, Eigen::NoChange);
+    r_UV.resize(particle_count, Eigen::NoChange);
+    r_UV_old.resize(particle_count, Eigen::NoChange);
     r_dot.resize(particle_count, Eigen::NoChange);
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
-    init_particle_position(faces_uv, halfedge_uv, particle_count, r, n);
-    r_old = r;
-    // auto [coord_test, active_test] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
-
-    // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
-    // save_matrix_to_csv(r, file_name, num_part);
-    // std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
-    // save_matrix_to_csv(coord_test, file_name_3D, num_part);
+    init_particle_position(faces_uv, halfedge_uv, particle_count, r_UV, n);
+    r_UV_old = r_UV;
 
     // Map the 2D coordinates to their 3D vertices counterparts
-    std::tie(std::ignore, vertices_3D_active) = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+    std::tie(std::ignore, vertices_3D_active) = get_r3d(r_UV, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
 }
+
+
+void _2DTissue::perform_particle_simulation(){
+    // Get the original mesh from the dictionary
+    auto mesh_struct = vertices_2DTissue_map[0];
+    Eigen::MatrixXd halfedges_uv = mesh_struct.mesh;
+    std::vector<int64_t> h_v_mapping = mesh_struct.h_v_mapping;
+    Eigen::MatrixXd vertices_UV = mesh_struct.vertices_UV;
+    Eigen::MatrixXd vertices_3D = mesh_struct.vertices_3D;
+    std::string mesh_file_path = mesh_struct.mesh_file_path;
+    Eigen::MatrixXi faces_uv;
+    loadMeshFaces(mesh_file_path, faces_uv);
+
+    // 1. Simulate the flight of the particle on the UV mesh
+    auto dist_length = simulate_flight(r_UV, r_dot, n, vertices_3D_active, distance_matrix, v0, k, σ, μ, r_adh, k_adh, step_size);
+
+    // Map the new UV coordinates back to the UV mesh
+    auto mesh_UV_name = get_mesh_name(mesh_file_path);
+
+    // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
+    // ? is it because of the seam edge cut line?
+    if (mesh_UV_name == "sphere_uv"){
+        opposite_seam_edges_square_border(r_UV);
+    }
+    else {
+        diagonal_seam_edges_square_border(r_UV_old, r_UV, n);
+    }
+
+    // Error checking
+    error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
+    error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
+
+    // Dye the particles based on their distance
+    count_particle_neighbors(particles_color, dist_length, σ);
+
+    // The new UV coordinates are the old ones for the next step
+    r_UV_old = r_UV;
+
+    // Calculate the order parameter
+    calculate_order_parameter(v_order, r_UV, r_dot, current_step);
+}
+
+
+// void _2DTissue::save_our_data() {
+//     std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
+//     save_matrix_to_csv(r_UV, file_name, particle_count);
+//     std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
+//     save_matrix_to_csv(r_3D, file_name_3D, particle_count);
+//     std::string file_name_color = "color_data_" + std::to_string(current_step) + ".csv";
+//     save_matrix_to_csv(particles_color, file_name_color, particle_count);
+// }
 
 
 System _2DTissue::update(){
     // Simulate the particles on the 2D surface
-    perform_particle_simulation(r, r_old, r_dot, n, particles_color, vertices_3D_active, distance_matrix, v_order, v0, k, k_next, v0_next, σ, μ, r_adh, k_adh, step_size, current_step, particle_count, vertices_2DTissue_map);
+    perform_particle_simulation();
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
-    auto [r_3D, new_vertices_3D_active] = get_r3d(r, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+    auto [r_3D, new_vertices_3D_active] = get_r3d(r_UV, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
     vertices_3D_active = new_vertices_3D_active;
 
     std::vector<Particle> particles;
     // start for loop
-    for (int i = 0; i < r.rows(); i++){
+    for (int i = 0; i < r_UV.rows(); i++){
         Particle p;
-        p.x_UV = r(i, 0);
-        p.y_UV = r(i, 1);
+        p.x_UV = r_UV(i, 0);
+        p.y_UV = r_UV(i, 1);
         p.x_velocity_UV = r_dot(i, 0);
         p.y_velocity_UV = r_dot(i, 1);
         p.x_alignment_UV = n(i, 0);
@@ -151,12 +211,10 @@ System _2DTissue::update(){
     if (current_step >= step_count) {
         finished = true;
     }
-    // std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
-    // save_matrix_to_csv(r, file_name, num_part);
-    // std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
-    // save_matrix_to_csv(r_3D, file_name_3D, num_part);
-    // std::string file_name_color = "color_data_" + std::to_string(current_step) + ".csv";
-    // save_matrix_to_csv(particles_color, file_name_color, num_part);
+
+    if (save_data) {
+        // save_our_data();
+    }
 
     return system;
 }
