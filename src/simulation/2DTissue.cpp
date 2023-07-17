@@ -131,10 +131,6 @@ void _2DTissue::start(){
 
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
-    // Create an instance of your Cell class
-    Cell cell(r_UV, r_dot, n, vertices_3D_active, distance_matrix, v0, k, σ, μ, r_adh, k_adh, step_size);
-
-    // 1. Simulate the flight of the particle on the UV mesh
     auto dist_length = cell.simulate_flight();
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
