@@ -4,4 +4,8 @@
 #include <Eigen/Core>
 #include <vector>
 
-Eigen::VectorXd dye_particles(const Eigen::MatrixXd& dist_length, double σ);
+void count_particle_neighbors(
+    std::vector<int>& particles_color,
+    const Eigen::MatrixXd dist_length,
+    double σ
+);

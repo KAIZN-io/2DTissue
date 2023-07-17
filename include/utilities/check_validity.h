@@ -1,4 +1,4 @@
-// validity_check.h
+// check_validity.h
 #pragma once
 
 #include <Eigen/Dense>

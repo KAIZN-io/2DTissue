@@ -35,7 +35,7 @@ Eigen::Vector2d repulsive_adhesion_motion(
     double dist,
     double r_adh,
     double k_adh,
-    const Eigen::Vector2d& dist_v
+    const Eigen::Vector2d dist_v
 ) {
     double Fij_rep = 0;
     double Fij_adh = 0;

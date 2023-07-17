@@ -15,7 +15,7 @@
 Vicsek-type n correction adapted from "Phys. Rev. E 74, 061908"
 */
 Eigen::VectorXd correct_n(
-    const Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
+    const Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot,
     const Eigen::VectorXd n,
     double τ,
     double dt

@@ -1,7 +1,7 @@
 // author: @Jan-Piotraschke
 // date: 2023-07-13
 // license: Apache License 2.0
-// version: 0.2.0
+// version: 0.2.1
 
 #include <iostream>
 #include <cstdint>
@@ -17,17 +17,25 @@
 #include <utilities/sim_structs.h>
 
 
-void loadMeshVertices(std::string filepath, Eigen::MatrixXd& vertices) {
-    // Create an instance of the Importer class
-    Assimp::Importer importer;
+const aiScene* loadScene(const std::string& filepath) {
+    static Assimp::Importer importer; // static, as we don't want to destroy it prematurely
 
     // Load the 3D model
-    // We pass several post-processing flags to this function, including aiProcess_Triangulate to convert all the geometry to triangles,
-    // aiProcess_FlipUVs to flip the texture coordinates along the y-axis, and aiProcess_GenNormals to generate normals if they are not present in the model.
     const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
 
     if (!scene) {
         std::cerr << "Failed to load model: " << filepath << std::endl;
+        return nullptr;
+    }
+    return scene;
+}
+
+
+void loadMeshVertices(const std::string filepath, Eigen::MatrixXd& vertices) {
+    const aiScene* scene = loadScene(filepath);
+
+    if (scene == nullptr) {
+        return;
     }
 
     // Get the first mesh in the scene
@@ -46,17 +54,11 @@ void loadMeshVertices(std::string filepath, Eigen::MatrixXd& vertices) {
 }
 
 
-void loadMeshFaces(std::string filepath, Eigen::MatrixXi& faces) {
-    // Create an instance of the Importer class
-    Assimp::Importer importer;
+void loadMeshFaces(const std::string filepath, Eigen::MatrixXi& faces) {
+    const aiScene* scene = loadScene(filepath);
 
-    // Load the 3D model
-    // We pass several post-processing flags to this function, including aiProcess_Triangulate to convert all the geometry to triangles,
-    // aiProcess_FlipUVs to flip the texture coordinates along the y-axis, and aiProcess_GenNormals to generate normals if they are not present in the model
-    const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
-
-    if (!scene) {
-        std::cerr << "Failed to load model: " << filepath << std::endl;
+    if (scene == nullptr) {
+        return;
     }
 
     // Get the first mesh in the scene
