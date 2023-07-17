@@ -78,6 +78,7 @@ target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost
 
 add_library(utilities_lib STATIC
     src/simulation/2DTissue.cpp
+    src/simulation/Cell.cpp
     src/simulation/utilities/2D_3D_mapping.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
     src/simulation/utilities/2D_surface.cpp
@@ -99,7 +100,7 @@ target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/in
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE CGAL::Eigen3_support io_lib particle_simulation_lib utilities_lib)
+target_link_libraries(main PRIVATE CGAL::Eigen3_support io_lib utilities_lib)
 
 # Install the target
 install(TARGETS main

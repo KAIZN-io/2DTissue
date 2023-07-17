@@ -12,108 +12,65 @@
 
 #include <utilities/angles_to_unit_vectors.h>
 
-#include <particle_simulation/forces.h>
-#include <particle_simulation/motion.h>
+#include <Cell.h>
+
+Cell::Cell(
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
+    Eigen::VectorXd& n,
+    std::vector<int> vertices_3D_active,
+    Eigen::MatrixXd distance_matrix_v,
+    double v0,
+    double k,
+    double σ,
+    double μ,
+    double r_adh,
+    double k_adh,
+    double step_size
+)
+    : r_UV(r_UV),
+      r_dot(r_dot),
+      n(n),
+      vertices_3D_active(vertices_3D_active),
+      distance_matrix_v(distance_matrix_v),
+      v0(v0),
+      k(k),
+      σ(σ),
+      μ(μ),
+      r_adh(r_adh),
+      k_adh(k_adh),
+      step_size(step_size) {
+}
 
 
-class Cell {
-public:
-    Cell(
-        Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
-        Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
-        Eigen::VectorXd& n,
-        std::vector<int> vertices_3D_active,
-        Eigen::MatrixXd distance_matrix_v,
-        double v0,
-        double k,
-        double σ,
-        double μ,
-        double r_adh,
-        double k_adh,
-        double step_size
-    )
-        : r_UV(r_UV),
-        r_dot(r_dot),
-        n(n),
-        vertices_3D_active(vertices_3D_active),
-        distance_matrix_v(distance_matrix_v),
-        v0(v0),
-        k(k),
-        σ(σ),
-        μ(μ),
-        r_adh(r_adh),
-        k_adh(k_adh),
-        step_size(step_size) {}
+Eigen::MatrixXd Cell::simulate_flight() {
+    // Get distance vectors and calculate distances between particles
+    auto dist_vect = get_dist_vect(r_UV);
+    auto dist_length = get_distances_between_particles(r_UV, distance_matrix_v, vertices_3D_active);
+    transform_into_symmetric_matrix(dist_length);
 
-    Eigen::MatrixXd simulate_flight() {
-        // Get distance vectors and calculate distances between particles
-        auto dist_vect = get_dist_vect(r_UV);
-        auto dist_length = get_distances_between_particles(r_UV, distance_matrix_v, vertices_3D_active);
-        transform_into_symmetric_matrix(dist_length);
+    // Calculate force between particles which pulls the particle in one direction within the 2D plane
+    Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
+    Eigen::VectorXd abs_F = F_track.rowwise().norm();
 
-        // Calculate force between particles which pulls the particle in one direction within the 2D plane
-        Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
-        Eigen::VectorXd abs_F = F_track.rowwise().norm();
+    Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = angles_to_unit_vectors(n);
 
-        Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = angles_to_unit_vectors(n);
+    // Velocity of each particle
+    // 1. Every particle moves with a constant velocity v0 in the direction of the normal vector n
+    // 2. Some particles are influenced by the force F_track
+    abs_F = abs_F.array() + v0;
 
-        // Velocity of each particle
-        // 1. Every particle moves with a constant velocity v0 in the direction of the normal vector n
-        // 2. Some particles are influenced by the force F_track
-        abs_F = abs_F.array() + v0;
+    // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
+    r_dot = n_vec.array().colwise() * abs_F.array();
 
-        // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
-        r_dot = n_vec.array().colwise() * abs_F.array();
+    // Calculate the new position of each particle
+    r_UV += r_dot * step_size;
 
-        // Calculate the new position of each particle
-        r_UV += r_dot * step_size;
+    // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
+    calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
-        // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
-        calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
-
-        return dist_length;
-    }
-
-private:
-    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
-    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot;
-    Eigen::VectorXd& n;
-    std::vector<int> vertices_3D_active;
-    Eigen::MatrixXd distance_matrix_v;
-    double v0, k, σ, μ, r_adh, k_adh, step_size;
-
-    static void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
-    static std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
-    static Eigen::MatrixXd get_distances_between_particles(
-        Eigen::Matrix<double, Eigen::Dynamic, 2> r,
-        Eigen::MatrixXd distance_matrix,
-        std::vector<int> vertice_3D_id
-    );
-    static double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
-    static void calculate_average_n_within_distance(
-        const std::vector<Eigen::MatrixXd> dist_vect,
-        const Eigen::MatrixXd dist_length,
-        Eigen::VectorXd& n,
-        double σ
-    );
-    Eigen::Vector2d repulsive_adhesion_motion(
-        double k,
-        double σ,
-        double dist,
-        double r_adh,
-        double k_adh,
-        const Eigen::Vector2d dist_v
-    );
-    Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::calculate_forces_between_particles(
-        const std::vector<Eigen::MatrixXd> dist_vect,
-        const Eigen::MatrixXd dist_length,
-        double k,
-        double σ,
-        double r_adh,
-        double k_adh
-    );
-};
-
+    return dist_length;
+}
 
 
 /**

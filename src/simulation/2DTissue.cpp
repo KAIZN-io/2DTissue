@@ -1,5 +1,7 @@
-// TODO: implement the 2DTissue.h '    System update( // Get vector with particle back);' ' Code here and move the main.cpp to this new structure
-// We should start this simulation from here
+// author: @Jan-Piotraschke
+// date: 2023-07-17
+// license: Apache License 2.0
+// version: 0.1.0
 
 #include <cmath>
 #include <cstddef>
@@ -17,8 +19,6 @@
 #include <io/csv.h>
 #include <io/mesh_loader.h>
 
-#include <particle_simulation/motion.h>
-
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/2D_mapping_fixed_border.h>
 #include <utilities/2D_surface.h>
@@ -29,6 +29,7 @@
 #include <utilities/distance.h>
 #include <utilities/splay_state.h>
 
+#include <Cell.h>
 #include <2DTissue.h>
 
 
@@ -130,7 +131,11 @@ void _2DTissue::start(){
 
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
-    auto dist_length = simulate_flight(r_UV, r_dot, n, vertices_3D_active, distance_matrix, v0, k, σ, μ, r_adh, k_adh, step_size);
+    // Create an instance of your Cell class
+    Cell cell(r_UV, r_dot, n, vertices_3D_active, distance_matrix, v0, k, σ, μ, r_adh, k_adh, step_size);
+
+    // 1. Simulate the flight of the particle on the UV mesh
+    auto dist_length = cell.simulate_flight();
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
