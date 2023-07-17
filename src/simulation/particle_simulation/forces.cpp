@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <Eigen/Dense>
+#include <omp.h>
 
 #include <particle_simulation/cell_cell_interactions.h>
 #include <particle_simulation/forces.h>
@@ -16,8 +17,8 @@
 * @info: Unittest implemented
 */
 Eigen::Matrix<double, Eigen::Dynamic, 2> calculate_forces_between_particles(
-    const std::vector<Eigen::MatrixXd>& dist_vect,
-    const Eigen::MatrixXd& dist_length,
+    const std::vector<Eigen::MatrixXd> dist_vect,
+    const Eigen::MatrixXd dist_length,
     double k,
     double σ,
     double r_adh,
@@ -31,6 +32,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> calculate_forces_between_particles(
     F.setZero();
 
     // Loop over all particle pairs
+    // #pragma omp parallel for
     for (int i = 0; i < num_part; i++) {
         for (int j = 0; j < num_part; j++) {
 
@@ -52,6 +54,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> calculate_forces_between_particles(
             Eigen::Vector2d dist_v(dist_vect[0](i, j), dist_vect[1](i, j));
 
             // Calculate the force between particles A and B
+            // #pragma omp critical
             F.row(i) += repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
         }
     }

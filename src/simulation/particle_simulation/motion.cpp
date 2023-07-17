@@ -183,7 +183,7 @@ Eigen::MatrixXd simulate_flight(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
     Eigen::VectorXd& n,
-    std::vector<int>& vertices_3D_active,
+    std::vector<int> vertices_3D_active,
     Eigen::MatrixXd distance_matrix_v,
     double v0,
     double k,
