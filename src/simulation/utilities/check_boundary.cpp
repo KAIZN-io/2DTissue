@@ -30,19 +30,47 @@ std::vector<int> find_inside_uv_vertices_id(const Eigen::Matrix<double, Eigen::D
     return inside_id;
 }
 
-std::vector<int> set_difference(int num_part, const std::vector<int>& inside_uv_ids) {
-    std::vector<int> outside_uv_ids;
 
-    // Create a copy of inside_uv_ids to sort without modifying the input
-    std::vector<int> sorted_inside_uv_ids = inside_uv_ids;
-    std::sort(sorted_inside_uv_ids.begin(), sorted_inside_uv_ids.end()); // Sort sorted_inside_uv_ids for efficient lookup
 
-    for (int i = 0; i < num_part; ++i) {
-        // If i is not found in sorted_inside_uv_ids, add it to outside_uv_ids
-        if (std::binary_search(sorted_inside_uv_ids.begin(), sorted_inside_uv_ids.end(), i) == false) {
-            outside_uv_ids.push_back(i);
-        }
-    }
+// #include <vector>
+// #include <Eigen/Dense>
+// #include <algorithm>
+// #include <set>
 
-    return outside_uv_ids;
-}
+// #include <utilities/check_boundary.h>
+
+// class UVVertices {
+// public:
+//     UVVertices(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r)
+//         : r_(r)
+//     {
+//         int nrows = r.rows();
+//         for (int i = 0; i < nrows; ++i) {
+//             Eigen::Vector2d first_two_columns = r.row(i).head<2>();
+//             if (is_inside_uv(first_two_columns)) {
+//                 inside_uv_ids_.insert(i);
+//             }
+//             else {
+//                 outside_uv_ids_.insert(i);
+//             }
+//         }
+//     }
+
+//     const std::set<int>& get_inside_uv_ids() const {
+//         return inside_uv_ids_;
+//     }
+
+//     const std::set<int>& get_outside_uv_ids() const {
+//         return outside_uv_ids_;
+//     }
+
+// private:
+//     // Check if the given point r is inside the UV parametrization bounds
+//     static bool is_inside_uv(const Eigen::Vector2d& r) {
+//         return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
+//     }
+
+//     Eigen::Matrix<double, Eigen::Dynamic, 2> r_;
+//     std::set<int> inside_uv_ids_;
+//     std::set<int> outside_uv_ids_;
+// };
