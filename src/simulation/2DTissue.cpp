@@ -168,14 +168,12 @@ void _2DTissue::perform_particle_simulation(){
 }
 
 
-// void _2DTissue::save_our_data() {
-//     std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
-//     save_matrix_to_csv(r_UV, file_name, particle_count);
-//     std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
-//     save_matrix_to_csv(r_3D, file_name_3D, particle_count);
-//     std::string file_name_color = "color_data_" + std::to_string(current_step) + ".csv";
-//     save_matrix_to_csv(particles_color, file_name_color, particle_count);
-// }
+void _2DTissue::save_our_data(Eigen::MatrixXd r_3D) {
+    std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
+    save_matrix_to_csv(r_UV, file_name, particle_count);
+    std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
+    save_matrix_to_csv(r_3D, file_name_3D, particle_count);
+}
 
 
 System _2DTissue::update(){
@@ -213,7 +211,7 @@ System _2DTissue::update(){
     }
 
     if (save_data) {
-        // save_our_data();
+        save_our_data(r_3D);
     }
 
     return system;

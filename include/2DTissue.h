@@ -6,9 +6,10 @@
 #include <Eigen/Dense>
 #include <map>
 
-
 #include <utilities/sim_structs.h>
 #include <io/mesh_loader.h>
+#include <io/csv.h>
+
 
 // Individuelle Partikel Informationen
 struct Particle{
@@ -72,7 +73,7 @@ private:
     std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
 
     void perform_particle_simulation();
-    void save_our_data();
+    void save_our_data(Eigen::MatrixXd r_3D);
 
 public:
     _2DTissue(
