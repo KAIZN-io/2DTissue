@@ -85,7 +85,8 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/analytics.cpp
     src/simulation/utilities/angles_to_unit_vectors.cpp
     src/simulation/utilities/barycentric_coord.cpp
-    src/simulation/utilities/boundary_check.cpp
+    src/simulation/utilities/check_boundary.cpp
+    src/simulation/utilities/check_validity.cpp
     src/simulation/utilities/distance.cpp
     src/simulation/utilities/dye_particle.cpp
     src/simulation/utilities/error_checking.cpp
@@ -94,7 +95,6 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/mesh_descriptor.cpp
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/update.cpp
-    src/simulation/utilities/validity_check.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)

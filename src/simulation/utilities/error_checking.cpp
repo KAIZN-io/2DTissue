@@ -7,8 +7,8 @@
 #include <vector>
 #include <Eigen/Dense>
 
-#include <utilities/boundary_check.h>
-#include <utilities/validity_check.h>
+#include <utilities/check_boundary.h>
+#include <utilities/check_validity.h>
 #include <utilities/sim_structs.h>
 
 #include <utilities/error_checking.h>

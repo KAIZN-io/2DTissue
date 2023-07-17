@@ -7,7 +7,7 @@
 #include <vector>
 #include <Eigen/Dense>
 
-#include <utilities/boundary_check.h>
+#include <utilities/check_boundary.h>
 
 
 // Check if the given point r is inside the UV parametrization bounds

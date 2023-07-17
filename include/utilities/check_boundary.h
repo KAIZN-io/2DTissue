@@ -1,4 +1,4 @@
-// boundary_check.h
+// check_boundary.h
 #pragma once
 
 #include <vector>

@@ -13,9 +13,9 @@
 #include <utilities/sim_structs.h>
 #include <utilities/splay_state.h>
 #include <utilities/update.h>
-#include <utilities/boundary_check.h>
+#include <utilities/check_boundary.h>
 #include <utilities/2D_surface.h>
-#include <utilities/validity_check.h>
+#include <utilities/check_validity.h>
 
 #include <particle_simulation/motion.h>
 #include <utilities/process_invalid_particle.h>

@@ -3,7 +3,7 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-#include <utilities/validity_check.h>
+#include <utilities/check_validity.h>
 
 bool are_all_valid(const std::vector<VertexData>& vertex_data) {
     for (const VertexData& data : vertex_data) {

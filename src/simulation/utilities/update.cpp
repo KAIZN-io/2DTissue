@@ -9,7 +9,7 @@
 #include <iostream>
 
 #include <utilities/update.h>
-#include <utilities/boundary_check.h>
+#include <utilities/check_boundary.h>
 
 
 std::vector<VertexData> update_vertex_data(

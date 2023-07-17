@@ -21,8 +21,8 @@
 #include <utilities/distance.h>
 #include <utilities/init_particle.h>
 #include <utilities/matrix_algebra.h>
-#include <utilities/boundary_check.h>
-#include <utilities/validity_check.h>
+#include <utilities/check_boundary.h>
+#include <utilities/check_validity.h>
 #include <utilities/error_checking.h>
 
 #include <utilities/2D_mapping_free_border.h>
