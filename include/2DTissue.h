@@ -71,6 +71,8 @@ private:
     double dt;
     int num_part;
     std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
+    std::string mesh_UV_path;
+    std::string mesh_UV_name;
 
     void perform_particle_simulation();
     void save_our_data(Eigen::MatrixXd r_3D);

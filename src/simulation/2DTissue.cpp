@@ -81,11 +81,12 @@ _2DTissue::_2DTissue(
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(h_v_mapping, vertices_UV, vertices_3D, mesh_file_path) = create_uv_surface(mesh_path, 0);
+    std::tie(h_v_mapping, vertices_UV, vertices_3D, mesh_UV_path) = create_uv_surface(mesh_path, 0);
+    mesh_UV_name = get_mesh_name(mesh_UV_path);
 
-    loadMeshVertices(mesh_file_path, halfedge_uv);
-    loadMeshFaces(mesh_file_path, faces_uv);
-    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path};
+    loadMeshVertices(mesh_UV_path, halfedge_uv);
+    loadMeshFaces(mesh_UV_path, faces_uv);
+    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_UV_path};
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
@@ -128,21 +129,8 @@ void _2DTissue::start(){
 
 
 void _2DTissue::perform_particle_simulation(){
-    // Get the original mesh from the dictionary
-    auto mesh_struct = vertices_2DTissue_map[0];
-    Eigen::MatrixXd halfedges_uv = mesh_struct.mesh;
-    std::vector<int64_t> h_v_mapping = mesh_struct.h_v_mapping;
-    Eigen::MatrixXd vertices_UV = mesh_struct.vertices_UV;
-    Eigen::MatrixXd vertices_3D = mesh_struct.vertices_3D;
-    std::string mesh_file_path = mesh_struct.mesh_file_path;
-    Eigen::MatrixXi faces_uv;
-    loadMeshFaces(mesh_file_path, faces_uv);
-
     // 1. Simulate the flight of the particle on the UV mesh
     auto dist_length = simulate_flight(r_UV, r_dot, n, vertices_3D_active, distance_matrix, v0, k, σ, μ, r_adh, k_adh, step_size);
-
-    // Map the new UV coordinates back to the UV mesh
-    auto mesh_UV_name = get_mesh_name(mesh_file_path);
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
