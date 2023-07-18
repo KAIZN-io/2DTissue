@@ -38,8 +38,9 @@ private:
     Eigen::MatrixXd& dist_length;
     double v0, k, σ, μ, r_adh, k_adh, step_size;
 
-    // Eigen::Matrix<double, Eigen::Dynamic, 2> F_track;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> F_track;
 
+    void resize_F_track();
     static void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
     static std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
     static void get_distances_between_particles(
@@ -63,12 +64,5 @@ private:
         double k_adh,
         const Eigen::Vector2d dist_v
     );
-    Eigen::Matrix<double, Eigen::Dynamic, 2> calculate_forces_between_particles(
-        const std::vector<Eigen::MatrixXd> dist_vect,
-        const Eigen::MatrixXd dist_length,
-        double k,
-        double σ,
-        double r_adh,
-        double k_adh
-    );
+    void calculate_forces_between_particles(const std::vector<Eigen::MatrixXd> dist_vect);
 };

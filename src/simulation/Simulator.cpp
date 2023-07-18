@@ -44,8 +44,13 @@ Simulator::Simulator(
       step_size(step_size) {
 }
 
+void Simulator::resize_F_track() {
+    F_track.resize(r_UV.rows(), 2);
+}
 
 void Simulator::simulate_flight() {
+    resize_F_track();
+
     // Get distance vectors and calculate distances between particles
     auto dist_vect = get_dist_vect(r_UV);
 
@@ -53,7 +58,7 @@ void Simulator::simulate_flight() {
     transform_into_symmetric_matrix(dist_length);
 
     // Calculate force between particles which pulls the particle in one direction within the 2D plane
-    Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
+    calculate_forces_between_particles(dist_vect);
     Eigen::VectorXd abs_F = F_track.rowwise().norm();
     Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = angles_to_unit_vectors(n);
 
@@ -162,20 +167,11 @@ Eigen::Vector2d Simulator::repulsive_adhesion_motion(
 *
 * @info: Unittest implemented
 */
-Eigen::Matrix<double, Eigen::Dynamic, 2> Simulator::calculate_forces_between_particles(
-    const std::vector<Eigen::MatrixXd> dist_vect,
-    const Eigen::MatrixXd dist_length,
-    double k,
-    double σ,
-    double r_adh,
-    double k_adh
-){
+void Simulator::calculate_forces_between_particles(const std::vector<Eigen::MatrixXd> dist_vect){
     // Get the number of particles
     int num_part = dist_vect[0].rows();
 
-    // Initialize force matrix with zeros
-    Eigen::Matrix<double, Eigen::Dynamic, 2> F(num_part, 2);
-    F.setZero();
+    F_track.setZero();
 
     // Loop over all particle pairs
     // #pragma omp parallel for
@@ -201,12 +197,9 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Simulator::calculate_forces_between_par
 
             // Calculate the force between particles A and B
             // #pragma omp critical
-            F.row(i) += repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
+            F_track.row(i) += repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
         }
     }
-
-    // Actual force felt by each particle
-    return F;
 }
 
 
