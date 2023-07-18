@@ -18,7 +18,6 @@
 
 #include <IO.h>
 
-#include <utilities/2D_3D_mapping.h>
 #include <utilities/2D_mapping_fixed_border.h>
 #include <utilities/2D_surface.h>
 #include <utilities/analytics.h>
@@ -96,25 +95,6 @@ _2DTissue::_2DTissue(
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
-
-    // /*
-    // Prefill the vertices_2DTissue_map with the virtual meshes
-    // */
-    // // Get the vertices that are selected for the splay state in 3D
-    // auto splay_state_vertices_id = get_3D_splay_vertices(distance_matrix, map_cache_count);
-
-    // // auto [splay_state_UV_coord, splay_state_halfedges] = get_splay_state_vertices(face_UV, halfedge_UV, 3);
-    // // auto [splay_state_3D_coord, splay_state_vertices_id] = get_r3d(splay_state_UV_coord, halfedge_UV, face_UV, vertice_UV, vertices_3D, h_v_mapping);
-
-    // for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
-    //     int splay_state_v = splay_state_vertices_id[i];
-
-    //     auto [h_v_mapping_virtual, vertice_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = create_uv_surface(mesh_path, splay_state_v);
-    //     Eigen::MatrixXd halfedge_UV_virtual = loadMeshVertices(mesh_file_path_virtual);
-
-    //     // Store the virtual meshes
-    //     vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_UV_virtual, h_v_mapping_virtual, vertice_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
-    // }
 }
 
 
@@ -126,12 +106,12 @@ void _2DTissue::start(){
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
-    Cell cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
-    cell.init_particle_position(r_UV, n);
+    cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
+    cell_ptr->init_particle_position(r_UV, n);
     r_UV_old = r_UV;
 
     // Map the 2D coordinates to their 3D vertices counterparts
-    std::tie(std::ignore, vertices_3D_active) = get_r3d(r_UV, halfedge_UV, face_UV, vertice_UV, vertice_3D, h_v_mapping);
+    std::tie(std::ignore, vertices_3D_active) = cell_ptr->get_r3d(r_UV);
 }
 
 
@@ -176,7 +156,7 @@ System _2DTissue::update(){
     perform_particle_simulation();
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
-    auto [r_3D, new_vertices_3D_active] = get_r3d(r_UV, halfedge_UV, face_UV, vertice_UV, vertice_3D, h_v_mapping);
+    auto [r_3D, new_vertices_3D_active] = cell_ptr->get_r3d(r_UV);
     vertices_3D_active = new_vertices_3D_active;
 
     std::vector<Particle> particles;

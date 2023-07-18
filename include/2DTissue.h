@@ -5,8 +5,11 @@
 #include <boost/filesystem.hpp>
 #include <Eigen/Dense>
 #include <map>
+#include <memory> // You need this to use std::unique_ptr
 
 #include <utilities/sim_structs.h>
+
+#include <Cell.h>
 #include <IO.h>
 #include <Simulator.h>
 
@@ -53,6 +56,7 @@ private:
     int map_cache_count;
     bool finished;
 
+    std::unique_ptr<Cell> cell_ptr;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;

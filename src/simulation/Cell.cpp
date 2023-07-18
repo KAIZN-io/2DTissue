@@ -153,7 +153,7 @@ int Cell::closestRow(const Eigen::MatrixXd& vertice_UV, const Eigen::Vector2d& h
 }
 
 
-std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int interator){
+std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV, int interator){
     std::vector<std::pair<double, int>> distances(face_UV.rows());
 
     for (int j = 0; j < face_UV.rows(); ++j) {
@@ -218,7 +218,7 @@ std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int interat
 }
 
 
-Eigen::Vector3d Cell::calculate_barycentric_2D_coord(int iterator){
+Eigen::Vector3d Cell::calculate_barycentric_2D_coord(Eigen::MatrixXd r_3D, int iterator){
     std::vector<std::pair<double, int>> distances(face_3D.rows());
 
     for (int j = 0; j < face_3D.rows(); ++j) {
@@ -274,13 +274,13 @@ Eigen::Vector3d Cell::calculate_barycentric_2D_coord(int iterator){
 
 
 // (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
-std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(){
+std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV){
     int num_r = r_UV.rows();
     Eigen::MatrixXd new_3D_points(num_r, 3);
     std::vector<int> nearest_vertices_ids(num_r);
 
     for (int i = 0; i < num_r; ++i) {
-        auto [barycentric_coord, nearest_vertex_id] = calculate_barycentric_3D_coord(i);
+        auto [barycentric_coord, nearest_vertex_id] = calculate_barycentric_3D_coord(r_UV, i);
         new_3D_points.row(i) = barycentric_coord;
         nearest_vertices_ids[i] = nearest_vertex_id;
     }
@@ -290,7 +290,7 @@ std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(){
 
 
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
-Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
+Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(Eigen::MatrixXd r_3D){
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
 
@@ -301,7 +301,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
     Eigen::Matrix<double, Eigen::Dynamic, 2> new_2D_points(num_r, 2);
 
     for (int i = 0; i < num_r; ++i) {
-        Eigen::Vector3d uv_coord_test = calculate_barycentric_2D_coord(i);
+        Eigen::Vector3d uv_coord_test = calculate_barycentric_2D_coord(r_3D, i);
         Eigen::Vector2d uv_coord(uv_coord_test[0], uv_coord_test[1]);
 
         new_2D_points.row(i) = uv_coord;
