@@ -17,6 +17,7 @@ public:
         Eigen::VectorXd& n,
         std::vector<int>& vertices_3D_active,
         Eigen::MatrixXd& distance_matrix,
+        Eigen::MatrixXd& dist_length,
         double v0,
         double k,
         double σ,
@@ -26,7 +27,7 @@ public:
         double step_size
     );
 
-    Eigen::MatrixXd simulate_flight();
+    void simulate_flight();
 
 private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
@@ -34,11 +35,15 @@ private:
     Eigen::VectorXd& n;
     std::vector<int>& vertices_3D_active;
     Eigen::MatrixXd& distance_matrix;
+    Eigen::MatrixXd& dist_length;
     double v0, k, σ, μ, r_adh, k_adh, step_size;
+
+    // Eigen::Matrix<double, Eigen::Dynamic, 2> F_track;
 
     static void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
     static std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
-    static Eigen::MatrixXd get_distances_between_particles(
+    static void get_distances_between_particles(
+        Eigen::MatrixXd& dist_length,
         Eigen::Matrix<double, Eigen::Dynamic, 2> r,
         Eigen::MatrixXd distance_matrix,
         std::vector<int> vertice_3D_id

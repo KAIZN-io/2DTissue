@@ -20,6 +20,7 @@ Simulator::Simulator(
     Eigen::VectorXd& n,
     std::vector<int>& vertices_3D_active,
     Eigen::MatrixXd& distance_matrix,
+    Eigen::MatrixXd& dist_length,
     double v0,
     double k,
     double σ,
@@ -33,6 +34,7 @@ Simulator::Simulator(
       n(n),
       vertices_3D_active(vertices_3D_active),
       distance_matrix(distance_matrix),
+      dist_length(dist_length),
       v0(v0),
       k(k),
       σ(σ),
@@ -43,11 +45,11 @@ Simulator::Simulator(
 }
 
 
-Eigen::MatrixXd Simulator::simulate_flight() {
+void Simulator::simulate_flight() {
     // Get distance vectors and calculate distances between particles
     auto dist_vect = get_dist_vect(r_UV);
 
-    auto dist_length = get_distances_between_particles(r_UV, distance_matrix, vertices_3D_active);
+    get_distances_between_particles(dist_length, r_UV, distance_matrix, vertices_3D_active);
     transform_into_symmetric_matrix(dist_length);
 
     // Calculate force between particles which pulls the particle in one direction within the 2D plane
@@ -68,8 +70,6 @@ Eigen::MatrixXd Simulator::simulate_flight() {
 
     // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
     calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
-
-    return dist_length;
 }
 
 
@@ -237,15 +237,14 @@ std::vector<Eigen::MatrixXd> Simulator::get_dist_vect(const Eigen::Matrix<double
 /**
  * @brief Calculate the distance between each pair of particles
 */
-Eigen::MatrixXd Simulator::get_distances_between_particles(
+void Simulator::get_distances_between_particles(
+    Eigen::MatrixXd& dist_length,
     Eigen::Matrix<double, Eigen::Dynamic, 2> r,
     Eigen::MatrixXd distance_matrix,
     std::vector<int> vertice_3D_id
 ){
     int num_part = r.rows();
 
-    // Get the distances from the distance matrix
-    Eigen::MatrixXd dist_length = Eigen::MatrixXd::Zero(num_part, num_part);
     // Use the #pragma omp parallel for directive to parallelize the outer loop
     // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them
     for (int i = 0; i < num_part; i++) {
@@ -253,10 +252,7 @@ Eigen::MatrixXd Simulator::get_distances_between_particles(
             dist_length(i, j) = distance_matrix(vertice_3D_id[i], vertice_3D_id[j]);
         }
     }
-
     dist_length.diagonal().array() = 0.0;
-
-    return dist_length;
 }
 
 

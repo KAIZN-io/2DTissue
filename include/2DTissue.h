@@ -61,6 +61,7 @@ private:
     std::vector<int> particles_color;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;
+    Eigen::MatrixXd dist_length;
     Eigen::VectorXd v_order;
     Eigen::MatrixXd halfedge_uv;
     Eigen::MatrixXi faces_uv;

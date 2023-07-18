@@ -65,7 +65,7 @@ _2DTissue::_2DTissue(
     current_step(0),
     map_cache_count(map_cache_count),
     finished(false),
-    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, v0, k, σ, μ, r_adh, k_adh, step_size)
+    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size)
 {
     // Get the mesh name from the path without the file extension
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
@@ -92,6 +92,7 @@ _2DTissue::_2DTissue(
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
+    dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
 
     // /*
     // Prefill the vertices_2DTissue_map with the virtual meshes
@@ -132,7 +133,7 @@ void _2DTissue::start(){
 
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
-    auto dist_length = simulator.simulate_flight();
+    simulator.simulate_flight();
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
