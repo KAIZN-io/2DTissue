@@ -24,7 +24,6 @@
 #include <utilities/dye_particle.h>
 #include <utilities/error_checking.h>
 #include <utilities/distance.h>
-#include <utilities/splay_state.h>
 
 #include <Cell.h>
 #include <Simulator.h>
