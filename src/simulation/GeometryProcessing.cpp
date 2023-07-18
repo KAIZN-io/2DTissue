@@ -14,42 +14,9 @@ As a rule of thumb, the method works well on triangle meshes, which are Delaunay
 Disclaimer: The heat method solver is the bottle neck of the algorithm.
 */
 
-#include <cstddef>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
-
-#include <boost/property_map/property_map.hpp>
-#include <boost/filesystem.hpp>
-
-#include <CGAL/boost/graph/breadth_first_search.h>
-#include <CGAL/Polygon_mesh_processing/connected_components.h>
-#include <CGAL/Polygon_mesh_processing/measure.h>
-
-// Surface Parameterization Methods
-#include <CGAL/Surface_mesh_parameterization/IO/File_off.h>
-#include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
-#include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
-#include <CGAL/Surface_mesh_parameterization/parameterize.h>
-
 #include <IO.h>
-#include <utilities/mesh_descriptor.h>
-
-
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
-#include <boost/filesystem.hpp>
-
-#include <iostream>
-#include <fstream>
-#include <vector>
-
 #include <GeometryProcessing.h>
 
-using Kernel = CGAL::Simple_cartesian<double>;
-using Point_3 = Kernel::Point_3;
 using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
 using vertex_descriptor = boost::graph_traits<Triangle_mesh>::vertex_descriptor;
 using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, double>;
@@ -57,13 +24,6 @@ using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, doubl
 //  The Intrinsic Delaunay Triangulation algorithm is switched off by the template parameter Heat_method_3::Direct.
 using Heat_method_idt = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CGAL::Heat_method_3::Direct>;
 using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh>;
-
-namespace SMP = CGAL::Surface_mesh_parameterization;
-namespace fs = boost::filesystem;
-
-const fs::path PROJECT_PATH = PROJECT_SOURCE_DIR;
-const fs::path MESH_FOLDER = PROJECT_PATH  / "meshes";
-const unsigned int PARAMETERIZATION_ITERATIONS = 9;
 
 
 struct MeshMeta{
@@ -79,7 +39,7 @@ MeshMeta meshmeta;
  *
  * @info: Unittest implemented
 */
-std::string get_mesh_name(
+std::string GeometryProcessing::get_mesh_name(
    const std::string mesh_3D_path
 ){
     // Create a filesystem path object from the input string
@@ -95,7 +55,7 @@ std::string get_mesh_name(
 /**
  * @brief Save the generated UV mesh to a file
 */
-int save_UV_mesh(
+int GeometryProcessing::save_UV_mesh(
     UV::Mesh _mesh,
     UV::halfedge_descriptor _bhd,
     _3D::UV_pmap _uvmap,
@@ -133,7 +93,7 @@ int save_UV_mesh(
  *
  * @info: Unittest implemented
 */
-void calculate_distances(
+void GeometryProcessing::calculate_distances(
     _3D::Mesh mesh,
     _3D::vertex_descriptor start_node,
     std::vector<_3D::vertex_descriptor>& predecessor_pmap,
@@ -160,7 +120,7 @@ void calculate_distances(
  *
  * @info: Unittest implemented
 */
-_3D::vertex_descriptor find_farthest_vertex(
+_3D::vertex_descriptor GeometryProcessing::find_farthest_vertex(
     const _3D::Mesh mesh,
     _3D::vertex_descriptor start_node,
     const std::vector<int> distance
@@ -191,7 +151,7 @@ _3D::vertex_descriptor find_farthest_vertex(
 * So, if you want something like an inverse 'Poincaré disk' you have to really shorten the path_list
 * The same is true if you reverse the logic: If you create a spiral-like seam edge path, your mesh will results in something like a 'Poincaré disk'
 */
-std::vector<_3D::edge_descriptor> get_cut_line(
+std::vector<_3D::edge_descriptor> GeometryProcessing::get_cut_line(
     const _3D::Mesh mesh,
     const _3D::vertex_descriptor start_node,
     _3D::vertex_descriptor current,
@@ -225,7 +185,7 @@ std::vector<_3D::edge_descriptor> get_cut_line(
 *
 * @info: Unittest implemented
 */
-std::vector<_3D::edge_descriptor> set_UV_border_edges(
+std::vector<_3D::edge_descriptor> GeometryProcessing::set_UV_border_edges(
     const std::string mesh_file_path,
     _3D::vertex_descriptor start_node
 ){
@@ -254,7 +214,7 @@ std::vector<_3D::edge_descriptor> set_UV_border_edges(
 /**
  * @brief Create the UV mesh
 */
-UV::Mesh create_UV_mesh(
+UV::Mesh GeometryProcessing::create_UV_mesh(
     _3D::Mesh& mesh,
     const std::vector<_3D::edge_descriptor> calc_edges
 ){
@@ -278,7 +238,7 @@ UV::Mesh create_UV_mesh(
 * Computes a one-to-one mapping from a 3D triangle surface mesh to a simple 2D domain.
 * The mapping is piecewise linear on the triangle mesh. The result is a pair (U,V) of parameter coordinates for each vertex of the input mesh.
 */
-SMP::Error_code parameterize_UV_mesh(
+SMP::Error_code GeometryProcessing::parameterize_UV_mesh(
     UV::Mesh mesh,
     UV::halfedge_descriptor bhd,
     _3D::UV_pmap uvmap
@@ -298,7 +258,7 @@ SMP::Error_code parameterize_UV_mesh(
 /**
  * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
 */
-std::vector<int64_t> calculate_uv_surface(
+std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     const std::string mesh_file_path,
     _3D::vertex_descriptor start_node,
     int uv_mesh_number,
@@ -363,7 +323,7 @@ std::vector<int64_t> calculate_uv_surface(
 /**
  * @brief Create the UV surface
 */
-std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface(
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::create_uv_surface(
     std::string mesh_path,
     int32_t start_node_int
 ){
@@ -384,7 +344,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
 
 
 
-std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node){
+std::vector<double> GeometryProcessing::geo_distance(const std::string mesh_path, int32_t start_node){
     std::ifstream filename(CGAL::data_file_path(mesh_path));
     Triangle_mesh tm;
     filename >> tm;
@@ -413,7 +373,7 @@ std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node
 atomic variable to keep track of the current index of the vector of distances, and each thread processes a
 different index until all the distances have been added to the distance matrix.
 */
-void fill_distance_matrix(
+void GeometryProcessing::fill_distance_matrix(
     const std::string mesh_path,
     Eigen::MatrixXd &distance_matrix,
     int closest_vertice
@@ -426,7 +386,7 @@ void fill_distance_matrix(
 }
 
 
-int get_all_distances(std::string mesh_path){
+int GeometryProcessing::get_all_distances(std::string mesh_path){
     std::cout << mesh_path << std::endl;
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
     mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));

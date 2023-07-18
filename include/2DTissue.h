@@ -5,10 +5,11 @@
 #include <boost/filesystem.hpp>
 #include <Eigen/Dense>
 #include <map>
-#include <memory> // You need this to use std::unique_ptr
+#include <memory>
 
 #include <utilities/sim_structs.h>
 
+#include <GeometryProcessing.h>
 #include <Cell.h>
 #include <IO.h>
 #include <Simulator.h>
@@ -57,6 +58,7 @@ private:
     bool finished;
 
     std::unique_ptr<Cell> cell_ptr;
+    std::unique_ptr<GeometryProcessing> geometry_ptr;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;

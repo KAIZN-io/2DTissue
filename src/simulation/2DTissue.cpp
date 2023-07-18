@@ -16,15 +16,13 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
-#include <IO.h>
-
 #include <utilities/2D_mapping_fixed_border.h>
-#include <utilities/2D_surface.h>
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/error_checking.h>
-#include <utilities/distance.h>
 
+#include <IO.h>
+#include <GeometryProcessing.h>
 #include <Cell.h>
 #include <Simulator.h>
 #include <2DTissue.h>
@@ -62,7 +60,8 @@ _2DTissue::_2DTissue(
     current_step(0),
     map_cache_count(map_cache_count),
     finished(false),
-    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size)
+    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size),
+    geometry_ptr(std::make_unique<GeometryProcessing>())
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
@@ -78,14 +77,14 @@ _2DTissue::_2DTissue(
     if (!boost::filesystem::exists(distance_matrix_path)) {
 
         // Calculate the distance matrix of the static 3D mesh
-        get_all_distances(mesh_path);
+        geometry_ptr->get_all_distances(mesh_path);
     }
     distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = create_uv_surface(mesh_path, 0);
-    mesh_UV_name = get_mesh_name(mesh_UV_path);
+    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = geometry_ptr->create_uv_surface(mesh_path, 0);
+    mesh_UV_name = geometry_ptr->get_mesh_name(mesh_UV_path);
 
     loadMeshVertices(mesh_UV_path, halfedge_UV);
     loadMeshFaces(mesh_UV_path, face_UV);
