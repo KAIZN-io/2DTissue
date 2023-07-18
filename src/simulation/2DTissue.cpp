@@ -1,5 +1,7 @@
-// TODO: implement the 2DTissue.h '    System update( // Get vector with particle back);' ' Code here and move the main.cpp to this new structure
-// We should start this simulation from here
+// author: @Jan-Piotraschke
+// date: 2023-07-17
+// license: Apache License 2.0
+// version: 0.1.0
 
 #include <cmath>
 #include <cstddef>
@@ -17,8 +19,6 @@
 #include <io/csv.h>
 #include <io/mesh_loader.h>
 
-#include <particle_simulation/motion.h>
-
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/2D_mapping_fixed_border.h>
 #include <utilities/2D_surface.h>
@@ -29,6 +29,7 @@
 #include <utilities/distance.h>
 #include <utilities/splay_state.h>
 
+#include <Simulator.h>
 #include <2DTissue.h>
 
 
@@ -63,7 +64,8 @@ _2DTissue::_2DTissue(
     step_size(step_size),
     current_step(0),
     map_cache_count(map_cache_count),
-    finished(false)
+    finished(false),
+    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size)
 {
     // Get the mesh name from the path without the file extension
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
@@ -81,14 +83,16 @@ _2DTissue::_2DTissue(
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(h_v_mapping, vertices_UV, vertices_3D, mesh_file_path) = create_uv_surface(mesh_path, 0);
+    std::tie(h_v_mapping, vertices_UV, vertices_3D, mesh_UV_path) = create_uv_surface(mesh_path, 0);
+    mesh_UV_name = get_mesh_name(mesh_UV_path);
 
-    loadMeshVertices(mesh_file_path, halfedge_uv);
-    loadMeshFaces(mesh_file_path, faces_uv);
-    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path};
+    loadMeshVertices(mesh_UV_path, halfedge_uv);
+    loadMeshFaces(mesh_UV_path, faces_uv);
+    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_UV_path};
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
+    dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
 
     // /*
     // Prefill the vertices_2DTissue_map with the virtual meshes
@@ -128,21 +132,8 @@ void _2DTissue::start(){
 
 
 void _2DTissue::perform_particle_simulation(){
-    // Get the original mesh from the dictionary
-    auto mesh_struct = vertices_2DTissue_map[0];
-    Eigen::MatrixXd halfedges_uv = mesh_struct.mesh;
-    std::vector<int64_t> h_v_mapping = mesh_struct.h_v_mapping;
-    Eigen::MatrixXd vertices_UV = mesh_struct.vertices_UV;
-    Eigen::MatrixXd vertices_3D = mesh_struct.vertices_3D;
-    std::string mesh_file_path = mesh_struct.mesh_file_path;
-    Eigen::MatrixXi faces_uv;
-    loadMeshFaces(mesh_file_path, faces_uv);
-
     // 1. Simulate the flight of the particle on the UV mesh
-    auto dist_length = simulate_flight(r_UV, r_dot, n, vertices_3D_active, distance_matrix, v0, k, σ, μ, r_adh, k_adh, step_size);
-
-    // Map the new UV coordinates back to the UV mesh
-    auto mesh_UV_name = get_mesh_name(mesh_file_path);
+    simulator.simulate_flight();
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?

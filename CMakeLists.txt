@@ -67,17 +67,9 @@ add_library(io_lib STATIC
 target_include_directories(io_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
 
-add_library(particle_simulation_lib STATIC
-    src/simulation/particle_simulation/cell_cell_interactions.cpp
-    src/simulation/particle_simulation/forces.cpp
-    src/simulation/particle_simulation/motion.cpp
-    src/simulation/particle_simulation/particle_vector.cpp
-)
-target_include_directories(particle_simulation_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
-
 add_library(utilities_lib STATIC
     src/simulation/2DTissue.cpp
+    src/simulation/Simulator.cpp
     src/simulation/utilities/2D_3D_mapping.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
     src/simulation/utilities/2D_surface.cpp
@@ -99,7 +91,7 @@ target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/in
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE CGAL::Eigen3_support io_lib particle_simulation_lib utilities_lib)
+target_link_libraries(main PRIVATE CGAL::Eigen3_support io_lib utilities_lib)
 
 # Install the target
 install(TARGETS main
@@ -110,10 +102,11 @@ install(TARGETS main
 
 # Collect all test source files
 file(GLOB TEST_SOURCES tests/simulation/**/*.cpp)
+file(GLOB TEST_SOURCES_CLASS tests/simulation/test_Simulator.cpp)
 
 # Create a test executable for all available tests
-add_executable(all_tests ${TEST_SOURCES})
+add_executable(all_tests ${TEST_SOURCES} ${TEST_SOURCES_CLASS})
 
 # Link your libraries to the test executable
-target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support io_lib particle_simulation_lib utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)
+target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support io_lib utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)
 

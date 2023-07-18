@@ -1,26 +1,94 @@
 // author: @Jan-Piotraschke
-// date: 2023-07-05
+// date: 2023-07-18
 // license: Apache License 2.0
-// version: 0.1.0
+// version: 0.2.0
 
 #include <gtest/gtest.h>
-#include <vector>
 #include <Eigen/Dense>
+#include <vector>
 #include <algorithm>
 #include <iostream>
-#include <particle_simulation/motion.h>
+
+#include <Simulator.h>
+
+
+class SimulatorTest : public ::testing::Test {
+protected:
+    SimulatorTest()
+        : v0(0), k(10), σ(1.4166666666666667), μ(0), r_adh(1), k_adh(0.75), step_size(0),
+          r_UV(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
+          r_dot(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
+          n(Eigen::VectorXd()),
+          vertices_3D_active(std::vector<int>()),
+          distance_matrix(Eigen::MatrixXd()),
+          dist_length(Eigen::MatrixXd()),
+          sim(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size)
+    {}
+
+    double v0, k, σ, μ, r_adh, k_adh, step_size;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV, r_dot;
+    Eigen::VectorXd n;
+    std::vector<int> vertices_3D_active;
+    Eigen::MatrixXd distance_matrix, dist_length;
+    Simulator sim;
+};
+
+
+// Test the repulsive_adhesion_motion function
+TEST_F(SimulatorTest, RepulsiveAdhesionTest1) {
+    Eigen::Vector2d dist_v(0.0203217, 0.010791);
+    double dist = 0.953489;
+    Eigen::Vector2d expected_result(-0.141406, -0.075088);
+    Eigen::Vector2d result = sim.repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
+
+    ASSERT_NEAR(result[0], expected_result[0], 1e-5);
+    ASSERT_NEAR(result[1], expected_result[1], 1e-5);
+}
+
+TEST_F(SimulatorTest, RepulsiveAdhesionTest2) {
+    Eigen::Vector2d dist_v(-0.0203217, -0.010791);
+    double dist = 0.953489;
+    Eigen::Vector2d expected_result(0.141406, 0.075088);
+    Eigen::Vector2d result = sim.repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
+
+    ASSERT_NEAR(result[0], expected_result[0], 1e-5);
+    ASSERT_NEAR(result[1], expected_result[1], 1e-5);
+}
+
+
+// Test the mean_unit_circle_vector_angle_degrees function
+TEST_F(SimulatorTest, ThrowsWhenInputIsEmpty) {
+    std::vector<double> empty;
+    EXPECT_THROW(sim.mean_unit_circle_vector_angle_degrees(empty), std::invalid_argument);
+}
+
+TEST_F(SimulatorTest, CorrectlyCalculatesMeanAngle) {
+    std::vector<double> angles {0, 180, 90};
+    double expected_mean_angle = 90.0;
+    double actual_mean_angle = sim.mean_unit_circle_vector_angle_degrees(angles);
+
+    EXPECT_NEAR(expected_mean_angle, actual_mean_angle, 1e-5); // 1e-5 is the allowed error
+}
+
+TEST_F(SimulatorTest, CorrectlyHandlesNegativeAngles) {
+    std::vector<double> angles {-45, -90, -135, -180, -225, -270, -315};
+    double expected_mean_angle = 180.0;
+    double actual_mean_angle = sim.mean_unit_circle_vector_angle_degrees(angles);
+
+    EXPECT_NEAR(expected_mean_angle, actual_mean_angle, 1e-5); // 1e-5 is the allowed error
+}
 
 
 /**
  * @brief Test the function transform_into_symmetric_matrix
 */
-TEST(SymmetricMatrixTest, BasicTest) {
+TEST_F(SimulatorTest, SymmetricMatrixTestBasicTest) {
     Eigen::MatrixXd mat(3, 3);
     mat << 1, 2, 3,
            4, 5, 6,
            7, 8, 9;
 
-    transform_into_symmetric_matrix(mat);
+    sim.transform_into_symmetric_matrix(mat);
 
     // Expected symmetric matrix
     Eigen::MatrixXd expected_mat(3, 3);
@@ -31,13 +99,13 @@ TEST(SymmetricMatrixTest, BasicTest) {
     ASSERT_TRUE(mat.isApprox(expected_mat));
 }
 
-TEST(SymmetricMatrixTest, ZeroTest) {
+TEST_F(SimulatorTest, SymmetricMatrixTestZeroTest) {
     Eigen::MatrixXd mat(3, 3);
     mat << 1, 0, 3,
            4, 5, 6,
            7, 8, 0;
 
-    transform_into_symmetric_matrix(mat);
+    sim.transform_into_symmetric_matrix(mat);
 
     // Expected symmetric matrix
     Eigen::MatrixXd expected_mat(3, 3);
@@ -48,13 +116,13 @@ TEST(SymmetricMatrixTest, ZeroTest) {
     ASSERT_TRUE(mat.isApprox(expected_mat));
 }
 
-TEST(SymmetricMatrixTest, AllZerosTest) {
+TEST_F(SimulatorTest, SymmetricMatrixTestAllZerosTest) {
     Eigen::MatrixXd mat(3, 3);
     mat << 0, 0, 0,
            0, 0, 0,
            0, 0, 0;
 
-    transform_into_symmetric_matrix(mat);
+    sim.transform_into_symmetric_matrix(mat);
 
     // Expected symmetric matrix
     Eigen::MatrixXd expected_mat(3, 3);
@@ -69,14 +137,14 @@ TEST(SymmetricMatrixTest, AllZerosTest) {
 /**
  * @brief Test the function get_dist_vect
 */
-TEST(GetDistVectTest, BasicTest) {
+TEST_F(SimulatorTest, GetDistVectTestBasicTest) {
     // 3x2 matrix
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(3, 2);
     r << 1, 2,
          3, 4,
          5, 6;
 
-    std::vector<Eigen::MatrixXd> dist_vect = get_dist_vect(r);
+    std::vector<Eigen::MatrixXd> dist_vect = sim.get_dist_vect(r);
 
     Eigen::MatrixXd expected_diff_x(3, 3);
     expected_diff_x <<  0, -2, -4,
@@ -92,14 +160,14 @@ TEST(GetDistVectTest, BasicTest) {
     ASSERT_TRUE(dist_vect[1].isApprox(expected_diff_y));
 }
 
-TEST(GetDistVectTest, ZeroMatrixTest) {
+TEST_F(SimulatorTest, GetDistVectTestZeroMatrixTest) {
     // 3x2 matrix
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(3, 2);
     r << 0, 0,
          0, 0,
          0, 0;
 
-    std::vector<Eigen::MatrixXd> dist_vect = get_dist_vect(r);
+    std::vector<Eigen::MatrixXd> dist_vect = sim.get_dist_vect(r);
 
     Eigen::MatrixXd expected_diff(3, 3);
     expected_diff << 0, 0, 0,
@@ -110,12 +178,12 @@ TEST(GetDistVectTest, ZeroMatrixTest) {
     ASSERT_TRUE(dist_vect[1].isApprox(expected_diff));
 }
 
-TEST(GetDistVectTest, OneDimensionTest) {
+TEST_F(SimulatorTest, GetDistVectTestOneDimensionTest) {
     // 1x2 matrix
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(1, 2);
     r << 1, 2;
 
-    std::vector<Eigen::MatrixXd> dist_vect = get_dist_vect(r);
+    std::vector<Eigen::MatrixXd> dist_vect = sim.get_dist_vect(r);
 
     Eigen::MatrixXd expected_diff(1, 1);
     expected_diff << 0;
@@ -124,11 +192,11 @@ TEST(GetDistVectTest, OneDimensionTest) {
     ASSERT_TRUE(dist_vect[1].isApprox(expected_diff));
 }
 
-TEST(GetDistVectTest, HandlesSquareMatrixCorrectly) {
+TEST_F(SimulatorTest, GetDistVectTestHandlesSquareMatrixCorrectly) {
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(2, 2);
     r << 1.0, 2.0, 3.0, 4.0;
 
-    std::vector<Eigen::MatrixXd> dist_vect = get_dist_vect(r);
+    std::vector<Eigen::MatrixXd> dist_vect = sim.get_dist_vect(r);
 
     Eigen::MatrixXd expected_diff_x(2, 2);
     expected_diff_x << 0.0, -2.0, 2.0, 0.0;
@@ -141,7 +209,7 @@ TEST(GetDistVectTest, HandlesSquareMatrixCorrectly) {
     ASSERT_TRUE(dist_vect[1].isApprox(expected_diff_y, tolerance));
 }
 
-TEST(GetDistVectTest, TenDimensionTest) {
+TEST_F(SimulatorTest, GetDistVectTestTenDimensionTest) {
     // 2x2 matrix
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(10, 2);
     r << 0.448453,  0.365021,
@@ -155,7 +223,7 @@ TEST(GetDistVectTest, TenDimensionTest) {
         0.968116,  0.673458,
         0.188375,  0.567491;
 
-    std::vector<Eigen::MatrixXd> dist_vect = get_dist_vect(r);
+    std::vector<Eigen::MatrixXd> dist_vect = sim.get_dist_vect(r);
 
     Eigen::MatrixXd expected_diff_x(10, 10);
     expected_diff_x << 0,    0.196075,    0.417522,   -0.455332,    0.191185,    0.159445,   -0.395698,     0.17967,   -0.519663,    0.260078,
@@ -201,7 +269,7 @@ void CompareMatrices(const Eigen::MatrixXd& expected, const Eigen::MatrixXd& act
     }
 }
 
-TEST(AverageNWithinDistance, Test1){
+TEST_F(SimulatorTest, AverageNWithinDistanceTest1){
     double σ = 1.4166666666666667;
 
     Eigen::MatrixXd diff_x(10, 10);
@@ -247,37 +315,12 @@ TEST(AverageNWithinDistance, Test1){
     Eigen::VectorXd n(10);
     n << 168, 154, 290, 83, 110, 46, 48, 144, 227, 48;
 
-    calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
+    sim.calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
     Eigen::VectorXd expected_n(10);
     expected_n << 161, 161, 191.31, 83, 191.31, 46, 48, 144, 227, 48;
 
     CompareMatrices(expected_n, n, 2);
-}
-
-
-/**
- * @brief Test the function mean_unit_circle_vector_angle_degrees
-*/
-TEST(UnitCircleVectorTest, ThrowsWhenInputIsEmpty) {
-    std::vector<double> empty;
-    EXPECT_THROW(mean_unit_circle_vector_angle_degrees(empty), std::invalid_argument);
-}
-
-TEST(UnitCircleVectorTest, CorrectlyCalculatesMeanAngle) {
-    std::vector<double> angles {0, 180, 90};
-    double expected_mean_angle = 90.0;
-    double actual_mean_angle = mean_unit_circle_vector_angle_degrees(angles);
-
-    EXPECT_NEAR(expected_mean_angle, actual_mean_angle, 1e-5); // 1e-5 is the allowed error
-}
-
-TEST(UnitCircleVectorTest, CorrectlyHandlesNegativeAngles) {
-    std::vector<double> angles {-45, -90, -135, -180, -225, -270, -315};
-    double expected_mean_angle = 180.0;
-    double actual_mean_angle = mean_unit_circle_vector_angle_degrees(angles);
-
-    EXPECT_NEAR(expected_mean_angle, actual_mean_angle, 1e-5); // 1e-5 is the allowed error
 }
 
 
