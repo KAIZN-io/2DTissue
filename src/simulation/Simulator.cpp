@@ -18,8 +18,8 @@ Simulator::Simulator(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
     Eigen::VectorXd& n,
-    std::vector<int> vertices_3D_active,
-    Eigen::MatrixXd distance_matrix_v,
+    std::vector<int>& vertices_3D_active,
+    Eigen::MatrixXd& distance_matrix,
     double v0,
     double k,
     double σ,
@@ -32,7 +32,7 @@ Simulator::Simulator(
       r_dot(r_dot),
       n(n),
       vertices_3D_active(vertices_3D_active),
-      distance_matrix_v(distance_matrix_v),
+      distance_matrix(distance_matrix),
       v0(v0),
       k(k),
       σ(σ),
@@ -46,13 +46,13 @@ Simulator::Simulator(
 Eigen::MatrixXd Simulator::simulate_flight() {
     // Get distance vectors and calculate distances between particles
     auto dist_vect = get_dist_vect(r_UV);
-    auto dist_length = get_distances_between_particles(r_UV, distance_matrix_v, vertices_3D_active);
+
+    auto dist_length = get_distances_between_particles(r_UV, distance_matrix, vertices_3D_active);
     transform_into_symmetric_matrix(dist_length);
 
     // Calculate force between particles which pulls the particle in one direction within the 2D plane
     Eigen::MatrixXd F_track = calculate_forces_between_particles(dist_vect, dist_length, k, σ, r_adh, k_adh);
     Eigen::VectorXd abs_F = F_track.rowwise().norm();
-
     Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = angles_to_unit_vectors(n);
 
     // Velocity of each particle
@@ -246,7 +246,6 @@ Eigen::MatrixXd Simulator::get_distances_between_particles(
 
     // Get the distances from the distance matrix
     Eigen::MatrixXd dist_length = Eigen::MatrixXd::Zero(num_part, num_part);
-
     // Use the #pragma omp parallel for directive to parallelize the outer loop
     // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them
     for (int i = 0; i < num_part; i++) {

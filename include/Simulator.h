@@ -15,8 +15,8 @@ public:
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
         Eigen::VectorXd& n,
-        std::vector<int> vertices_3D_active,
-        Eigen::MatrixXd distance_matrix_v,
+        std::vector<int>& vertices_3D_active,
+        Eigen::MatrixXd& distance_matrix,
         double v0,
         double k,
         double σ,
@@ -32,8 +32,8 @@ private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot;
     Eigen::VectorXd& n;
-    std::vector<int> vertices_3D_active;
-    Eigen::MatrixXd distance_matrix_v;
+    std::vector<int>& vertices_3D_active;
+    Eigen::MatrixXd& distance_matrix;
     double v0, k, σ, μ, r_adh, k_adh, step_size;
 
     static void transform_into_symmetric_matrix(Eigen::MatrixXd &A);

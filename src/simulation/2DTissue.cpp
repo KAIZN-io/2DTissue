@@ -64,7 +64,8 @@ _2DTissue::_2DTissue(
     step_size(step_size),
     current_step(0),
     map_cache_count(map_cache_count),
-    finished(false)
+    finished(false),
+    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, v0, k, σ, μ, r_adh, k_adh, step_size)
 {
     // Get the mesh name from the path without the file extension
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
