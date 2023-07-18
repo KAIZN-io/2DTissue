@@ -11,7 +11,7 @@
 
 #include <Simulator.h>
 
-// Define the test fixture class
+
 class SimulatorTest : public ::testing::Test {
 protected:
     SimulatorTest()
@@ -36,7 +36,6 @@ protected:
 
 // Utilize the test fixture in your tests
 TEST_F(SimulatorTest, ThrowsWhenInputIsEmpty) {
-    std::cout << "Testing mean_unit_circle_vector_angle_degrees" << std::endl;
     std::vector<double> empty;
     EXPECT_THROW(sim.mean_unit_circle_vector_angle_degrees(empty), std::invalid_argument);
 }
@@ -55,10 +54,4 @@ TEST_F(SimulatorTest, CorrectlyHandlesNegativeAngles) {
     double actual_mean_angle = sim.mean_unit_circle_vector_angle_degrees(angles);
 
     EXPECT_NEAR(expected_mean_angle, actual_mean_angle, 1e-5); // 1e-5 is the allowed error
-}
-
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

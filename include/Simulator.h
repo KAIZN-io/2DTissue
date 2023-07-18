@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 #include <random>
 #include <cmath>
+#include <gtest/gtest_prod.h>
 #include <utilities/angles_to_unit_vectors.h>
 
 class Simulator {
@@ -49,7 +50,6 @@ private:
         Eigen::MatrixXd distance_matrix,
         std::vector<int> vertice_3D_id
     );
-    static double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
     static void calculate_average_n_within_distance(
         const std::vector<Eigen::MatrixXd> dist_vect,
         const Eigen::MatrixXd dist_length,
@@ -65,4 +65,10 @@ private:
         const Eigen::Vector2d dist_v
     );
     void calculate_forces_between_particles(const std::vector<Eigen::MatrixXd> dist_vect);
+    static double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
+
+FRIEND_TEST(SimulatorTest, ThrowsWhenInputIsEmpty);
+FRIEND_TEST(SimulatorTest, CorrectlyCalculatesMeanAngle);
+FRIEND_TEST(SimulatorTest, CorrectlyHandlesNegativeAngles);
+
 };
