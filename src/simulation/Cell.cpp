@@ -19,11 +19,11 @@ const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 Cell::Cell(
     int num_part,
-    const Eigen::MatrixXd halfedge_UV,
-    const Eigen::MatrixXi face_UV,
-    const Eigen::MatrixXi face_3D,
-    const Eigen::MatrixXd vertice_UV,
-    const Eigen::MatrixXd vertice_3D,
+    Eigen::MatrixXd halfedge_UV,
+    Eigen::MatrixXi face_UV,
+    Eigen::MatrixXi face_3D,
+    Eigen::MatrixXd vertice_UV,
+    Eigen::MatrixXd vertice_3D,
     std::vector<int64_t> h_v_mapping
 )
     : num_part(num_part),
@@ -74,7 +74,7 @@ void Cell::init_particle_position(
         }
 
         Eigen::Vector3i r_face_uv = face_UV.row(random_face);
-        r.row(i) = get_face_gravity_center_coord(r_face_uv);
+        r_UV.row(i) = get_face_gravity_center_coord(r_face_uv);
 
         n.row(i) << dis_angle(gen);
     }
@@ -161,7 +161,7 @@ std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int interat
         Eigen::Vector3d uv_b = halfedge_UV.row(face_UV(j, 1));
         Eigen::Vector3d uv_c = halfedge_UV.row(face_UV(j, 2));
 
-        distances[j] = {pointTriangleDistance(r.row(interator).head(2), uv_a, uv_b, uv_c), j};
+        distances[j] = {pointTriangleDistance(r_UV.row(interator).head(2), uv_a, uv_b, uv_c), j};
     }
 
     std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
@@ -185,9 +185,9 @@ std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int interat
     Eigen::Vector3d c = vertice_3D.row(closest_c);
 
     // Compute the weights (distances in UV space)
-    double w_a = (r.row(interator).head(2).transpose() - halfedge_a_coord).norm();
-    double w_b = (r.row(interator).head(2).transpose() - halfedge_b_coord).norm();
-    double w_c = (r.row(interator).head(2).transpose() - halfedge_c_coord).norm();
+    double w_a = (r_UV.row(interator).head(2).transpose() - halfedge_a_coord).norm();
+    double w_b = (r_UV.row(interator).head(2).transpose() - halfedge_b_coord).norm();
+    double w_c = (r_UV.row(interator).head(2).transpose() - halfedge_c_coord).norm();
 
     // Compute the barycentric coordinates
     double sum_weights = w_a + w_b + w_c;
@@ -232,7 +232,7 @@ Eigen::Vector3d Cell::calculate_barycentric_2D_coord(int iterator){
         Eigen::Vector3d uv_b = vertice_3D.row(halfedge_b);
         Eigen::Vector3d uv_c = vertice_3D.row(halfedge_c);
 
-        distances[j] = {pointTriangleDistance(start_3D_points.row(iterator).head(2), uv_a, uv_b, uv_c), j};
+        distances[j] = {pointTriangleDistance(r_3D.row(iterator).head(2), uv_a, uv_b, uv_c), j};
     }
 
     std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
@@ -256,9 +256,9 @@ Eigen::Vector3d Cell::calculate_barycentric_2D_coord(int iterator){
     Eigen::Vector3d uv_c = vertice_UV.row(nearest_halfedge_c);
 
     // Compute the weights (distances in 3D space)
-    double w_a = (start_3D_points.row(iterator).head(2).transpose() - a).norm();
-    double w_b = (start_3D_points.row(iterator).head(2).transpose() - b).norm();
-    double w_c = (start_3D_points.row(iterator).head(2).transpose() - c).norm();
+    double w_a = (r_3D.row(iterator).head(2).transpose() - a).norm();
+    double w_b = (r_3D.row(iterator).head(2).transpose() - b).norm();
+    double w_c = (r_3D.row(iterator).head(2).transpose() - c).norm();
 
     // Compute the barycentric coordinates
     double sum_weights = w_a + w_b + w_c;
@@ -280,7 +280,7 @@ std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(){
     std::vector<int> nearest_vertices_ids(num_r);
 
     for (int i = 0; i < num_r; ++i) {
-        auto [barycentric_coord, nearest_vertex_id] = calculate_barycentric_3D_coord(r_UV, halfedge_UV, face_UV, vertice_UV, vertice_3D, h_v_mapping, i);
+        auto [barycentric_coord, nearest_vertex_id] = calculate_barycentric_3D_coord(i);
         new_3D_points.row(i) = barycentric_coord;
         nearest_vertices_ids[i] = nearest_vertex_id;
     }
@@ -301,7 +301,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
     Eigen::Matrix<double, Eigen::Dynamic, 2> new_2D_points(num_r, 2);
 
     for (int i = 0; i < num_r; ++i) {
-        Eigen::Vector3d uv_coord_test = calculate_barycentric_2D_coord(r_3D, face_3D, vertice_UV, vertice_3D, h_v_mapping, i);
+        Eigen::Vector3d uv_coord_test = calculate_barycentric_2D_coord(i);
         Eigen::Vector2d uv_coord(uv_coord_test[0], uv_coord_test[1]);
 
         new_2D_points.row(i) = uv_coord;

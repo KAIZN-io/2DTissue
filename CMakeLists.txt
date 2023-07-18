@@ -65,6 +65,7 @@ add_library(utilities_lib STATIC
     src/simulation/2DTissue.cpp
     src/simulation/Simulator.cpp
     src/simulation/IO.cpp
+    src/simulation/Cell.cpp
     src/simulation/utilities/2D_3D_mapping.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
     src/simulation/utilities/2D_surface.cpp

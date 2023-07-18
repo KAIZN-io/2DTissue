@@ -20,11 +20,11 @@ class Cell {
 public:
     Cell(
         int num_part,
-        const Eigen::MatrixXd halfedge_UV,
-        const Eigen::MatrixXi face_UV,
-        const Eigen::MatrixXi face_3D,
-        const Eigen::MatrixXd vertice_UV,
-        const Eigen::MatrixXd vertice_3D,
+        Eigen::MatrixXd halfedge_UV,
+        Eigen::MatrixXi face_UV,
+        Eigen::MatrixXi face_3D,
+        Eigen::MatrixXd vertice_UV,
+        Eigen::MatrixXd vertice_3D,
         std::vector<int64_t> h_v_mapping
     );
 
@@ -42,12 +42,12 @@ public:
     Eigen::MatrixXd get_r_3D() const { return r_3D; }
 
 private:
-    const int num_part;
-    const Eigen::MatrixXd halfedge_UV,
-    const Eigen::MatrixXi face_UV,
-    const Eigen::MatrixXi face_3D,
-    const Eigen::MatrixXd vertice_UV,
-    const Eigen::MatrixXd vertice_3D,
+    int num_part;
+    Eigen::MatrixXd halfedge_UV;
+    Eigen::MatrixXi face_UV;
+    Eigen::MatrixXi face_3D;
+    Eigen::MatrixXd vertice_UV;
+    Eigen::MatrixXd vertice_3D;
     std::vector<int64_t> h_v_mapping;
 
     // additional private members
@@ -57,16 +57,16 @@ private:
 
     std::pair<Eigen::Vector3d, int> calculate_barycentric_3D_coord(int interator);
     Eigen::Vector3d calculate_barycentric_2D_coord(int iterator);
-    Eigen::Vector2d Cell::get_face_gravity_center_coord(
+    Eigen::Vector2d get_face_gravity_center_coord(
         const Eigen::Vector3i r_face
     );
-    double Cell::pointTriangleDistance(
+    double pointTriangleDistance(
         const Eigen::Vector3d p,
         const Eigen::Vector3d a,
         const Eigen::Vector3d b,
         const Eigen::Vector3d c
     );
-    int Cell::closestRow(const Eigen::MatrixXd& vertice_UV, const Eigen::Vector2d& halfedge_coord);
+    int closestRow(const Eigen::MatrixXd& vertice_UV, const Eigen::Vector2d& halfedge_coord);
 };
 
 
