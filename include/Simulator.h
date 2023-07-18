@@ -70,5 +70,12 @@ private:
 FRIEND_TEST(SimulatorTest, ThrowsWhenInputIsEmpty);
 FRIEND_TEST(SimulatorTest, CorrectlyCalculatesMeanAngle);
 FRIEND_TEST(SimulatorTest, CorrectlyHandlesNegativeAngles);
-
+FRIEND_TEST(SimulatorTest, SymmetricMatrixTestBasicTest);
+FRIEND_TEST(SimulatorTest, SymmetricMatrixTestZeroTest);
+FRIEND_TEST(SimulatorTest, SymmetricMatrixTestAllZerosTest);
+FRIEND_TEST(SimulatorTest, GetDistVectTestBasicTest);
+FRIEND_TEST(SimulatorTest, GetDistVectTestZeroMatrixTest);
+FRIEND_TEST(SimulatorTest, GetDistVectTestOneDimensionTest);
+FRIEND_TEST(SimulatorTest, GetDistVectTestHandlesSquareMatrixCorrectly);
+FRIEND_TEST(SimulatorTest, GetDistVectTestTenDimensionTest);
 };
