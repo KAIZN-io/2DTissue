@@ -62,10 +62,11 @@ private:
     Eigen::MatrixXd distance_matrix;
     Eigen::MatrixXd dist_length;
     Eigen::VectorXd v_order;
-    Eigen::MatrixXd halfedge_uv;
-    Eigen::MatrixXi faces_uv;
-    Eigen::MatrixXd vertices_UV;
-    Eigen::MatrixXd vertices_3D;
+    Eigen::MatrixXd halfedge_UV;
+    Eigen::MatrixXi face_UV;
+    Eigen::MatrixXi face_3D;
+    Eigen::MatrixXd vertice_UV;
+    Eigen::MatrixXd vertice_3D;
     std::vector<int64_t> h_v_mapping;
     std::string mesh_file_path;
     double dt;
