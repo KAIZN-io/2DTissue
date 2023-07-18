@@ -96,7 +96,7 @@ install(TARGETS main
 
 # Collect all test source files
 file(GLOB TEST_SOURCES tests/simulation/**/*.cpp)
-file(GLOB TEST_SOURCES_CLASS tests/simulation/test_Simulator.cpp)
+file(GLOB TEST_SOURCES_CLASS tests/simulation/test_Simulator.cpp tests/simulation/test_GeometryProcessing.cpp)
 
 # Create a test executable for all available tests
 add_executable(all_tests ${TEST_SOURCES} ${TEST_SOURCES_CLASS})
