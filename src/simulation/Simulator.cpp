@@ -55,7 +55,6 @@ void Simulator::simulate_flight() {
     auto dist_vect = get_dist_vect(r_UV);
 
     get_distances_between_particles(dist_length, r_UV, distance_matrix, vertices_3D_active);
-    transform_into_symmetric_matrix(dist_length);
 
     // Calculate force between particles which pulls the particle in one direction within the 2D plane
     calculate_forces_between_particles(dist_vect);
@@ -246,6 +245,7 @@ void Simulator::get_distances_between_particles(
         }
     }
     dist_length.diagonal().array() = 0.0;
+    transform_into_symmetric_matrix(dist_length);
 }
 
 
