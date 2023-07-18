@@ -79,4 +79,6 @@ FRIEND_TEST(SimulatorTest, GetDistVectTestOneDimensionTest);
 FRIEND_TEST(SimulatorTest, GetDistVectTestHandlesSquareMatrixCorrectly);
 FRIEND_TEST(SimulatorTest, GetDistVectTestTenDimensionTest);
 FRIEND_TEST(SimulatorTest, AverageNWithinDistanceTest1);
+FRIEND_TEST(SimulatorTest, RepulsiveAdhesionTest1);
+FRIEND_TEST(SimulatorTest, RepulsiveAdhesionTest2);
 };
