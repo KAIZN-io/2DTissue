@@ -40,6 +40,8 @@ public:
     Eigen::Matrix<double, Eigen::Dynamic, 2> get_r_UV() const { return r_UV; }
     Eigen::VectorXd get_n() const { return n; }
     Eigen::MatrixXd get_r_3D() const { return r_3D; }
+    void set_r_UV(const Eigen::Matrix<double, Eigen::Dynamic, 2>& new_r_UV) { r_UV = new_r_UV; }
+    void set_n(const Eigen::VectorXd& new_n) { n = new_n; }
 
 private:
     int num_part;
