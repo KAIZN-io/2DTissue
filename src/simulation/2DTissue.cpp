@@ -16,18 +16,14 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
-#include <IO.h>
-
-#include <utilities/2D_3D_mapping.h>
 #include <utilities/2D_mapping_fixed_border.h>
-#include <utilities/2D_surface.h>
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/error_checking.h>
-#include <utilities/init_particle.h>
-#include <utilities/distance.h>
-#include <utilities/splay_state.h>
 
+#include <IO.h>
+#include <GeometryProcessing.h>
+#include <Cell.h>
 #include <Simulator.h>
 #include <2DTissue.h>
 
@@ -64,8 +60,13 @@ _2DTissue::_2DTissue(
     current_step(0),
     map_cache_count(map_cache_count),
     finished(false),
-    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size)
+    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size),
+    geometry_ptr(std::make_unique<GeometryProcessing>())
 {
+    // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
+    std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
+    loadMeshFaces(mesh_3D_file_path, face_3D);
+
     // Get the mesh name from the path without the file extension
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
     mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
@@ -76,41 +77,22 @@ _2DTissue::_2DTissue(
     if (!boost::filesystem::exists(distance_matrix_path)) {
 
         // Calculate the distance matrix of the static 3D mesh
-        get_all_distances(mesh_path);
+        geometry_ptr->get_all_distances(mesh_path);
     }
     distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(h_v_mapping, vertices_UV, vertices_3D, mesh_UV_path) = create_uv_surface(mesh_path, 0);
-    mesh_UV_name = get_mesh_name(mesh_UV_path);
+    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = geometry_ptr->create_uv_surface(mesh_path, 0);
+    mesh_UV_name = geometry_ptr->get_mesh_name(mesh_UV_path);
 
-    loadMeshVertices(mesh_UV_path, halfedge_uv);
-    loadMeshFaces(mesh_UV_path, faces_uv);
-    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_UV_path};
+    loadMeshVertices(mesh_UV_path, halfedge_UV);
+    loadMeshFaces(mesh_UV_path, face_UV);
+    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path};
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
-
-    // /*
-    // Prefill the vertices_2DTissue_map with the virtual meshes
-    // */
-    // // Get the vertices that are selected for the splay state in 3D
-    // auto splay_state_vertices_id = get_3D_splay_vertices(distance_matrix, map_cache_count);
-
-    // // auto [splay_state_UV_coord, splay_state_halfedges] = get_splay_state_vertices(faces_uv, halfedge_uv, 3);
-    // // auto [splay_state_3D_coord, splay_state_vertices_id] = get_r3d(splay_state_UV_coord, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
-
-    // for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
-    //     int splay_state_v = splay_state_vertices_id[i];
-
-    //     auto [h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = create_uv_surface(mesh_path, splay_state_v);
-    //     Eigen::MatrixXd halfedge_uv_virtual = loadMeshVertices(mesh_file_path_virtual);
-
-    //     // Store the virtual meshes
-    //     vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_uv_virtual, h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
-    // }
 }
 
 
@@ -122,11 +104,13 @@ void _2DTissue::start(){
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
-    init_particle_position(faces_uv, halfedge_uv, particle_count, r_UV, n);
+    cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
+    // ! Access the functions using the pointer
+    cell_ptr->init_particle_position(r_UV, n);
     r_UV_old = r_UV;
 
     // Map the 2D coordinates to their 3D vertices counterparts
-    std::tie(std::ignore, vertices_3D_active) = get_r3d(r_UV, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+    std::tie(std::ignore, vertices_3D_active) = cell_ptr->get_r3d(r_UV);
 }
 
 
@@ -171,7 +155,7 @@ System _2DTissue::update(){
     perform_particle_simulation();
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
-    auto [r_3D, new_vertices_3D_active] = get_r3d(r_UV, halfedge_uv, faces_uv, vertices_UV, vertices_3D, h_v_mapping);
+    auto [r_3D, new_vertices_3D_active] = cell_ptr->get_r3d(r_UV);
     vertices_3D_active = new_vertices_3D_active;
 
     std::vector<Particle> particles;

@@ -65,18 +65,15 @@ add_library(utilities_lib STATIC
     src/simulation/2DTissue.cpp
     src/simulation/Simulator.cpp
     src/simulation/IO.cpp
-    src/simulation/utilities/2D_3D_mapping.cpp
+    src/simulation/Cell.cpp
+    src/simulation/GeometryProcessing.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
-    src/simulation/utilities/2D_surface.cpp
     src/simulation/utilities/analytics.cpp
     src/simulation/utilities/angles_to_unit_vectors.cpp
-    src/simulation/utilities/barycentric_coord.cpp
     src/simulation/utilities/check_boundary.cpp
     src/simulation/utilities/check_validity.cpp
-    src/simulation/utilities/distance.cpp
     src/simulation/utilities/dye_particle.cpp
     src/simulation/utilities/error_checking.cpp
-    src/simulation/utilities/init_particle.cpp
     src/simulation/utilities/matrix_algebra.cpp
     src/simulation/utilities/mesh_descriptor.cpp
     src/simulation/utilities/sim_structs.cpp
@@ -97,7 +94,7 @@ install(TARGETS main
 
 # Collect all test source files
 file(GLOB TEST_SOURCES tests/simulation/**/*.cpp)
-file(GLOB TEST_SOURCES_CLASS tests/simulation/test_Simulator.cpp)
+file(GLOB TEST_SOURCES_CLASS tests/simulation/test_Simulator.cpp tests/simulation/test_GeometryProcessing.cpp)
 
 # Create a test executable for all available tests
 add_executable(all_tests ${TEST_SOURCES} ${TEST_SOURCES_CLASS})
