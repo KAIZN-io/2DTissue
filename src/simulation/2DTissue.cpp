@@ -107,6 +107,7 @@ void _2DTissue::start(){
     particles_color.resize(particle_count);
 
     cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
+    // ! Access the functions using the pointer
     cell_ptr->init_particle_position(r_UV, n);
     r_UV_old = r_UV;
 

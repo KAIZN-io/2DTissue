@@ -66,12 +66,10 @@ add_library(utilities_lib STATIC
     src/simulation/Simulator.cpp
     src/simulation/IO.cpp
     src/simulation/Cell.cpp
-    src/simulation/utilities/2D_3D_mapping.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
     src/simulation/utilities/2D_surface.cpp
     src/simulation/utilities/analytics.cpp
     src/simulation/utilities/angles_to_unit_vectors.cpp
-    src/simulation/utilities/barycentric_coord.cpp
     src/simulation/utilities/check_boundary.cpp
     src/simulation/utilities/check_validity.cpp
     src/simulation/utilities/distance.cpp
