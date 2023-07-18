@@ -24,7 +24,6 @@
 #include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/error_checking.h>
-#include <utilities/init_particle.h>
 #include <utilities/distance.h>
 #include <utilities/splay_state.h>
 
@@ -127,10 +126,8 @@ void _2DTissue::start(){
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
-
-    // Cell cell(part_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
-
-    init_particle_position(face_UV, halfedge_UV, particle_count, r_UV, n);
+    Cell cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
+    cell.init_particle_position(r_UV, n);
     r_UV_old = r_UV;
 
     // Map the 2D coordinates to their 3D vertices counterparts
