@@ -12,9 +12,9 @@
 
 #include <utilities/angles_to_unit_vectors.h>
 
-#include <Cell.h>
+#include <Simulator.h>
 
-Cell::Cell(
+Simulator::Simulator(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
     Eigen::VectorXd& n,
@@ -43,7 +43,7 @@ Cell::Cell(
 }
 
 
-Eigen::MatrixXd Cell::simulate_flight() {
+Eigen::MatrixXd Simulator::simulate_flight() {
     // Get distance vectors and calculate distances between particles
     auto dist_vect = get_dist_vect(r_UV);
     auto dist_length = get_distances_between_particles(r_UV, distance_matrix_v, vertices_3D_active);
@@ -78,7 +78,7 @@ Eigen::MatrixXd Cell::simulate_flight() {
 *
 * @info: Unittest implemented
 */
-void Cell::transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
+void Simulator::transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
     int n = A.rows();
 
     for (int i = 0; i < n; i++) {
@@ -94,7 +94,7 @@ void Cell::transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
  *
  * @info: Unittest implemented
 */
-double Cell::mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
+double Simulator::mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
     if (angles.empty()) {
         throw std::invalid_argument("The input vector should not be empty.");
     }
@@ -126,11 +126,11 @@ double Cell::mean_unit_circle_vector_angle_degrees(std::vector<double> angles) {
 
 
 /**
-* @brief: Cells can attract or repel each other as they move depending on their distance.
+* @brief: Simulators can attract or repel each other as they move depending on their distance.
 *
 * @info: Unittest implemented
 */
-Eigen::Vector2d Cell::repulsive_adhesion_motion(
+Eigen::Vector2d Simulator::repulsive_adhesion_motion(
     double k,
     double σ,
     double dist,
@@ -162,7 +162,7 @@ Eigen::Vector2d Cell::repulsive_adhesion_motion(
 *
 * @info: Unittest implemented
 */
-Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::calculate_forces_between_particles(
+Eigen::Matrix<double, Eigen::Dynamic, 2> Simulator::calculate_forces_between_particles(
     const std::vector<Eigen::MatrixXd> dist_vect,
     const Eigen::MatrixXd dist_length,
     double k,
@@ -213,7 +213,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::calculate_forces_between_particle
 /**
  * @info: Unittest implemented
 */
-std::vector<Eigen::MatrixXd> Cell::get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
+std::vector<Eigen::MatrixXd> Simulator::get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
     Eigen::VectorXd dist_x = r.col(0);
     Eigen::VectorXd dist_y = r.col(1);
 
@@ -237,7 +237,7 @@ std::vector<Eigen::MatrixXd> Cell::get_dist_vect(const Eigen::Matrix<double, Eig
 /**
  * @brief Calculate the distance between each pair of particles
 */
-Eigen::MatrixXd Cell::get_distances_between_particles(
+Eigen::MatrixXd Simulator::get_distances_between_particles(
     Eigen::Matrix<double, Eigen::Dynamic, 2> r,
     Eigen::MatrixXd distance_matrix,
     std::vector<int> vertice_3D_id
@@ -268,7 +268,7 @@ Eigen::MatrixXd Cell::get_distances_between_particles(
 *
 * @info: Unittest implemented
 */
-void Cell::calculate_average_n_within_distance(
+void Simulator::calculate_average_n_within_distance(
     const std::vector<Eigen::MatrixXd> dist_vect,
     const Eigen::MatrixXd dist_length,
     Eigen::VectorXd& n,

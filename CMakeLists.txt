@@ -78,7 +78,7 @@ target_link_libraries(particle_simulation_lib PRIVATE CGAL::Eigen3_support Boost
 
 add_library(utilities_lib STATIC
     src/simulation/2DTissue.cpp
-    src/simulation/Cell.cpp
+    src/simulation/Simulator.cpp
     src/simulation/utilities/2D_3D_mapping.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
     src/simulation/utilities/2D_surface.cpp

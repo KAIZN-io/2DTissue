@@ -29,7 +29,7 @@
 #include <utilities/distance.h>
 #include <utilities/splay_state.h>
 
-#include <Cell.h>
+#include <Simulator.h>
 #include <2DTissue.h>
 
 
@@ -131,7 +131,7 @@ void _2DTissue::start(){
 
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
-    auto dist_length = cell.simulate_flight();
+    auto dist_length = simulator.simulate_flight();
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?

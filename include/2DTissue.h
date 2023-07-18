@@ -9,7 +9,7 @@
 #include <utilities/sim_structs.h>
 #include <io/mesh_loader.h>
 #include <io/csv.h>
-#include <Cell.h>
+#include <Simulator.h>
 
 // Individuelle Partikel Informationen
 struct Particle{
@@ -73,7 +73,7 @@ private:
     std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
-    Cell cell;
+    Simulator simulator;
 
     void perform_particle_simulation();
     void save_our_data(Eigen::MatrixXd r_3D);
@@ -99,5 +99,5 @@ public:
     System update();
     bool is_finished();
     Eigen::VectorXd get_order_parameter();
-    friend class Cell;
+    friend class Simulator;
 };

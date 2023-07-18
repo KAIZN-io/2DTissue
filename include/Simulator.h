@@ -1,4 +1,4 @@
-// Cell.h
+// Simulator.h
 
 #pragma once
 
@@ -9,9 +9,9 @@
 #include <cmath>
 #include <utilities/angles_to_unit_vectors.h>
 
-class Cell {
+class Simulator {
 public:
-    Cell(
+    Simulator(
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
         Eigen::VectorXd& n,
