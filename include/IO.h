@@ -1,16 +1,34 @@
-// csv.h
+// IO.h
 #pragma once
 
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <Eigen/Dense>
 #include <iomanip>
 #include <iostream>
+#include <cstdint>
+#include <map>
 #include <boost/filesystem.hpp>
+#include <Eigen/Dense>
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
+#include <utilities/sim_structs.h>
 
 const boost::filesystem::path PROJECT_PATH_IO = PROJECT_SOURCE_DIR;
+
+
+void loadMeshVertices(std::string filepath, Eigen::MatrixXd& vertices);
+
+void loadMeshFaces(std::string filepath, Eigen::MatrixXi& faces);
+
+std::pair<Eigen::MatrixXd, std::vector<int64_t>> get_mesh_data(
+    std::unordered_map<int, Mesh_UV_Struct> mesh_dict,
+    int mesh_id
+);
 
 
 // We need do define it in the header file or otherwise the template specialization will not be available at link time

@@ -16,8 +16,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
-#include <io/csv.h>
-#include <io/mesh_loader.h>
+#include <IO.h>
 
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/2D_mapping_fixed_border.h>

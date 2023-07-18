@@ -1,7 +1,7 @@
 // author: @Jan-Piotraschke
-// date: 2023-07-13
+// date: 2023-07-18
 // license: Apache License 2.0
-// version: 0.2.1
+// version: 0.2.0
 
 #include <iostream>
 #include <cstdint>
@@ -13,8 +13,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <io/mesh_loader.h>
 #include <utilities/sim_structs.h>
+
+#include <IO.h>
 
 
 const aiScene* loadScene(const std::string& filepath) {

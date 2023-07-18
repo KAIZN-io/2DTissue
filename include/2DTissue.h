@@ -7,8 +7,7 @@
 #include <map>
 
 #include <utilities/sim_structs.h>
-#include <io/mesh_loader.h>
-#include <io/csv.h>
+#include <IO.h>
 #include <Simulator.h>
 
 // Individuelle Partikel Informationen

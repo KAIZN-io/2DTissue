@@ -6,8 +6,7 @@
 #include <Eigen/Dense>
 #include <vector>
 
-#include <io/csv.h>
-#include <io/mesh_loader.h>
+#include <IO.h>
 
 #include <particle_simulation/motion.h>
 #include <particle_simulation/particle_vector.h>

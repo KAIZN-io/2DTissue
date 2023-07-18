@@ -8,7 +8,7 @@
 #include <vector>
 #include <cstdint>
 
-#include <io/mesh_loader.h>
+#include <IO.h>
 #include <utilities/nearest_map.h>
 #include <utilities/sim_structs.h>
 

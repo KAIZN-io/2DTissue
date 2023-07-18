@@ -13,7 +13,7 @@ const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 int main()
 {
     int step_count = 30;
-    bool save_data = false;
+    bool save_data = true;
 
     // Path to the 3D mesh file
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";

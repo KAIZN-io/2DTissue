@@ -60,16 +60,11 @@ include(CGAL_Eigen3_support)
 # Add C++ source files
 create_single_source_cgal_program("src/simulation/main.cpp")
 
-add_library(io_lib STATIC
-    src/simulation/io/csv.cpp
-    src/simulation/io/mesh_loader.cpp
-)
-target_include_directories(io_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(io_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
 
 add_library(utilities_lib STATIC
     src/simulation/2DTissue.cpp
     src/simulation/Simulator.cpp
+    src/simulation/IO.cpp
     src/simulation/utilities/2D_3D_mapping.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
     src/simulation/utilities/2D_surface.cpp
@@ -88,10 +83,10 @@ add_library(utilities_lib STATIC
     src/simulation/utilities/update.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem)
+target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE CGAL::Eigen3_support io_lib utilities_lib)
+target_link_libraries(main PRIVATE CGAL::Eigen3_support utilities_lib)
 
 # Install the target
 install(TARGETS main
@@ -108,5 +103,5 @@ file(GLOB TEST_SOURCES_CLASS tests/simulation/test_Simulator.cpp)
 add_executable(all_tests ${TEST_SOURCES} ${TEST_SOURCES_CLASS})
 
 # Link your libraries to the test executable
-target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support io_lib utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)
+target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)
 

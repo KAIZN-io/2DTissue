@@ -7,7 +7,7 @@
 #include <vector>
 #include <iostream>
 
-#include <io/mesh_loader.h>
+#include <IO.h>
 #include <utilities/2D_3D_mapping.h>
 #include <utilities/nearest_map.h>
 #include <utilities/sim_structs.h>
