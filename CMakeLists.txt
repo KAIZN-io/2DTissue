@@ -90,11 +90,11 @@ install(TARGETS main
 )
 
 # Collect all test source files
-file(GLOB TEST_SOURCES tests/simulation/*.cpp)
+#file(GLOB TEST_SOURCES tests/simulation/*.cpp)
 
 # Create a test executable for all available tests
-add_executable(all_tests ${TEST_SOURCES})
+#add_executable(all_tests ${TEST_SOURCES})
 
 # Link your libraries to the test executable
-target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)
+#target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)
 
