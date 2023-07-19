@@ -58,8 +58,7 @@ include(CGAL_Eigen3_support)
 # ##########################################################
 
 # Add C++ source files
-create_single_source_cgal_program("src/simulation/main.cpp")
-
+create_single_source_cgal_program("src/main.cpp")
 
 add_library(classes_lib STATIC
     src/simulation/2DTissue.cpp
