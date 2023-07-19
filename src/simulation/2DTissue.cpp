@@ -16,8 +16,6 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
-#include <utilities/dye_particle.h>
-
 #include <IO.h>
 #include <GeometryProcessing.h>
 #include <LinearAlgebra.h>
@@ -113,6 +111,19 @@ void _2DTissue::start(){
 }
 
 
+void _2DTissue::count_particle_neighbors() {
+    const int num_rows = dist_length.rows();
+
+    for (int i = 0; i < num_rows; i++) {
+        for (int j = 0; j < dist_length.cols(); j++) {
+            if (dist_length(i, j) != 0 && dist_length(i, j) <= 2.4 * σ) {
+                particles_color[i] += 1;
+            }
+        }
+    }
+}
+
+
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
     simulator.simulate_flight();
@@ -131,7 +142,7 @@ void _2DTissue::perform_particle_simulation(){
     validation_ptr->error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
-    count_particle_neighbors(particles_color, dist_length, σ);
+    count_particle_neighbors();
 
     // The new UV coordinates are the old ones for the next step
     r_UV_old = r_UV;

@@ -89,6 +89,7 @@ private:
 
     void perform_particle_simulation();
     void save_our_data(Eigen::MatrixXd r_3D);
+    void count_particle_neighbors();
 
 public:
     _2DTissue(
