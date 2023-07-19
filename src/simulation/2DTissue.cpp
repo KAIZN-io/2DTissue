@@ -17,12 +17,12 @@
 #include <Eigen/Sparse>
 
 #include <utilities/2D_mapping_fixed_border.h>
-#include <utilities/analytics.h>
 #include <utilities/dye_particle.h>
 #include <utilities/error_checking.h>
 
 #include <IO.h>
 #include <GeometryProcessing.h>
+#include <LinearAlgebra.h>
 #include <Cell.h>
 #include <Simulator.h>
 #include <2DTissue.h>
@@ -61,7 +61,8 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false),
     simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size),
-    geometry_ptr(std::make_unique<GeometryProcessing>())
+    geometry_ptr(std::make_unique<GeometryProcessing>()),
+    linear_algebra_ptr(std::make_unique<LinearAlgebra>())
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
@@ -138,7 +139,7 @@ void _2DTissue::perform_particle_simulation(){
     r_UV_old = r_UV;
 
     // Calculate the order parameter
-    calculate_order_parameter(v_order, r_UV, r_dot, current_step);
+    linear_algebra_ptr->calculate_order_parameter(v_order, r_UV, r_dot, current_step);
 }
 
 
