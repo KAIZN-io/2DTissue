@@ -58,7 +58,8 @@ _2DTissue::_2DTissue(
     current_step(0),
     map_cache_count(map_cache_count),
     finished(false),
-    simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr))
+    simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
+    cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n)
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
@@ -73,6 +74,7 @@ _2DTissue::_2DTissue(
     std::string distance_matrix_path = PROJECT_PATH + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
     if (!boost::filesystem::exists(distance_matrix_path)) {
 
+        // ! Access the functions using the pointer
         // Calculate the distance matrix of the static 3D mesh
         geometry_ptr->get_all_distances(mesh_path);
     }
@@ -100,13 +102,12 @@ void _2DTissue::start(){
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
-    cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
-    // ! Access the functions using the pointer
-    cell_ptr->init_particle_position(r_UV, n);
+    // cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
+    cell.init_particle_position();
     r_UV_old = r_UV;
 
     // Map the 2D coordinates to their 3D vertices counterparts
-    std::tie(std::ignore, vertices_3D_active) = cell_ptr->get_r3d(r_UV);
+    std::tie(r_3D, vertices_3D_active) = cell.get_r3d();
 }
 
 
@@ -151,7 +152,7 @@ void _2DTissue::perform_particle_simulation(){
 }
 
 
-void _2DTissue::save_our_data(Eigen::MatrixXd r_3D) {
+void _2DTissue::save_our_data() {
     std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
     save_matrix_to_csv(r_UV, file_name, particle_count);
     std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
@@ -164,8 +165,9 @@ System _2DTissue::update(){
     perform_particle_simulation();
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
-    auto [r_3D, new_vertices_3D_active] = cell_ptr->get_r3d(r_UV);
+    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
     vertices_3D_active = new_vertices_3D_active;
+    r_3D = new_r_3D;
 
     std::vector<Particle> particles;
     // start for loop
@@ -194,7 +196,7 @@ System _2DTissue::update(){
     }
 
     if (save_data) {
-        save_our_data(r_3D);
+        save_our_data();
     }
 
     return system;

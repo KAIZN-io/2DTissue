@@ -64,6 +64,7 @@ private:
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
+    Eigen::MatrixXd r_3D;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
     Eigen::VectorXd n;
     std::vector<int> particles_color;
@@ -79,13 +80,13 @@ private:
     std::vector<int64_t> h_v_mapping;
     std::string mesh_file_path;
     double dt;
-    int num_part;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Simulator simulator;
+    Cell cell;
 
     void perform_particle_simulation();
-    void save_our_data(Eigen::MatrixXd r_3D);
+    void save_our_data();
     void count_particle_neighbors();
 
 public:
@@ -110,4 +111,5 @@ public:
     bool is_finished();
     Eigen::VectorXd get_order_parameter();
     friend class Simulator;
+    friend class Cell;
 };

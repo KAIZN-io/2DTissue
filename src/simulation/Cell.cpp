@@ -18,21 +18,27 @@
 const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 Cell::Cell(
-    int num_part,
-    Eigen::MatrixXd halfedge_UV,
-    Eigen::MatrixXi face_UV,
-    Eigen::MatrixXi face_3D,
-    Eigen::MatrixXd vertice_UV,
-    Eigen::MatrixXd vertice_3D,
-    std::vector<int64_t> h_v_mapping
+    int particle_count,
+    Eigen::MatrixXd& halfedge_UV,
+    Eigen::MatrixXi& face_UV,
+    Eigen::MatrixXi& face_3D,
+    Eigen::MatrixXd& vertice_UV,
+    Eigen::MatrixXd& vertice_3D,
+    std::vector<int64_t>& h_v_mapping,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
+    Eigen::MatrixXd& r_3D,
+    Eigen::VectorXd& n
 )
-    : num_part(num_part),
+    : particle_count(particle_count),
     halfedge_UV(halfedge_UV),
     face_UV(face_UV),
     face_3D(face_3D),
     vertice_UV(vertice_UV),
     vertice_3D(vertice_3D),
-    h_v_mapping(h_v_mapping)
+    h_v_mapping(h_v_mapping),
+    r_UV(r_UV),
+    r_3D(r_3D),
+    n(n)
 {
 
 }
@@ -52,10 +58,7 @@ Eigen::Vector2d Cell::get_face_gravity_center_coord(
 }
 
 
-void Cell::init_particle_position(
-    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
-    Eigen::VectorXd& n
-) {
+void Cell::init_particle_position() {
     int face_length = face_UV.rows();
     std::vector<int> face_list(face_length);
     std::iota(face_list.begin(), face_list.end(), 1);
@@ -66,7 +69,7 @@ void Cell::init_particle_position(
     std::uniform_int_distribution<> dis_face(0, face_length - 1);
     std::uniform_int_distribution<> dis_angle(0, 359);
 
-    for (int i = 0; i < num_part; ++i) {
+    for (int i = 0; i < particle_count; ++i) {
         int random_face = dis_face(gen);
         auto it = std::find(face_list.begin(), face_list.end(), random_face);
         if (it != face_list.end()) {
@@ -75,7 +78,6 @@ void Cell::init_particle_position(
 
         Eigen::Vector3i r_face_uv = face_UV.row(random_face);
         r_UV.row(i) = get_face_gravity_center_coord(r_face_uv);
-
         n.row(i) << dis_angle(gen);
     }
 }
@@ -140,7 +142,7 @@ double Cell::pointTriangleDistance(
 }
 
 
-int Cell::closestRow(const Eigen::MatrixXd& vertice_UV, const Eigen::Vector2d& halfedge_coord) {
+int Cell::closestRow(const Eigen::Vector2d& halfedge_coord) {
     Eigen::VectorXd dists(vertice_UV.rows());
     for (int i = 0; i < vertice_UV.rows(); ++i) {
         dists[i] = (vertice_UV.row(i) - halfedge_coord.transpose()).squaredNorm();
@@ -153,7 +155,7 @@ int Cell::closestRow(const Eigen::MatrixXd& vertice_UV, const Eigen::Vector2d& h
 }
 
 
-std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV, int interator){
+std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int interator){
     std::vector<std::pair<double, int>> distances(face_UV.rows());
 
     for (int j = 0; j < face_UV.rows(); ++j) {
@@ -175,9 +177,9 @@ std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(Eigen::Matr
     Eigen::Vector2d halfedge_c_coord = halfedge_UV.row(halfedge_c);
 
     // Inside your loop...
-    int closest_a = closestRow(vertice_UV, halfedge_a_coord);
-    int closest_b = closestRow(vertice_UV, halfedge_b_coord);
-    int closest_c = closestRow(vertice_UV, halfedge_c_coord);
+    int closest_a = closestRow(halfedge_a_coord);
+    int closest_b = closestRow(halfedge_b_coord);
+    int closest_c = closestRow(halfedge_c_coord);
 
     // Get the 3D coordinates of the 3 halfedges
     Eigen::Vector3d a = vertice_3D.row(closest_a);
@@ -218,7 +220,7 @@ std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(Eigen::Matr
 }
 
 
-Eigen::Vector3d Cell::calculate_barycentric_2D_coord(Eigen::MatrixXd r_3D, int iterator){
+Eigen::Vector3d Cell::calculate_barycentric_2D_coord(int iterator){
     std::vector<std::pair<double, int>> distances(face_3D.rows());
 
     for (int j = 0; j < face_3D.rows(); ++j) {
@@ -274,13 +276,13 @@ Eigen::Vector3d Cell::calculate_barycentric_2D_coord(Eigen::MatrixXd r_3D, int i
 
 
 // (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
-std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV){
+std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(){
     int num_r = r_UV.rows();
     Eigen::MatrixXd new_3D_points(num_r, 3);
     std::vector<int> nearest_vertices_ids(num_r);
 
     for (int i = 0; i < num_r; ++i) {
-        auto [barycentric_coord, nearest_vertex_id] = calculate_barycentric_3D_coord(r_UV, i);
+        auto [barycentric_coord, nearest_vertex_id] = calculate_barycentric_3D_coord(i);
         new_3D_points.row(i) = barycentric_coord;
         nearest_vertices_ids[i] = nearest_vertex_id;
     }
@@ -290,7 +292,7 @@ std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(Eigen::Matrix<double,
 
 
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
-Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(Eigen::MatrixXd r_3D){
+Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
 
@@ -301,7 +303,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(Eigen::MatrixXd r_3D){
     Eigen::Matrix<double, Eigen::Dynamic, 2> new_2D_points(num_r, 2);
 
     for (int i = 0; i < num_r; ++i) {
-        Eigen::Vector3d uv_coord_test = calculate_barycentric_2D_coord(r_3D, i);
+        Eigen::Vector3d uv_coord_test = calculate_barycentric_2D_coord(i);
         Eigen::Vector2d uv_coord(uv_coord_test[0], uv_coord_test[1]);
 
         new_2D_points.row(i) = uv_coord;
