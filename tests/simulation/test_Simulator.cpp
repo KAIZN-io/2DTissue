@@ -8,7 +8,9 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <memory>
 
+#include <LinearAlgebra.h>
 #include <Simulator.h>
 
 
@@ -22,7 +24,8 @@ protected:
           vertices_3D_active(std::vector<int>()),
           distance_matrix(Eigen::MatrixXd()),
           dist_length(Eigen::MatrixXd()),
-          sim(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size)
+          linear_algebra_ptr(std::make_unique<LinearAlgebra>()),
+          sim(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr))
     {}
 
     double v0, k, σ, μ, r_adh, k_adh, step_size;
@@ -30,8 +33,10 @@ protected:
     Eigen::VectorXd n;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix, dist_length;
+    std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
     Simulator sim;
 };
+
 
 
 // Test the repulsive_adhesion_motion function
