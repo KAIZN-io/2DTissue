@@ -8,8 +8,6 @@
 #include <cstdint>
 #include <map>
 
-#include "utilities/sim_structs.h"
-
 using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
 
 std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_nearest_vertice_map(

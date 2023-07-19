@@ -7,8 +7,6 @@
 #include <map>
 #include <memory>
 
-#include <utilities/sim_structs.h>
-
 #include <Validation.h>
 #include <GeometryProcessing.h>
 #include <LinearAlgebra.h>
@@ -82,7 +80,6 @@ private:
     std::string mesh_file_path;
     double dt;
     int num_part;
-    std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Simulator simulator;

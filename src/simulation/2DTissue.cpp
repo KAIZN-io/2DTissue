@@ -85,7 +85,6 @@ _2DTissue::_2DTissue(
 
     loadMeshVertices(mesh_UV_path, halfedge_UV);
     loadMeshFaces(mesh_UV_path, face_UV);
-    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path};
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
