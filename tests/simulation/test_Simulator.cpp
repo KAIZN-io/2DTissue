@@ -19,17 +19,18 @@ protected:
     SimulatorTest()
         : v0(0), k(10), σ(1.4166666666666667), μ(0), r_adh(1), k_adh(0.75), step_size(0),
           r_UV(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
+          r_UV_old(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
           r_dot(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
           n(Eigen::VectorXd()),
           vertices_3D_active(std::vector<int>()),
           distance_matrix(Eigen::MatrixXd()),
           dist_length(Eigen::MatrixXd()),
           linear_algebra_ptr(std::make_unique<LinearAlgebra>()),
-          sim(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr))
+          sim(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr))
     {}
 
     double v0, k, σ, μ, r_adh, k_adh, step_size;
-    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV, r_dot;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV, r_UV_old, r_dot;
     Eigen::VectorXd n;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix, dist_length;

@@ -68,7 +68,6 @@ add_library(utilities_lib STATIC
     src/simulation/Cell.cpp
     src/simulation/GeometryProcessing.cpp
     src/simulation/LinearAlgebra.cpp
-    src/simulation/utilities/2D_mapping_fixed_border.cpp
     src/simulation/utilities/check_boundary.cpp
     src/simulation/utilities/check_validity.cpp
     src/simulation/utilities/dye_particle.cpp
