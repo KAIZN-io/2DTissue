@@ -68,12 +68,10 @@ add_library(utilities_lib STATIC
     src/simulation/Cell.cpp
     src/simulation/GeometryProcessing.cpp
     src/simulation/LinearAlgebra.cpp
-    src/simulation/utilities/check_boundary.cpp
     src/simulation/utilities/check_validity.cpp
     src/simulation/utilities/dye_particle.cpp
     src/simulation/utilities/error_checking.cpp
     src/simulation/utilities/sim_structs.cpp
-    src/simulation/utilities/update.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
