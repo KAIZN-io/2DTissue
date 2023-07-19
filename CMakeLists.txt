@@ -68,9 +68,8 @@ add_library(utilities_lib STATIC
     src/simulation/Cell.cpp
     src/simulation/GeometryProcessing.cpp
     src/simulation/LinearAlgebra.cpp
-    src/simulation/utilities/check_validity.cpp
+    src/simulation/Validation.cpp
     src/simulation/utilities/dye_particle.cpp
-    src/simulation/utilities/error_checking.cpp
     src/simulation/utilities/sim_structs.cpp
 )
 target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")

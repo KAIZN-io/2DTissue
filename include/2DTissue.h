@@ -9,6 +9,7 @@
 
 #include <utilities/sim_structs.h>
 
+#include <Validation.h>
 #include <GeometryProcessing.h>
 #include <LinearAlgebra.h>
 #include <Cell.h>
@@ -61,6 +62,7 @@ private:
     std::unique_ptr<Cell> cell_ptr;
     std::unique_ptr<GeometryProcessing> geometry_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
+    std::unique_ptr<Validation> validation_ptr;
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;

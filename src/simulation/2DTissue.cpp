@@ -17,13 +17,14 @@
 #include <Eigen/Sparse>
 
 #include <utilities/dye_particle.h>
-#include <utilities/error_checking.h>
 
 #include <IO.h>
 #include <GeometryProcessing.h>
 #include <LinearAlgebra.h>
 #include <Cell.h>
 #include <Simulator.h>
+#include <Validation.h>
+
 #include <2DTissue.h>
 
 
@@ -126,8 +127,8 @@ void _2DTissue::perform_particle_simulation(){
     }
 
     // Error checking
-    error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
-    error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
+    validation_ptr->error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
+    validation_ptr->error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
     count_particle_neighbors(particles_color, dist_length, σ);
