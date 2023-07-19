@@ -6,6 +6,10 @@
 #include <iostream>
 #include <boost/filesystem.hpp>
 #include <cvode/cvode.h>
+#include <idas/idas.h>
+#include <nvector/nvector_serial.h>
+#include <sundials/sundials_types.h>
+#include <sundials/sundials_math.h>
 
 #include <2DTissue.h>
 
