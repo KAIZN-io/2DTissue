@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <boost/filesystem.hpp>
+#include <cvode/cvode.h>
 
 #include <2DTissue.h>
 
