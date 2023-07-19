@@ -99,6 +99,7 @@ void _2DTissue::start(){
     r_UV.resize(particle_count, Eigen::NoChange);
     r_UV_old.resize(particle_count, Eigen::NoChange);
     r_dot.resize(particle_count, Eigen::NoChange);
+    r_3D.resize(particle_count, 3);
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
