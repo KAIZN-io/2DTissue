@@ -67,6 +67,7 @@ add_library(utilities_lib STATIC
     src/simulation/IO.cpp
     src/simulation/Cell.cpp
     src/simulation/GeometryProcessing.cpp
+    src/simulation/LinearAlgebra.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
     src/simulation/utilities/analytics.cpp
     src/simulation/utilities/angles_to_unit_vectors.cpp
