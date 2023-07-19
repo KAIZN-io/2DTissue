@@ -7,13 +7,12 @@
 #include <map>
 #include <memory>
 
-#include <utilities/sim_structs.h>
-
-#include <GeometryProcessing.h>
-#include <LinearAlgebra.h>
-#include <Cell.h>
-#include <IO.h>
-#include <Simulator.h>
+#include "IO.h"
+#include "GeometryProcessing.h"
+#include "LinearAlgebra.h"
+#include "Cell.h"
+#include "Simulator.h"
+#include "Validation.h"
 
 // Individuelle Partikel Informationen
 struct Particle{
@@ -61,6 +60,7 @@ private:
     std::unique_ptr<Cell> cell_ptr;
     std::unique_ptr<GeometryProcessing> geometry_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
+    std::unique_ptr<Validation> validation_ptr;
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
@@ -80,13 +80,13 @@ private:
     std::string mesh_file_path;
     double dt;
     int num_part;
-    std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Simulator simulator;
 
     void perform_particle_simulation();
     void save_our_data(Eigen::MatrixXd r_3D);
+    void count_particle_neighbors();
 
 public:
     _2DTissue(

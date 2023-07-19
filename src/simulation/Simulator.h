@@ -9,11 +9,13 @@
 #include <cmath>
 #include <gtest/gtest_prod.h>
 
+#include "LinearAlgebra.h"
 
 class Simulator {
 public:
     Simulator(
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
+        Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
         Eigen::VectorXd& n,
         std::vector<int>& vertices_3D_active,
@@ -30,9 +32,12 @@ public:
     );
 
     void simulate_flight();
+    void opposite_seam_edges_square_border();
+    void diagonal_seam_edges_square_border();
 
 private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot;
     Eigen::VectorXd& n;
     std::vector<int>& vertices_3D_active;
@@ -68,6 +73,12 @@ private:
     );
     void calculate_forces_between_particles(const std::vector<Eigen::MatrixXd> dist_vect);
     static double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
+    double interpolateX(const Eigen::Vector2d& pointA, const Eigen::Vector2d& pointB, double y);
+    double interpolateY(const Eigen::Vector2d& pointA, const Eigen::Vector2d& pointB, double x);
+    int calculateSteepnessSwitch(double steepness);
+    std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n);
+    void map_between_arbitrary_seam_edges();
+
 
 FRIEND_TEST(SimulatorTest, ThrowsWhenInputIsEmpty);
 FRIEND_TEST(SimulatorTest, CorrectlyCalculatesMeanAngle);

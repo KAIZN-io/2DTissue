@@ -13,8 +13,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <utilities/sim_structs.h>
-
 #include <IO.h>
 
 
@@ -80,19 +78,19 @@ void loadMeshFaces(const std::string filepath, Eigen::MatrixXi& faces) {
 }
 
 
-std::pair<Eigen::MatrixXd, std::vector<int64_t>> get_mesh_data(
-    std::unordered_map<int, Mesh_UV_Struct> mesh_dict,
-    int mesh_id
-){
-    Eigen::MatrixXd halfedges_uv;
-    std::vector<int64_t> h_v_mapping;
+// std::pair<Eigen::MatrixXd, std::vector<int64_t>> get_mesh_data(
+//     std::unordered_map<int, Mesh_UV_Struct> mesh_dict,
+//     int mesh_id
+// ){
+//     Eigen::MatrixXd halfedges_uv;
+//     std::vector<int64_t> h_v_mapping;
 
-    auto it = mesh_dict.find(mesh_id);
-    if (it != mesh_dict.end()) {
-        // Load the mesh
-        halfedges_uv = it->second.mesh;
-        h_v_mapping = it->second.h_v_mapping;
-    }
+//     auto it = mesh_dict.find(mesh_id);
+//     if (it != mesh_dict.end()) {
+//         // Load the mesh
+//         halfedges_uv = it->second.mesh;
+//         h_v_mapping = it->second.h_v_mapping;
+//     }
 
-    return std::pair(halfedges_uv, h_v_mapping);
-}
+//     return std::pair(halfedges_uv, h_v_mapping);
+// }

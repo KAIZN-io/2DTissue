@@ -16,15 +16,13 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
-#include <utilities/2D_mapping_fixed_border.h>
-#include <utilities/dye_particle.h>
-#include <utilities/error_checking.h>
-
 #include <IO.h>
 #include <GeometryProcessing.h>
 #include <LinearAlgebra.h>
 #include <Cell.h>
 #include <Simulator.h>
+#include <Validation.h>
+
 #include <2DTissue.h>
 
 
@@ -60,7 +58,7 @@ _2DTissue::_2DTissue(
     current_step(0),
     map_cache_count(map_cache_count),
     finished(false),
-    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr))
+    simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr))
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
@@ -87,7 +85,6 @@ _2DTissue::_2DTissue(
 
     loadMeshVertices(mesh_UV_path, halfedge_UV);
     loadMeshFaces(mesh_UV_path, face_UV);
-    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path};
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
@@ -113,6 +110,19 @@ void _2DTissue::start(){
 }
 
 
+void _2DTissue::count_particle_neighbors() {
+    const int num_rows = dist_length.rows();
+
+    for (int i = 0; i < num_rows; i++) {
+        for (int j = 0; j < dist_length.cols(); j++) {
+            if (dist_length(i, j) != 0 && dist_length(i, j) <= 2.4 * σ) {
+                particles_color[i] += 1;
+            }
+        }
+    }
+}
+
+
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
     simulator.simulate_flight();
@@ -120,18 +130,18 @@ void _2DTissue::perform_particle_simulation(){
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
     if (mesh_UV_name == "sphere_uv"){
-        opposite_seam_edges_square_border(r_UV);
+        simulator.opposite_seam_edges_square_border();
     }
     else {
-        diagonal_seam_edges_square_border(r_UV_old, r_UV, n);
+        simulator.diagonal_seam_edges_square_border();
     }
 
     // Error checking
-    error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
-    error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
+    validation_ptr->error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
+    validation_ptr->error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
-    count_particle_neighbors(particles_color, dist_length, σ);
+    count_particle_neighbors();
 
     // The new UV coordinates are the old ones for the next step
     r_UV_old = r_UV;
