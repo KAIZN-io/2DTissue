@@ -9,6 +9,7 @@
 #include <cmath>
 #include <gtest/gtest_prod.h>
 
+#include "LinearAlgebra.h"
 
 class Simulator {
 public:

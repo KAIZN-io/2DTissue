@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <Eigen/Dense>
 
-#include <IO.h>
+#include "IO.h"
 
 // Cell.h
 #pragma once
@@ -13,8 +13,6 @@
 #include <vector>
 #include <cstdint>
 #include <Eigen/Dense>
-
-#include <IO.h>
 
 class Cell {
 public:

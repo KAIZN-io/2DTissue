@@ -7,12 +7,12 @@
 #include <map>
 #include <memory>
 
-#include <Validation.h>
-#include <GeometryProcessing.h>
-#include <LinearAlgebra.h>
-#include <Cell.h>
-#include <IO.h>
-#include <Simulator.h>
+#include "IO.h"
+#include "GeometryProcessing.h"
+#include "LinearAlgebra.h"
+#include "Cell.h"
+#include "Simulator.h"
+#include "Validation.h"
 
 // Individuelle Partikel Informationen
 struct Particle{

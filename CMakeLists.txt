@@ -48,7 +48,7 @@ else()
 endif()
 
 # Include directories for local header files
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/simulation")
 include(CGAL_Eigen3_support)
 
 # ##########################################################
@@ -61,7 +61,7 @@ include(CGAL_Eigen3_support)
 create_single_source_cgal_program("src/simulation/main.cpp")
 
 
-add_library(utilities_lib STATIC
+add_library(classes_lib STATIC
     src/simulation/2DTissue.cpp
     src/simulation/Simulator.cpp
     src/simulation/IO.cpp
@@ -70,11 +70,11 @@ add_library(utilities_lib STATIC
     src/simulation/LinearAlgebra.cpp
     src/simulation/Validation.cpp
 )
-target_include_directories(utilities_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(utilities_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
+target_include_directories(classes_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(classes_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
 
 # Link required libraries to the targets
-target_link_libraries(main PRIVATE CGAL::Eigen3_support utilities_lib)
+target_link_libraries(main PRIVATE CGAL::Eigen3_support classes_lib)
 
 # Install the target
 install(TARGETS main
@@ -90,5 +90,5 @@ file(GLOB TEST_SOURCES tests/simulation/*.cpp)
 add_executable(all_tests ${TEST_SOURCES})
 
 # Link your libraries to the test executable
-target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)
+target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support classes_lib ${GTEST_BOTH_LIBRARIES} pthread)
 
