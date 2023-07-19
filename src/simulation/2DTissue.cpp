@@ -60,9 +60,7 @@ _2DTissue::_2DTissue(
     current_step(0),
     map_cache_count(map_cache_count),
     finished(false),
-    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size),
-    geometry_ptr(std::make_unique<GeometryProcessing>()),
-    linear_algebra_ptr(std::make_unique<LinearAlgebra>())
+    simulator(r_UV, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr))
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";

@@ -10,8 +10,7 @@
 #include <random>
 #include <cmath>
 
-#include <utilities/angles_to_unit_vectors.h>
-
+#include <LinearAlgebra.h>
 #include <Simulator.h>
 
 Simulator::Simulator(
@@ -27,7 +26,8 @@ Simulator::Simulator(
     double μ,
     double r_adh,
     double k_adh,
-    double step_size
+    double step_size,
+    std::unique_ptr<LinearAlgebra> linear_algebra_ptr
 )
     : r_UV(r_UV),
       r_dot(r_dot),
@@ -41,12 +41,14 @@ Simulator::Simulator(
       μ(μ),
       r_adh(r_adh),
       k_adh(k_adh),
-      step_size(step_size) {
+      step_size(step_size),
+      linear_algebra_ptr(std::move(linear_algebra_ptr)) {
 }
 
 void Simulator::resize_F_track() {
     F_track.resize(r_UV.rows(), 2);
 }
+    // linear_algebra_ptr(std::make_unique<LinearAlgebra>())
 
 void Simulator::simulate_flight() {
     resize_F_track();
@@ -59,7 +61,7 @@ void Simulator::simulate_flight() {
     // Calculate force between particles which pulls the particle in one direction within the 2D plane
     calculate_forces_between_particles(dist_vect);
     Eigen::VectorXd abs_F = F_track.rowwise().norm();
-    Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = angles_to_unit_vectors(n);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> n_vec = linear_algebra_ptr->angles_to_unit_vectors(n);
 
     // Velocity of each particle
     // 1. Every particle moves with a constant velocity v0 in the direction of the normal vector n

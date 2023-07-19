@@ -69,12 +69,10 @@ add_library(utilities_lib STATIC
     src/simulation/GeometryProcessing.cpp
     src/simulation/LinearAlgebra.cpp
     src/simulation/utilities/2D_mapping_fixed_border.cpp
-    src/simulation/utilities/angles_to_unit_vectors.cpp
     src/simulation/utilities/check_boundary.cpp
     src/simulation/utilities/check_validity.cpp
     src/simulation/utilities/dye_particle.cpp
     src/simulation/utilities/error_checking.cpp
-    src/simulation/utilities/matrix_algebra.cpp
     src/simulation/utilities/sim_structs.cpp
     src/simulation/utilities/update.cpp
 )
@@ -92,11 +90,10 @@ install(TARGETS main
 )
 
 # Collect all test source files
-file(GLOB TEST_SOURCES tests/simulation/**/*.cpp)
-file(GLOB TEST_SOURCES_CLASS tests/simulation/test_Simulator.cpp tests/simulation/test_GeometryProcessing.cpp)
+file(GLOB TEST_SOURCES tests/simulation/*.cpp)
 
 # Create a test executable for all available tests
-add_executable(all_tests ${TEST_SOURCES} ${TEST_SOURCES_CLASS})
+add_executable(all_tests ${TEST_SOURCES})
 
 # Link your libraries to the test executable
 target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support utilities_lib ${GTEST_BOTH_LIBRARIES} pthread)

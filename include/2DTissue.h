@@ -61,6 +61,7 @@ private:
     std::unique_ptr<Cell> cell_ptr;
     std::unique_ptr<GeometryProcessing> geometry_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
+
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;

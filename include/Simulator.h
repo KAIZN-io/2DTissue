@@ -8,7 +8,7 @@
 #include <random>
 #include <cmath>
 #include <gtest/gtest_prod.h>
-#include <utilities/angles_to_unit_vectors.h>
+
 
 class Simulator {
 public:
@@ -25,7 +25,8 @@ public:
         double μ,
         double r_adh,
         double k_adh,
-        double step_size
+        double step_size,
+        std::unique_ptr<LinearAlgebra> linear_algebra_ptr
     );
 
     void simulate_flight();
@@ -38,6 +39,7 @@ private:
     Eigen::MatrixXd& distance_matrix;
     Eigen::MatrixXd& dist_length;
     double v0, k, σ, μ, r_adh, k_adh, step_size;
+    std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> F_track;
 
