@@ -14,7 +14,7 @@ int main()
 {
     int step_count = 30;
     bool save_data = false;
-    bool particle_innenleben = true;
+    bool particle_innenleben = false;
 
     // Path to the 3D mesh file
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
@@ -30,7 +30,7 @@ int main()
         while(!_2dtissue.is_finished()) {
             System data = _2dtissue.update();
         }
-        // std::cout << _2dtissue.get_order_parameter() << '\n';
+        std::cout << _2dtissue.get_order_parameter() << '\n';
 
         std::clock_t end = std::clock();
         double duration = (end - start) / (double) CLOCKS_PER_SEC;
