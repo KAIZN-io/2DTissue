@@ -110,7 +110,8 @@ int main()
             return -1;
         }
 
-        // std::cout << "At t = " << t << ", y = " << NV_Ith_S(y, 0) << std::endl;
+        // Let the sine wave only oscillate between 0 and 1
+        std::cout << "At t = " << t << ", y = " << 0.5 * (1 + NV_Ith_S(y, 0)) << std::endl;
         tout += M_PI / 2.0;
     }
 
