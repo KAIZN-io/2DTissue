@@ -116,7 +116,7 @@ meshscatter!(ax1, observe_r_3D, color = observe_colors, markersize = 0.14)
 wireframe!(ax3, mesh_loaded_uv, color=(parse(Colorant, "#000000"), 0.3), linewidth=1)
 
 
-record(figure, "assets/confined_active_particles.mp4", 1:60; framerate=30) do tt
+record(figure, "assets/confined_active_particles.mp4", 1:300; framerate=60) do tt
     r = read_data("data", "r_data_$(tt).csv")
     r = hcat(r, zeros(size(r,1)))
     # color = read_data("data", "color_data_$(tt).csv")

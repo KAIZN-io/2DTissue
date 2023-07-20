@@ -26,7 +26,15 @@ find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(GTest REQUIRED)
+find_package(Sundials REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
+
+if (Sundials_FOUND)
+  message(STATUS "Found Sundials library")
+  include_directories(${Sundials_INCLUDE_DIR})
+else()
+  message(FATAL_ERROR "Sundials library not found. Please install Sundials library.")
+endif()
 
 # Set the Assimp path
 if(assimp_FOUND)
@@ -60,7 +68,7 @@ target_link_libraries(simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost B
 
 # Add C++ source files
 create_single_source_cgal_program("src/main.cpp")
-target_link_libraries(main PRIVATE CGAL::Eigen3_support simulation_lib)
+target_link_libraries(main PRIVATE CGAL::Eigen3_support simulation_lib SUNDIALS::cvodes SUNDIALS::idas SUNDIALS::nvecserial)
 
 # Install the target
 install(TARGETS main
@@ -77,4 +85,3 @@ add_executable(all_tests ${TEST_SOURCES})
 
 # Link your libraries to the test executable
 target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support simulation_lib ${GTEST_BOTH_LIBRARIES} pthread)
-

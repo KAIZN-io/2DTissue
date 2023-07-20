@@ -7,6 +7,17 @@
 #include <map>
 #include <memory>
 
+// Differential Equation Simulation
+#include <cvode/cvode.h>
+#include <idas/idas.h>
+#include <nvector/nvector_serial.h>
+#include <nvector/nvector_parallel.h>
+#include <sundials/sundials_types.h>
+#include <sundials/sundials_math.h>
+#include <sunmatrix/sunmatrix_dense.h>
+#include <sunlinsol/sunlinsol_dense.h>
+#include <sundials/sundials_types.h>
+
 #include "IO.h"
 #include "GeometryProcessing.h"
 #include "LinearAlgebra.h"
@@ -40,6 +51,7 @@ class _2DTissue
 private:
     // Include here your class variables (the ones used in start and update methods)
     bool save_data;
+    bool particle_innenleben;
     std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
     int particle_count;
     std::string mesh_path;
@@ -64,6 +76,7 @@ private:
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
+    Eigen::MatrixXd r_3D;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
     Eigen::VectorXd n;
     std::vector<int> particles_color;
@@ -79,18 +92,30 @@ private:
     std::vector<int64_t> h_v_mapping;
     std::string mesh_file_path;
     double dt;
-    int num_part;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Simulator simulator;
+    Cell cell;
+
+    // Differential Equation Simulation
+    realtype reltol, abstol; // Tolerances
+    realtype t; // Time
+    realtype tout = 0.001; // Time for next output
+    SUNContext sunctx; // SUN context
+    void* cvode_mem; // CVODE memory
+    N_Vector y; // Variables
+    SUNMatrix A; // Dense SUNMatrix
+    SUNLinearSolver LS; // Dense SUNLinearSolver object
 
     void perform_particle_simulation();
-    void save_our_data(Eigen::MatrixXd r_3D);
+    void save_our_data();
     void count_particle_neighbors();
+    static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
 
 public:
     _2DTissue(
         bool save_data,
+        bool particle_innenleben,
         std::string mesh_path,
         int particle_count,
         int step_count = 1,
@@ -110,4 +135,5 @@ public:
     bool is_finished();
     Eigen::VectorXd get_order_parameter();
     friend class Simulator;
+    friend class Cell;
 };

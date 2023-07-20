@@ -1,7 +1,7 @@
 // author: @Jan-Piotraschke
-// date: 2023-07-17
+// date: 2023-07-20
 // license: Apache License 2.0
-// version: 0.1.0
+// version: 0.2.0
 
 #include <cmath>
 #include <cstddef>
@@ -25,9 +25,12 @@
 
 #include <2DTissue.h>
 
+#define NEQ   2                /* number of equations */
+
 
 _2DTissue::_2DTissue(
     bool save_data,
+    bool particle_innenleben,
     std::string mesh_path,
     int particle_count,
     int step_count,
@@ -43,6 +46,7 @@ _2DTissue::_2DTissue(
     int map_cache_count
 ) :
     save_data(save_data),
+    particle_innenleben(particle_innenleben),
     mesh_path(mesh_path),
     particle_count(particle_count),
     step_count(step_count),
@@ -58,7 +62,8 @@ _2DTissue::_2DTissue(
     current_step(0),
     map_cache_count(map_cache_count),
     finished(false),
-    simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr))
+    simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
+    cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n)
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
@@ -73,6 +78,7 @@ _2DTissue::_2DTissue(
     std::string distance_matrix_path = PROJECT_PATH + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
     if (!boost::filesystem::exists(distance_matrix_path)) {
 
+        // ! Access the functions using the pointer
         // Calculate the distance matrix of the static 3D mesh
         geometry_ptr->get_all_distances(mesh_path);
     }
@@ -89,24 +95,81 @@ _2DTissue::_2DTissue(
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
+
+    /*
+    Initialize the ODE Simulation
+    */
+    // Initialize new member variables for simulating a sine wave
+    reltol = 1e-4;
+    abstol = 1e-4;
+    t = 0.0;
+    tout = 0.001;
+
+    // Create context
+    void* comm = nullptr;
+    int flag = SUNContext_Create(comm, &sunctx);
+    if (flag != 0) {
+        // handle error
+        throw std::runtime_error("Failed to create SUN context.");
+    }
+
+    // Initialize y
+    y = N_VNew_Serial(NEQ, sunctx);
+    NV_Ith_S(y, 0) = 0.0; // y(0) = 0
+    NV_Ith_S(y, 1) = 1.0; // y'(0) = 1
+
+    /*
+    For more information on the following functions, visit
+    https://sundials.readthedocs.io/en/latest/cvode/Usage/index.html#user-callable-functions#
+    */
+    // Call CVodeCreate to create the solver memory and specify the
+    // The function CVodeCreate() instantiates a CVODE solver object and specifies the solution method.
+    // CV_BDF for stiff problems.
+    // CV_ADAMS for nonstiff problems
+    cvode_mem = CVodeCreate(CV_BDF, sunctx);
+
+    // Initialize the integrator memory and specify the user's right hand
+    // side function in y'=f(t,y), the inital time T0, and the initial
+    // dependent variable vector y.
+    CVodeInit(cvode_mem, simulate_sine, t, y);
+
+    // Set the scalar relative tolerance and scalar absolute tolerance
+    // cvode_mem – pointer to the CVODE memory block returned by CVodeCreate()
+    CVodeSStolerances(cvode_mem, reltol, abstol);
+
+    A = SUNDenseMatrix(NEQ, NEQ, sunctx);
+    LS = SUNLinSol_Dense(y, A, sunctx);
+    CVodeSetLinearSolver(cvode_mem, LS, A);
 }
 
+// The ODE system
+int _2DTissue::simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data)
+{
+    realtype sine = NV_Ith_S(y, 0);
+    realtype cose = NV_Ith_S(y, 1);
+
+    // Store the data in the ydot vector
+    NV_Ith_S(ydot, 0) = cose;
+    NV_Ith_S(ydot, 1) = -sine;
+
+    return 0;
+}
 
 void _2DTissue::start(){
     // Initialize the particles in 2D
     r_UV.resize(particle_count, Eigen::NoChange);
     r_UV_old.resize(particle_count, Eigen::NoChange);
     r_dot.resize(particle_count, Eigen::NoChange);
+    r_3D.resize(particle_count, 3);
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
-    cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
-    // ! Access the functions using the pointer
-    cell_ptr->init_particle_position(r_UV, n);
+    // cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
+    cell.init_particle_position();
     r_UV_old = r_UV;
 
     // Map the 2D coordinates to their 3D vertices counterparts
-    std::tie(std::ignore, vertices_3D_active) = cell_ptr->get_r3d(r_UV);
+    std::tie(r_3D, vertices_3D_active) = cell.get_r3d();
 }
 
 
@@ -148,10 +211,19 @@ void _2DTissue::perform_particle_simulation(){
 
     // Calculate the order parameter
     linear_algebra_ptr->calculate_order_parameter(v_order, r_UV, r_dot, current_step);
+
+    if (particle_innenleben) {
+        // Simulate the sine wave
+        tout = (current_step / 10.0) + 0.01;
+        CVode(cvode_mem, tout, y, &t, CV_NORMAL);
+
+        // Update v0 by the tenth of the sine wave which oscillates between 0 and 1
+        v0 = 0.1 * (0.5 * (1 + NV_Ith_S(y, 0)));
+    }
 }
 
 
-void _2DTissue::save_our_data(Eigen::MatrixXd r_3D) {
+void _2DTissue::save_our_data() {
     std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
     save_matrix_to_csv(r_UV, file_name, particle_count);
     std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
@@ -164,8 +236,9 @@ System _2DTissue::update(){
     perform_particle_simulation();
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
-    auto [r_3D, new_vertices_3D_active] = cell_ptr->get_r3d(r_UV);
+    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
     vertices_3D_active = new_vertices_3D_active;
+    r_3D = new_r_3D;
 
     std::vector<Particle> particles;
     // start for loop
@@ -194,7 +267,7 @@ System _2DTissue::update(){
     }
 
     if (save_data) {
-        save_our_data(r_3D);
+        save_our_data();
     }
 
     return system;
@@ -205,5 +278,10 @@ bool _2DTissue::is_finished() {
 }
 
 Eigen::VectorXd _2DTissue::get_order_parameter() {
+    // Free memory
+    CVodeFree(&cvode_mem);
+    SUNContext_Free(&sunctx);
+    N_VDestroy(y);
+
     return v_order;
 }

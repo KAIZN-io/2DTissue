@@ -29,6 +29,7 @@ jobs:
         brew install cgal
         brew install googletest
         brew install ninja
+        brew install sundials
 
     - name: Set environment
       run: |
