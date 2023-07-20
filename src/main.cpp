@@ -23,12 +23,12 @@ const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 // The ODE system
 static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data)
 {
-    realtype y_val = NV_Ith_S(y, 0);
-    realtype v = NV_Ith_S(y, 1);
+    realtype sine = NV_Ith_S(y, 0);
+    realtype cose = NV_Ith_S(y, 1);
 
     // Store the data in the ydot vector
-    NV_Ith_S(ydot, 0) = v;
-    NV_Ith_S(ydot, 1) = -y_val;
+    NV_Ith_S(ydot, 0) = cose;
+    NV_Ith_S(ydot, 1) = -sine;
 
     return 0;
 }
@@ -109,7 +109,8 @@ int main()
             std::cerr << "Error in integration" << std::endl;
             return -1;
         }
-        std::cout << "At t = " << t << ", y = " << NV_Ith_S(y, 0) << std::endl;
+
+        // std::cout << "At t = " << t << ", y = " << NV_Ith_S(y, 0) << std::endl;
         tout += M_PI / 2.0;
     }
 
