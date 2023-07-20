@@ -68,47 +68,53 @@ int main()
     realtype t = 0.0;
     realtype reltol = 1e-4, abstol = 1e-4;  // Set tolerances
 
-    std::cout << "t = " << t << ", y = " << y << std::endl;
     // Initialize y
     NV_Ith_S(y, 0) = 1.0;
 
+    /*
+    For more information on the following functions, visit
+    https://sundials.readthedocs.io/en/latest/cvode/Usage/index.html#user-callable-functions#
+    */
     // Call CVodeCreate to create the solver memory and specify the
-    // Backward Differentiation Formula and the use of a Newton iteration
-    // void *cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
-    
-    // // Initialize the integrator memory and specify the user's right hand
-    // // side function in y'=f(t,y), the inital time T0, and the initial
-    // // dependent variable vector y.
-    // CVodeInit(cvode_mem, f, t, y);
+    // The function CVodeCreate() instantiates a CVODE solver object and specifies the solution method.
+    // CV_BDF for stiff problems.
+    // CV_ADAMS for nonstiff problems 
+    void *cvode_mem = CVodeCreate(CV_BDF, sunctx);
 
-    // // Set the scalar relative tolerance and scalar absolute tolerance
-    // CVodeSStolerances(cvode_mem, reltol, abstol);
-    
-    // // Call CVDense to specify the CVDENSE dense linear solver
-    // SUNMatrix A = SUNDenseMatrix(1, 1); // Create dense matrix for use in linear solves
-    // SUNLinearSolver LS = SUNDenseLinearSolver(y, A); // Create dense linear solver for use in linear solves
-    // CVDlsSetLinearSolver(cvode_mem, LS, A); // Attach the matrix and linear solver
+    // Initialize the integrator memory and specify the user's right hand
+    // side function in y'=f(t,y), the inital time T0, and the initial
+    // dependent variable vector y.
+    CVodeInit(cvode_mem, f, t, y);
 
-    // // Integrate over the interval, while the test function returns success
-    // realtype tout = 1.0;
-    // while (t < 10.0)
-    // {
-    //     int flag = CVode(cvode_mem, tout, y, &t, CV_NORMAL);
-    //     if (flag < 0)
-    //     {
-    //         std::cerr << "Error in integration" << std::endl;
-    //         return -1;
-    //     }
-    //     std::cout << "At t = " << t << ", y = " << NV_Ith_S(y,0) << std::endl;
-    //     tout *= 2.0;
-    // }
+    // Set the scalar relative tolerance and scalar absolute tolerance
+    // cvode_mem – pointer to the CVODE memory block returned by CVodeCreate()
+    CVodeSStolerances(cvode_mem, reltol, abstol);
+
+    // Call CVDense to specify the CVDENSE dense linear solver
+    SUNMatrix A = SUNDenseMatrix(1, 1, sunctx); // Create dense matrix for use in linear solves
+    SUNLinearSolver LS = SUNLinSol_Dense(y, A, sunctx); // Create dense linear solver for use in linear solves
+    CVodeSetLinearSolver(cvode_mem, LS, A); // Attach the matrix and linear solver
+
+    // Integrate over the interval, while the test function returns success
+    realtype tout = 1.0;
+    while (t < 10.0)
+    {
+        int flag = CVode(cvode_mem, tout, y, &t, CV_NORMAL);
+        if (flag < 0)
+        {
+            std::cerr << "Error in integration" << std::endl;
+            return -1;
+        }
+        std::cout << "At t = " << t << ", y = " << NV_Ith_S(y,0) << std::endl;
+        tout += 1.0;
+    }
 
     // Free integrator memory
-    // CVodeFree(&cvode_mem);
+    CVodeFree(&cvode_mem);
     SUNContext_Free(&sunctx);
 
-    // // Free vector
-    // N_VDestroy(y);
+    // Free vector
+    N_VDestroy(y);
 
     return 0;
 }
