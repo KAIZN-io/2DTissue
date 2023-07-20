@@ -29,16 +29,17 @@ check_dependencies:
 		which assimp >/dev/null || (echo "Installing Assimp via Homebrew..."; brew install assimp); \
 		which yarn >/dev/null || (echo "Installing Yarn via Homebrew..."; brew install yarn); \
 		which ninja >/dev/null || (echo "Installing Ninja via Homebrew..."; brew install ninja); \
+		brew --prefix sundials >/dev/null || (echo "Installing SUNDIALS via Homebrew..."; brew install sundials); \
 	elif [ "$$OS" == "Linux" ]; then \
 		sudo apt-get update; \
-		MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev ninja-build"; \
+		MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev libsundials-dev ninja-build"; \
 		for DEP in $$MAKEFILE_DEPS; do \
 			dpkg -s $$DEP >/dev/null 2>&1 || (echo "Installing $$DEP via package manager..."; sudo apt-get install -y $$DEP); \
 		done; \
 	elif [ "$$OS" == "MINGW64_NT-10.0" ]; then \
-		@echo "Please ensure you have installed LLVM, Emscripten, Assimp, and Yarn manually, and they are available in the PATH."; \
+		@echo "Please ensure you have installed LLVM, Emscripten, Assimp, SUNDIALS and Yarn manually, and they are available in the PATH."; \
 	else \
-		@echo "Unsupported OS. Please install LLVM, Emscripten, Assimp, and Yarn manually."; \
+		@echo "Unsupported OS. Please install LLVM, Emscripten, Assimp, SUNDIALS and Yarn manually."; \
 	fi
 	@echo "Dependencies check complete."
 
