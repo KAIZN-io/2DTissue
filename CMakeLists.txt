@@ -28,6 +28,10 @@ find_package(OpenMP REQUIRED)
 find_package(GTest REQUIRED)
 find_package(Sundials REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
+include_directories(
+    "${CMAKE_CURRENT_SOURCE_DIR}/libsbml/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/libsbml/build/src"
+)
 
 if (Sundials_FOUND)
   message(STATUS "Found Sundials library")
