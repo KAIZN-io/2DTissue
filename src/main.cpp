@@ -5,6 +5,10 @@
 
 #include <iostream>
 #include <boost/filesystem.hpp>
+#include <sbml/SBMLTypes.h>
+#include <sbml/SBMLReader.h>
+
+SBMLReader reader;
 
 #include <2DTissue.h>
 
@@ -18,24 +22,28 @@ int main()
 
     // Path to the 3D mesh file
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
-    // std::string mesh_path = PROJECT_PATH.string() + "/meshes/sphere.off";
 
-    for (int particle_count = 200; particle_count <= 200; particle_count += 100) {
-        _2DTissue _2dtissue(save_data, particle_innenleben, mesh_path, particle_count, step_count, 0.01);  // Initialize the 2DTissue object
+    std::string filename = PROJECT_PATH.string() + "/sbml-model/BIOMD0000000613_url.xml";
+    SBMLDocument* document = reader.readSBMLFromFile(filename.c_str());
 
-        _2dtissue.start();
-
-        std::clock_t start = std::clock();
-
-        while(!_2dtissue.is_finished()) {
-            System data = _2dtissue.update();
-        }
-        std::cout << _2dtissue.get_order_parameter() << '\n';
-
-        std::clock_t end = std::clock();
-        double duration = (end - start) / (double) CLOCKS_PER_SEC;
-        std::cout << "Time taken: " << duration << " seconds" << '\n';
+    // If there are errors in the document, print them and stop.
+    if (document->getNumErrors() > 0) {
+        document->printErrors();
+        return 1;
     }
+
+    // Get the model from the document.
+    Model* model = document->getModel();
+
+    // Do something with the model, for example print its name
+    if(model != NULL) {
+        std::cout << "Loaded model: " << model->getId() << std::endl;
+    } else {
+        std::cout << "No model present." << std::endl;
+    }
+
+    // Deallocate memory
+    delete document;
 
     return 0;
 }

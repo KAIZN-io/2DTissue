@@ -72,7 +72,12 @@ target_link_libraries(simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost B
 
 # Add C++ source files
 create_single_source_cgal_program("src/main.cpp")
-target_link_libraries(main PRIVATE CGAL::Eigen3_support simulation_lib SUNDIALS::cvodes SUNDIALS::idas SUNDIALS::nvecserial)
+target_link_libraries(main PRIVATE
+        CGAL::Eigen3_support
+        simulation_lib
+        SUNDIALS::cvodes SUNDIALS::idas SUNDIALS::nvecserial
+        "${CMAKE_CURRENT_SOURCE_DIR}/libsbml/build/src/libsbml.dylib"
+)
 
 # Install the target
 install(TARGETS main
