@@ -42,8 +42,33 @@ int main()
         std::cout << "No model present." << std::endl;
     }
 
+    // Get the list of species
+    ListOfSpecies* speciesList = model->getListOfSpecies();
+
+    for (unsigned int i = 0; i < speciesList->size(); ++i)
+    {
+        Species* species = dynamic_cast<Species*>(speciesList->get(i));
+        std::cout << "Species: " << species->getId() << std::endl;
+    }
+
+    // Get the list of reactions
+    ListOfReactions* reactionList = model->getListOfReactions();
+
+    for (unsigned int i = 0; i < reactionList->size(); ++i)
+    {
+        Reaction* reaction = dynamic_cast<Reaction*>(reactionList->get(i));
+        std::cout << "Reaction: " << reaction->getId() << std::endl;
+
+        // Get the kinetic law of the reaction
+        const KineticLaw* kineticLaw = reaction->getKineticLaw();
+        if (kineticLaw != NULL) {
+            std::cout << "Kinetic Law: " << kineticLaw->getFormula() << std::endl;
+        }
+    }
+
     // Deallocate memory
     delete document;
 
     return 0;
 }
+
