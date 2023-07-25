@@ -7,6 +7,9 @@
 #include <map>
 #include <memory>
 
+#include <sbml/SBMLTypes.h>
+#include <sbml/SBMLReader.h>
+
 // Differential Equation Simulation
 #include <cvode/cvode.h>
 #include <idas/idas.h>
@@ -24,6 +27,8 @@
 #include "Cell.h"
 #include "Simulator.h"
 #include "Validation.h"
+
+const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
 // Individuelle Partikel Informationen
 struct Particle{
@@ -111,6 +116,7 @@ private:
     void save_our_data();
     void count_particle_neighbors();
     static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
+    int inspect_SBML_model();
 
 public:
     _2DTissue(
