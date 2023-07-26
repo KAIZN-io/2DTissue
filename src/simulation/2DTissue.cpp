@@ -25,7 +25,7 @@
 
 #include <2DTissue.h>
 
-#define NEQ   2                /* number of equations */
+// #define NEQ   2                /* number of equations */
 
 
 _2DTissue::_2DTissue(
@@ -96,64 +96,64 @@ _2DTissue::_2DTissue(
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
 
-    /*
-    Initialize the ODE Simulation
-    */
-    // Initialize new member variables for simulating a sine wave
-    reltol = 1e-4;
-    abstol = 1e-4;
-    t = 0.0;
-    tout = 0.001;
+    // /*
+    // Initialize the ODE Simulation
+    // */
+    // // Initialize new member variables for simulating a sine wave
+    // reltol = 1e-4;
+    // abstol = 1e-4;
+    // t = 0.0;
+    // tout = 0.001;
 
-    // Create context
-    void* comm = nullptr;
-    int flag = SUNContext_Create(comm, &sunctx);
-    if (flag != 0) {
-        // handle error
-        throw std::runtime_error("Failed to create SUN context.");
-    }
+    // // Create context
+    // void* comm = nullptr;
+    // int flag = SUNContext_Create(comm, &sunctx);
+    // if (flag != 0) {
+    //     // handle error
+    //     throw std::runtime_error("Failed to create SUN context.");
+    // }
 
-    // Initialize y
-    y = N_VNew_Serial(NEQ, sunctx);
-    NV_Ith_S(y, 0) = 0.0; // y(0) = 0
-    NV_Ith_S(y, 1) = 1.0; // y'(0) = 1
+    // // Initialize y
+    // y = N_VNew_Serial(NEQ, sunctx);
+    // NV_Ith_S(y, 0) = 0.0; // y(0) = 0
+    // NV_Ith_S(y, 1) = 1.0; // y'(0) = 1
 
-    /*
-    For more information on the following functions, visit
-    https://sundials.readthedocs.io/en/latest/cvode/Usage/index.html#user-callable-functions#
-    */
-    // Call CVodeCreate to create the solver memory and specify the
-    // The function CVodeCreate() instantiates a CVODE solver object and specifies the solution method.
-    // CV_BDF for stiff problems.
-    // CV_ADAMS for nonstiff problems
-    cvode_mem = CVodeCreate(CV_BDF, sunctx);
+    // /*
+    // For more information on the following functions, visit
+    // https://sundials.readthedocs.io/en/latest/cvode/Usage/index.html#user-callable-functions#
+    // */
+    // // Call CVodeCreate to create the solver memory and specify the
+    // // The function CVodeCreate() instantiates a CVODE solver object and specifies the solution method.
+    // // CV_BDF for stiff problems.
+    // // CV_ADAMS for nonstiff problems
+    // cvode_mem = CVodeCreate(CV_BDF, sunctx);
 
-    // Initialize the integrator memory and specify the user's right hand
-    // side function in y'=f(t,y), the inital time T0, and the initial
-    // dependent variable vector y.
-    CVodeInit(cvode_mem, simulate_sine, t, y);
+    // // Initialize the integrator memory and specify the user's right hand
+    // // side function in y'=f(t,y), the inital time T0, and the initial
+    // // dependent variable vector y.
+    // CVodeInit(cvode_mem, simulate_sine, t, y);
 
-    // Set the scalar relative tolerance and scalar absolute tolerance
-    // cvode_mem – pointer to the CVODE memory block returned by CVodeCreate()
-    CVodeSStolerances(cvode_mem, reltol, abstol);
+    // // Set the scalar relative tolerance and scalar absolute tolerance
+    // // cvode_mem – pointer to the CVODE memory block returned by CVodeCreate()
+    // CVodeSStolerances(cvode_mem, reltol, abstol);
 
-    A = SUNDenseMatrix(NEQ, NEQ, sunctx);
-    LS = SUNLinSol_Dense(y, A, sunctx);
-    CVodeSetLinearSolver(cvode_mem, LS, A);
+    // A = SUNDenseMatrix(NEQ, NEQ, sunctx);
+    // LS = SUNLinSol_Dense(y, A, sunctx);
+    // CVodeSetLinearSolver(cvode_mem, LS, A);
 }
 
-// The ODE system
-int _2DTissue::simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data)
-{
-    realtype sine = NV_Ith_S(y, 0);
-    realtype cose = NV_Ith_S(y, 1);
+// // The ODE system
+// int _2DTissue::simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data)
+// {
+//     realtype sine = NV_Ith_S(y, 0);
+//     realtype cose = NV_Ith_S(y, 1);
 
-    // Store the data in the ydot vector
-    NV_Ith_S(ydot, 0) = cose;
-    NV_Ith_S(ydot, 1) = -sine;
+//     // Store the data in the ydot vector
+//     NV_Ith_S(ydot, 0) = cose;
+//     NV_Ith_S(ydot, 1) = -sine;
 
-    return 0;
-}
+//     return 0;
+// }
 
 void _2DTissue::start(){
     // Initialize the particles in 2D
@@ -212,14 +212,14 @@ void _2DTissue::perform_particle_simulation(){
     // Calculate the order parameter
     linear_algebra_ptr->calculate_order_parameter(v_order, r_UV, r_dot, current_step);
 
-    if (particle_innenleben) {
-        // Simulate the sine wave
-        tout = (current_step / 10.0) + 0.01;
-        CVode(cvode_mem, tout, y, &t, CV_NORMAL);
+    // if (particle_innenleben) {
+    //     // Simulate the sine wave
+    //     tout = (current_step / 10.0) + 0.01;
+    //     CVode(cvode_mem, tout, y, &t, CV_NORMAL);
 
-        // Update v0 by the tenth of the sine wave which oscillates between 0 and 1
-        v0 = 0.1 * (0.5 * (1 + NV_Ith_S(y, 0)));
-    }
+    //     // Update v0 by the tenth of the sine wave which oscillates between 0 and 1
+    //     v0 = 0.1 * (0.5 * (1 + NV_Ith_S(y, 0)));
+    // }
 }
 
 
@@ -278,10 +278,9 @@ bool _2DTissue::is_finished() {
 }
 
 Eigen::VectorXd _2DTissue::get_order_parameter() {
-    // Free memory
-    CVodeFree(&cvode_mem);
-    SUNContext_Free(&sunctx);
-    N_VDestroy(y);
-
+    // // Free memory
+    // CVodeFree(&cvode_mem);
+    // SUNContext_Free(&sunctx);
+    // N_VDestroy(y);
     return v_order;
 }

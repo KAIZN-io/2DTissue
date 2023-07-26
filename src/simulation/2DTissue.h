@@ -7,16 +7,16 @@
 #include <map>
 #include <memory>
 
-// Differential Equation Simulation
-#include <cvode/cvode.h>
-#include <idas/idas.h>
-#include <nvector/nvector_serial.h>
-#include <nvector/nvector_parallel.h>
-#include <sundials/sundials_types.h>
-#include <sundials/sundials_math.h>
-#include <sunmatrix/sunmatrix_dense.h>
-#include <sunlinsol/sunlinsol_dense.h>
-#include <sundials/sundials_types.h>
+// // Differential Equation Simulation
+// #include <cvode/cvode.h>
+// #include <idas/idas.h>
+// #include <nvector/nvector_serial.h>
+// #include <nvector/nvector_parallel.h>
+// #include <sundials/sundials_types.h>
+// #include <sundials/sundials_math.h>
+// #include <sunmatrix/sunmatrix_dense.h>
+// #include <sunlinsol/sunlinsol_dense.h>
+// #include <sundials/sundials_types.h>
 
 #include "IO.h"
 #include "GeometryProcessing.h"
@@ -97,20 +97,20 @@ private:
     Simulator simulator;
     Cell cell;
 
-    // Differential Equation Simulation
-    realtype reltol, abstol; // Tolerances
-    realtype t; // Time
-    realtype tout = 0.001; // Time for next output
-    SUNContext sunctx; // SUN context
-    void* cvode_mem; // CVODE memory
-    N_Vector y; // Variables
-    SUNMatrix A; // Dense SUNMatrix
-    SUNLinearSolver LS; // Dense SUNLinearSolver object
+    // // Differential Equation Simulation
+    // realtype reltol, abstol; // Tolerances
+    // realtype t; // Time
+    // realtype tout = 0.001; // Time for next output
+    // SUNContext sunctx; // SUN context
+    // void* cvode_mem; // CVODE memory
+    // N_Vector y; // Variables
+    // SUNMatrix A; // Dense SUNMatrix
+    // SUNLinearSolver LS; // Dense SUNLinearSolver object
 
     void perform_particle_simulation();
     void save_our_data();
     void count_particle_neighbors();
-    static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
+    // static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
 
 public:
     _2DTissue(
