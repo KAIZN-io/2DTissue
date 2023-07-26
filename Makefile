@@ -66,6 +66,57 @@ build_libsbml:
 		cd libsbml/build && cmake -G Ninja ../../libsbml -DENABLE_COMP=ON && ninja && sudo ninja install; \
 	fi
 
+.PHONY: build_libroadrunner
+build_libroadrunner:
+	@echo "Installing libRoadRunner from source..."
+	if [ ! -d "roadrunner" ]; then \
+		git clone https://github.com/sys-bio/roadrunner.git; \
+	fi; \
+	cd roadrunner; \
+	mkdir -p build-release; \
+	cd build-release; \
+	cmake -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
+	    -DLLVM_INSTALL_PREFIX="../../llvm-13.x/install-release" \
+	    -DRR_DEPENDENCIES_INSTALL_PREFIX="../../libroadrunner-deps/install-release" \
+	    -DCMAKE_BUILD_TYPE="Release" \
+	    -DCMAKE_CXX_STANDARD=17 \
+		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
+	ninja; \
+	ninja install
+
+
+.PHONY: build_libroadrunner_deps
+build_libroadrunner_deps:
+	@echo "Installing libRoadRunner dependencies from source..."
+	if [ ! -d "libroadrunner-deps" ]; then \
+		git clone https://github.com/sys-bio/libroadrunner-deps.git --recurse-submodules; \
+	fi; \
+	cd libroadrunner-deps; \
+	mkdir -p build; \
+	cd build; \
+	cmake -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
+		-DCMAKE_BUILD_TYPE="Release" \
+		-DCMAKE_CXX_STANDARD=17 \
+		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
+	ninja; \
+	ninja install
+
+
+.PHONY: build_llvm_13
+build_llvm_13:
+	@echo "Installing LLVM 13 from source..."; \
+	if [ ! -d "llvm-13.x" ]; then \
+		git clone https://github.com/sys-bio/llvm-13.x.git; \
+	fi; \
+	cd llvm-13.x; \
+	mkdir -p build; \
+	cd build; \
+	cmake -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
+		-DCMAKE_BUILD_TYPE="Release" \
+		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ../llvm; \
+	ninja; \
+	ninja install
+
 .PHONY: build
 build: $(DATA_DIR)
 	@OS=$$(uname -s); \
