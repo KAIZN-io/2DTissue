@@ -32,6 +32,9 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/libsbml/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/libsbml/build/src"
 )
+include_directories(
+    "${CMAKE_CURRENT_SOURCE_DIR}/roadrunner/install-release/include"
+)
 
 if (Sundials_FOUND)
   message(STATUS "Found Sundials library")

@@ -6,6 +6,7 @@ SHELL := /bin/bash
 PROJECT_DIR := $(shell pwd)
 DATA_DIR := $(PROJECT_DIR)/data
 ASSETS_DIR := $(PROJECT_DIR)/assets
+ARCHITECTURE := arm64
 
 .PHONY: all
 all: check_dependencies build_cgal build_libsbml build
@@ -75,6 +76,7 @@ build: $(DATA_DIR)
 			-DCMAKE_C_COMPILER=$(shell brew --prefix llvm)/bin/clang \
 			-DCMAKE_CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++ \
 			-DCMAKE_CXX_STANDARD=20 \
+			-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) \
 			-GNinja; \
 		ninja -C $(PROJECT_DIR)/build -j $$(sysctl -n hw.logicalcpu); \
 	elif [ "$$OS" == "Linux" ]; then \
@@ -99,7 +101,7 @@ $(DATA_DIR):
 
 .PHONY: clean
 clean:
-	rm -rf $(PROJECT_DIR)/build $(DATA_DIR) $(ASSETS_DIR) $(PROJECT_DIR)/libsbml
+	rm -rf $(PROJECT_DIR)/build $(DATA_DIR) $(ASSETS_DIR)
 
 .PHONY: clean_data
 clean_data:
