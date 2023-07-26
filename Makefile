@@ -66,6 +66,7 @@ build_libsbml:
 		cd libsbml/build && cmake -G Ninja ../../libsbml -DENABLE_COMP=ON && ninja && sudo ninja install; \
 	fi
 
+# Build and install libRoadRunner
 .PHONY: build_libroadrunner
 build_libroadrunner:
 	@echo "Installing libRoadRunner from source..."
