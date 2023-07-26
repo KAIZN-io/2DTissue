@@ -33,8 +33,8 @@ include_directories(${GTEST_INCLUDE_DIRS})
 #    "${CMAKE_CURRENT_SOURCE_DIR}/libsbml/build/src"
 #)
 
-set(ROADRUNNER_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/roadrunner/install-release")
-set(LLVM_INSTALL_PREFIX "../../llvm-13.x/install-release")
+set(ROADRUNNER_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external/roadrunner/install-release")
+set(LLVM_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external/llvm-13.x/install-release")
 set(CMAKE_PREFIX_PATH
         "${ROADRUNNER_INSTALL_PREFIX}/lib/cmake/Poco" # needed because this is where poco installs config files to
         "${ROADRUNNER_INSTALL_PREFIX}/lib/cmake" # all other normal packages install config files to here
@@ -79,7 +79,7 @@ create_single_source_cgal_program("src/main.cpp")
 target_link_libraries(main PRIVATE
         CGAL::Eigen3_support
         simulation_lib
-        "${CMAKE_CURRENT_SOURCE_DIR}/libsbml/build/src/libsbml.dylib"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external/libsbml/build/src/libsbml.dylib"
         roadrunner-static::roadrunner-static
 )
 

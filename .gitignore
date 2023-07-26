@@ -56,6 +56,4 @@ matlab/
 !r_data_860.csv
 
 vscode.yaml
-cgal/
-libsbml/
-roadrunner/
+external/
