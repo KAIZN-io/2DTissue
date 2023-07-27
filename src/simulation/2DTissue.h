@@ -109,7 +109,8 @@ private:
     SUNMatrix A; // Dense SUNMatrix
     SUNLinearSolver LS; // Dense SUNLinearSolver object
 
-    // New variables for SBML simulation
+    // SBML simulation
+    rr::RoadRunner* rr;
     std::string sbmlModelFilePath;
     double startTime;
     double endTime;

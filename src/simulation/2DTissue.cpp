@@ -137,15 +137,14 @@ _2DTissue::_2DTissue(
     sbmlModelFilePath = PROJECT_PATH + "/sbml-model/BIOMD0000000613_url.xml";
     startTime = 0.0;
     endTime = 10.0;
-    numberOfPoints = 100;
+    numberOfPoints = 101;
 
     // Perform SBML model simulation.
-    perform_sbml_simulation();
+    // perform_sbml_simulation();
 }
 
 void _2DTissue::perform_sbml_simulation() {
-    // Create a new RoadRunner instance.
-    rr::RoadRunner* rr = new rr::RoadRunner();
+    rr = new rr::RoadRunner();
 
     // Load the SBML model.
     rr->load(sbmlModelFilePath);
