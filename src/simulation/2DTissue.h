@@ -109,10 +109,17 @@ private:
     SUNMatrix A; // Dense SUNMatrix
     SUNLinearSolver LS; // Dense SUNLinearSolver object
 
+    // New variables for SBML simulation
+    std::string sbmlModelFilePath;
+    double startTime;
+    double endTime;
+    int numberOfPoints;
+
     void perform_particle_simulation();
     void save_our_data();
     void count_particle_neighbors();
     static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
+    void perform_sbml_simulation();
 
 public:
     _2DTissue(

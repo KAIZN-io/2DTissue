@@ -5,12 +5,6 @@
 
 #include <iostream>
 #include <boost/filesystem.hpp>
-// #include <sbml/SBMLTypes.h>
-// #include <sbml/SBMLReader.h>
-// SBMLReader reader;
-
-#include <rr/rrRoadRunner.h>
-#include <rr/rrExecutableModel.h>
 
 #include <2DTissue.h>
 
@@ -42,34 +36,6 @@ int main()
         double duration = (end - start) / (double) CLOCKS_PER_SEC;
         std::cout << "Time taken: " << duration << " seconds" << '\n';
     }
-
-    std::string filename = PROJECT_PATH.string() + "/sbml-model/BIOMD0000000613_url.xml";
-    // Create a new RoadRunner instance.
-    rr::RoadRunner* rr = new rr::RoadRunner();
-
-    // Load the SBML model.
-    rr->load(filename);
-
-    // Define the simulation start time, end time and the number of points.
-    double startTime = 0.0;
-    double endTime = 50.0;
-    int numberOfPoints = 500;
-
-    // Set up the integrator.
-    rr->getIntegrator()->setValue("relative_tolerance", 1e-6);
-    rr->getIntegrator()->setValue("absolute_tolerance", 1e-6);
-
-    // Simulate the model.
-    rr::SimulateOptions options;
-    options.start = startTime;
-    options.duration = endTime - startTime;
-    options.steps = numberOfPoints - 1;
-
-    // Print the result of the simulation.
-    std::cout << *rr->simulate(&options) << std::endl;
-
-    // Don't forget to free the memory.
-    delete rr;
 
     return 0;
 }

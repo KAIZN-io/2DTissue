@@ -132,6 +132,39 @@ _2DTissue::_2DTissue(
     A = SUNDenseMatrix(NEQ, NEQ);
     LS = SUNLinSol_Dense(y, A);
     CVodeSetLinearSolver(cvode_mem, LS, A);
+
+    // Initialize SBML model simulation parameters.
+    sbmlModelFilePath = PROJECT_PATH + "/sbml-model/BIOMD0000000613_url.xml";
+    startTime = 0.0;
+    endTime = 10.0;
+    numberOfPoints = 100;
+
+    // Perform SBML model simulation.
+    perform_sbml_simulation();
+}
+
+void _2DTissue::perform_sbml_simulation() {
+    // Create a new RoadRunner instance.
+    rr::RoadRunner* rr = new rr::RoadRunner();
+
+    // Load the SBML model.
+    rr->load(sbmlModelFilePath);
+
+    // Set up the integrator.
+    rr->getIntegrator()->setValue("relative_tolerance", 1e-6);
+    rr->getIntegrator()->setValue("absolute_tolerance", 1e-6);
+
+    // Simulate the model.
+    rr::SimulateOptions options;
+    options.start = startTime;
+    options.duration = endTime - startTime;
+    options.steps = numberOfPoints - 1;
+
+    // Print the result of the simulation.
+    std::cout << *rr->simulate(&options) << std::endl;
+
+    // Don't forget to free the memory.
+    delete rr;
 }
 
 // The ODE system
