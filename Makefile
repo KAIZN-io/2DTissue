@@ -10,7 +10,7 @@ ASSETS_DIR := $(PROJECT_DIR)/assets
 ARCHITECTURE := arm64
 
 .PHONY: all
-all: check_dependencies build_cgal build_libsbml build
+all: check_dependencies build_cgal build_llvm_13 build_libroadrunner_deps build_libroadrunner build
 
 # Check if LLVM and Emscripten are installed, if not, install using apt-get
 .PHONY: check_dependencies
@@ -57,22 +57,12 @@ build_cgal:
 		fi; \
 	fi
 
-# Build and install libSBML
-.PHONY: build_libsbml
-build_libsbml:
-	@echo "Installing libSBML from source..."
-	@if [ ! -d "$(EXTERNAL_DIR)/libsbml" ]; then \
-		git clone -b 'v5.20.0' --single-branch --depth 1 https://github.com/sbmlteam/libsbml.git $(EXTERNAL_DIR)/libsbml; \
-		mkdir -p libsbml/build; \
-		cd libsbml/build && cmake -G Ninja $(EXTERNAL_DIR)/libsbml -DENABLE_COMP=ON && ninja && sudo ninja install; \
-	fi
-
 # Build and install libRoadRunner
 .PHONY: build_libroadrunner
 build_libroadrunner:
 	@echo "Installing libRoadRunner from source..."
 	if [ ! -d "$(EXTERNAL_DIR)/roadrunner" ]; then \
-		git clone https://github.com/sys-bio/roadrunner.git $(EXTERNAL_DIR)/roadrunner; \
+		git clone -b 'v2.4.0' https://github.com/sys-bio/roadrunner.git $(EXTERNAL_DIR)/roadrunner; \
 	fi; \
 	cd $(EXTERNAL_DIR)/roadrunner; \
 	mkdir -p build-release; \
@@ -90,7 +80,7 @@ build_libroadrunner:
 build_libroadrunner_deps:
 	@echo "Installing libRoadRunner dependencies from source..."
 	if [ ! -d "$(EXTERNAL_DIR)/libroadrunner-deps" ]; then \
-		git clone https://github.com/sys-bio/libroadrunner-deps.git --recurse-submodules $(EXTERNAL_DIR)/libroadrunner-deps; \
+		git clone -b 'v2.1' https://github.com/sys-bio/libroadrunner-deps.git --recurse-submodules $(EXTERNAL_DIR)/libroadrunner-deps; \
 	fi; \
 	cd $(EXTERNAL_DIR)/libroadrunner-deps; \
 	mkdir -p build; \
@@ -114,6 +104,7 @@ build_llvm_13:
 	cd build; \
 	cmake -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
 		-DCMAKE_BUILD_TYPE="Release" \
+		-DCMAKE_CXX_STANDARD=17 \
 		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ../llvm; \
 	ninja; \
 	ninja install
