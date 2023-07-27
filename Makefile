@@ -4,11 +4,13 @@ SHELL := /bin/bash
 
 # Path to project directory
 PROJECT_DIR := $(shell pwd)
+EXTERNAL_DIR := $(PROJECT_DIR)/external
 DATA_DIR := $(PROJECT_DIR)/data
 ASSETS_DIR := $(PROJECT_DIR)/assets
+ARCHITECTURE := arm64
 
 .PHONY: all
-all: check_dependencies build_cgal build
+all: check_dependencies build_cgal build_llvm_13 build_libroadrunner_deps build_libroadrunner build
 
 # Check if LLVM and Emscripten are installed, if not, install using apt-get
 .PHONY: check_dependencies
@@ -48,12 +50,64 @@ check_dependencies:
 build_cgal:
 	@OS=$$(uname -s); \
 	if [ "$$OS" == "Linux" ]; then \
-		if [ ! -d "cgal" ]; then \
-			git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git; \
+		if [ ! -d "$(EXTERNAL_DIR)/cgal" ]; then \
+			git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git $(EXTERNAL_DIR)/cgal; \
 			mkdir -p build/cgal; \
-			cd build/cgal && cmake ../../cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF && make && sudo make install; \
+			cd build/cgal && cmake $(EXTERNAL_DIR)/cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF && make && sudo make install; \
 		fi; \
 	fi
+
+# Build and install libRoadRunner
+.PHONY: build_libroadrunner
+build_libroadrunner:
+	@echo "Installing libRoadRunner from source..."
+	if [ ! -d "$(EXTERNAL_DIR)/roadrunner" ]; then \
+		git clone -b 'v2.4.0' https://github.com/sys-bio/roadrunner.git $(EXTERNAL_DIR)/roadrunner; \
+	fi; \
+	cd $(EXTERNAL_DIR)/roadrunner; \
+	mkdir -p build-release; \
+	cd build-release; \
+	cmake -GNinja -DCMAKE_INSTALL_PREFIX="$(EXTERNAL_DIR)/roadrunner/install-release" \
+	    -DLLVM_INSTALL_PREFIX="$(EXTERNAL_DIR)/llvm-13.x/install-release" \
+	    -DRR_DEPENDENCIES_INSTALL_PREFIX="$(EXTERNAL_DIR)/libroadrunner-deps/install-release" \
+	    -DCMAKE_BUILD_TYPE="Release" \
+	    -DCMAKE_CXX_STANDARD=17 \
+		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
+	ninja; \
+	ninja install
+
+.PHONY: build_libroadrunner_deps
+build_libroadrunner_deps:
+	@echo "Installing libRoadRunner dependencies from source..."
+	if [ ! -d "$(EXTERNAL_DIR)/libroadrunner-deps" ]; then \
+		git clone -b 'v2.1' https://github.com/sys-bio/libroadrunner-deps.git --recurse-submodules $(EXTERNAL_DIR)/libroadrunner-deps; \
+	fi; \
+	cd $(EXTERNAL_DIR)/libroadrunner-deps; \
+	mkdir -p build; \
+	cd build; \
+	cmake -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
+		-DCMAKE_BUILD_TYPE="Release" \
+		-DCMAKE_CXX_STANDARD=17 \
+		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
+	ninja; \
+	ninja install
+
+
+.PHONY: build_llvm_13
+build_llvm_13:
+	@echo "Installing LLVM 13 from source..."; \
+	if [ ! -d "$(EXTERNAL_DIR)/llvm-13.x" ]; then \
+		git clone https://github.com/sys-bio/llvm-13.x.git $(EXTERNAL_DIR)/llvm-13.x; \
+	fi; \
+	cd $(EXTERNAL_DIR)/llvm-13.x; \
+	mkdir -p build; \
+	cd build; \
+	cmake -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
+		-DCMAKE_BUILD_TYPE="Release" \
+		-DCMAKE_CXX_STANDARD=17 \
+		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ../llvm; \
+	ninja; \
+	ninja install
 
 .PHONY: build
 build: $(DATA_DIR)
@@ -64,6 +118,8 @@ build: $(DATA_DIR)
 			-DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_C_COMPILER=$(shell brew --prefix llvm)/bin/clang \
 			-DCMAKE_CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++ \
+			-DCMAKE_CXX_STANDARD=20 \
+			-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) \
 			-GNinja; \
 		ninja -C $(PROJECT_DIR)/build -j $$(sysctl -n hw.logicalcpu); \
 	elif [ "$$OS" == "Linux" ]; then \
@@ -73,6 +129,7 @@ build: $(DATA_DIR)
 			-DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_C_COMPILER=/usr/bin/gcc \
 			-DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+			-DCMAKE_CXX_STANDARD=20 \
 			-GNinja; \
 		ninja -C $(PROJECT_DIR)/build -j $$(nproc); \
 	fi

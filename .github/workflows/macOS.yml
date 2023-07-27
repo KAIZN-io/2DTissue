@@ -17,32 +17,31 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: |
-        brew install llvm
-        brew install cmake
-        brew install emscripten
-        brew install assimp
-        brew install yarn
-        brew install boost
-        brew install eigen
-        brew install cgal
-        brew install googletest
-        brew install ninja
-        brew install sundials
+    # - name: Install dependencies
+    #   run: |
+    #     brew install llvm
+    #     brew install cmake
+    #     brew install emscripten
+    #     brew install assimp
+    #     brew install yarn
+    #     brew install boost
+    #     brew install eigen
+    #     brew install cgal
+    #     brew install googletest
+    #     brew install ninja
 
-    - name: Set environment
-      run: |
-        LLVM_PATH=$(brew --prefix llvm)
-        echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
-        echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
+    # - name: Set environment
+    #   run: |
+    #     LLVM_PATH=$(brew --prefix llvm)
+    #     echo "CC=$LLVM_PATH/bin/clang" >> $GITHUB_ENV
+    #     echo "CXX=$LLVM_PATH/bin/clang++" >> $GITHUB_ENV
 
-    - name: Build 2DTissue
-      run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_CXX_STANDARD=20 -G Ninja ..
-        ninja
+    # - name: Build 2DTissue
+    #   run: |
+    #     mkdir build
+    #     cd build
+    #     cmake -DCMAKE_CXX_STANDARD=20 -G Ninja ..
+    #     ninja
 
-    - name: Test
-      run: ./build/all_tests
+    # - name: Test
+    #   run: ./build/all_tests

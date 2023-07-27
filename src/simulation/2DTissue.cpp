@@ -105,16 +105,8 @@ _2DTissue::_2DTissue(
     t = 0.0;
     tout = 0.001;
 
-    // Create context
-    void* comm = nullptr;
-    int flag = SUNContext_Create(comm, &sunctx);
-    if (flag != 0) {
-        // handle error
-        throw std::runtime_error("Failed to create SUN context.");
-    }
-
     // Initialize y
-    y = N_VNew_Serial(NEQ, sunctx);
+    y = N_VNew_Serial(NEQ);
     NV_Ith_S(y, 0) = 0.0; // y(0) = 0
     NV_Ith_S(y, 1) = 1.0; // y'(0) = 1
 
@@ -126,7 +118,7 @@ _2DTissue::_2DTissue(
     // The function CVodeCreate() instantiates a CVODE solver object and specifies the solution method.
     // CV_BDF for stiff problems.
     // CV_ADAMS for nonstiff problems
-    cvode_mem = CVodeCreate(CV_BDF, sunctx);
+    cvode_mem = CVodeCreate(CV_BDF);
 
     // Initialize the integrator memory and specify the user's right hand
     // side function in y'=f(t,y), the inital time T0, and the initial
@@ -137,9 +129,41 @@ _2DTissue::_2DTissue(
     // cvode_mem – pointer to the CVODE memory block returned by CVodeCreate()
     CVodeSStolerances(cvode_mem, reltol, abstol);
 
-    A = SUNDenseMatrix(NEQ, NEQ, sunctx);
-    LS = SUNLinSol_Dense(y, A, sunctx);
+    A = SUNDenseMatrix(NEQ, NEQ);
+    LS = SUNLinSol_Dense(y, A);
     CVodeSetLinearSolver(cvode_mem, LS, A);
+
+    // Initialize SBML model simulation parameters.
+    sbmlModelFilePath = PROJECT_PATH + "/sbml-model/BIOMD0000000613_url.xml";
+    startTime = 0.0;
+    endTime = 10.0;
+    numberOfPoints = 101;
+
+    // Perform SBML model simulation.
+    // perform_sbml_simulation();
+}
+
+void _2DTissue::perform_sbml_simulation() {
+    rr = new rr::RoadRunner();
+
+    // Load the SBML model.
+    rr->load(sbmlModelFilePath);
+
+    // Set up the integrator.
+    rr->getIntegrator()->setValue("relative_tolerance", 1e-6);
+    rr->getIntegrator()->setValue("absolute_tolerance", 1e-6);
+
+    // Simulate the model.
+    rr::SimulateOptions options;
+    options.start = startTime;
+    options.duration = endTime - startTime;
+    options.steps = numberOfPoints - 1;
+
+    // Print the result of the simulation.
+    std::cout << *rr->simulate(&options) << std::endl;
+
+    // Don't forget to free the memory.
+    delete rr;
 }
 
 // The ODE system
@@ -280,7 +304,8 @@ bool _2DTissue::is_finished() {
 Eigen::VectorXd _2DTissue::get_order_parameter() {
     // Free memory
     CVodeFree(&cvode_mem);
-    SUNContext_Free(&sunctx);
+    SUNLinSolFree(LS); /* Free the linear solver memory */
+    SUNMatDestroy(A); /* Free the matrix memory */
     N_VDestroy(y);
 
     return v_order;
