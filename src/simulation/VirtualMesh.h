@@ -1,14 +1,49 @@
-// // VirtualMesh.h
+// VirtualMesh.h
 
-// #pragma once
+#pragma once
 
-// #include <tuple>
-// #include <vector>
-// #include <Eigen/Dense>
-// #include <cstdint>
-// #include <map>
+#include <map>
+#include <iostream>
+#include <set>
+#include <tuple>
+#include <vector>
+#include <algorithm>
+#include <Eigen/Dense>
+#include <cstdint>
 
-// using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
+#include <Validation.h>
+#include <IO.h>
+
+using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
+
+struct VertexData {
+    Eigen::MatrixXd old_particle_pos;
+    Eigen::MatrixXd next_particle_pos;
+    bool valid;
+    int uv_mesh_id;
+};
+
+
+class VirtualMesh {
+public:
+    VirtualMesh(
+        Eigen::MatrixXd& distance_matrix,
+        int map_cache_count
+    );
+
+    void simulate_on_virtual_mesh();
+    std::vector<int> get_3D_splay_vertices();
+
+private:
+    Eigen::MatrixXd& distance_matrix;
+    int map_cache_count;
+
+    void get_invalid_particle();
+    void find_nearest_vertice_map();
+    void assign_particle_position();
+    void assign_particle_orientation();
+};
+
 
 // std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_nearest_vertice_map(
 //     int target_vertex,
@@ -41,10 +76,6 @@
 //     int modula_mode = 10
 // );
 
-// std::vector<int> get_3D_splay_vertices(
-//     Eigen::MatrixXd distance_matrix,
-//     int modula_mode
-// );
 
 // std::vector<VertexData> update_vertex_data(
 //     const Eigen::MatrixXd& old_r_3D_coord,

@@ -27,6 +27,7 @@
 #include "Cell.h"
 #include "Simulator.h"
 #include "Validation.h"
+#include "VirtualMesh.h"
 
 // Individuelle Partikel Informationen
 struct Particle{
@@ -49,6 +50,15 @@ struct System{
     std::vector<Particle> particles;
 };
 
+// Mesh Informationen
+struct Mesh_UV_Struct {
+    int start_vertice_id;
+    Eigen::MatrixXd mesh;
+    std::vector<int64_t> h_v_mapping;
+    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertices_3D;
+    std::string mesh_file_path;
+};
 
 class Compass {
 public:
@@ -140,12 +150,14 @@ private:
     Eigen::MatrixXd vertice_UV;
     Eigen::MatrixXd vertice_3D;
     std::vector<int64_t> h_v_mapping;
+    std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
     std::string mesh_file_path;
     double dt;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Simulator simulator;
     Cell cell;
+    VirtualMesh virtual_mesh;
 
     // Differential Equation Simulation
     realtype reltol, abstol; // Tolerances
@@ -193,4 +205,5 @@ public:
     Eigen::VectorXd get_order_parameter();
     friend class Simulator;
     friend class Cell;
+    friend class VirtualMesh;
 };
