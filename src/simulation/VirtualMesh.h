@@ -11,37 +11,43 @@
 #include <Eigen/Dense>
 #include <cstdint>
 
+#include <GeometryProcessing.h>
 #include <Validation.h>
 #include <IO.h>
+#include <Struct.h>
 
 using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
-
-struct VertexData {
-    Eigen::MatrixXd old_particle_pos;
-    Eigen::MatrixXd next_particle_pos;
-    bool valid;
-    int uv_mesh_id;
-};
 
 
 class VirtualMesh {
 public:
     VirtualMesh(
         Eigen::MatrixXd& distance_matrix,
-        int map_cache_count
+        std::string mesh_path,
+        int map_cache_count,
+        std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
+        std::unique_ptr<GeometryProcessing> geometry_ptr,
+        std::unique_ptr<Validation> validation_ptr
     );
 
+    void generate_virtual_mesh();
     void simulate_on_virtual_mesh();
-    std::vector<int> get_3D_splay_vertices();
 
 private:
     Eigen::MatrixXd& distance_matrix;
+    std::string mesh_path;
     int map_cache_count;
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map;
+    std::unique_ptr<GeometryProcessing> geometry_ptr;
+    std::unique_ptr<Validation> validation_ptr;
+
+    Eigen::MatrixXd halfedge_UV_virtual;
 
     void get_invalid_particle();
     void find_nearest_vertice_map();
     void assign_particle_position();
     void assign_particle_orientation();
+    std::vector<int> get_3D_splay_vertices();
 };
 
 

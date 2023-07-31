@@ -7,12 +7,73 @@
 
 VirtualMesh::VirtualMesh(
     Eigen::MatrixXd& distance_matrix,
-    int map_cache_count
+    std::string mesh_path,
+    int map_cache_count,
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
+    std::unique_ptr<GeometryProcessing> geometry_ptr,
+    std::unique_ptr<Validation> validation_ptr
 )
     : distance_matrix(distance_matrix),
-      map_cache_count(map_cache_count) {
+      mesh_path(mesh_path),
+      map_cache_count(map_cache_count),
+      vertices_2DTissue_map(vertices_2DTissue_map),
+      geometry_ptr(std::move(geometry_ptr)),
+      validation_ptr(std::move(validation_ptr)) {
 }
 
+std::vector<int> VirtualMesh::get_3D_splay_vertices(){
+    std::vector<int> selected_vertices;
+
+    // Start at a random vertex
+    int start_vertex = rand() % distance_matrix.rows();
+    selected_vertices.push_back(start_vertex);
+
+    while (selected_vertices.size() < map_cache_count) {
+        double max_distance = -1;
+        int furthest_vertex = -1;
+
+        // Find the vertex that is furthest away from all selected vertices
+        for (int i = 0; i < distance_matrix.rows(); ++i) {
+            double min_distance = std::numeric_limits<double>::infinity();
+
+            // Compute the minimum distance to the selected vertices
+            for (int j : selected_vertices) {
+                double distance = distance_matrix(i, j);
+
+                if (distance < min_distance) {
+                    min_distance = distance;
+                }
+            }
+
+            // If this vertex is further away than the current furthest vertex, update it
+            if (min_distance > max_distance) {
+                max_distance = min_distance;
+                furthest_vertex = i;
+            }
+        }
+
+        // Add the furthest vertex to the selected vertices
+        selected_vertices.push_back(furthest_vertex);
+    }
+
+    return selected_vertices;
+}
+
+
+void VirtualMesh::generate_virtual_mesh()
+{
+    auto splay_state_vertices_id = get_3D_splay_vertices();
+
+    for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
+        int splay_state_v = splay_state_vertices_id[i];
+
+        auto [h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = geometry_ptr->create_uv_surface(mesh_path, splay_state_v);
+        loadMeshVertices(mesh_file_path_virtual, halfedge_UV_virtual);
+
+        // Store the virtual meshes
+        vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_UV_virtual, h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
+    }
+}
 
 // using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
 
@@ -69,44 +130,6 @@ VirtualMesh::VirtualMesh(
 //     return std::tuple(halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path);
 // }
 
-
-std::vector<int> VirtualMesh::get_3D_splay_vertices(){
-    std::vector<int> selected_vertices;
-
-    // Start at a random vertex
-    int start_vertex = rand() % distance_matrix.rows();
-    selected_vertices.push_back(start_vertex);
-
-    while (selected_vertices.size() < map_cache_count) {
-        double max_distance = -1;
-        int furthest_vertex = -1;
-
-        // Find the vertex that is furthest away from all selected vertices
-        for (int i = 0; i < distance_matrix.rows(); ++i) {
-            double min_distance = std::numeric_limits<double>::infinity();
-
-            // Compute the minimum distance to the selected vertices
-            for (int j : selected_vertices) {
-                double distance = distance_matrix(i, j);
-
-                if (distance < min_distance) {
-                    min_distance = distance;
-                }
-            }
-
-            // If this vertex is further away than the current furthest vertex, update it
-            if (min_distance > max_distance) {
-                max_distance = min_distance;
-                furthest_vertex = i;
-            }
-        }
-
-        // Add the furthest vertex to the selected vertices
-        selected_vertices.push_back(furthest_vertex);
-    }
-
-    return selected_vertices;
-}
 
 
 
