@@ -194,6 +194,15 @@ std::vector<_3D::edge_descriptor> GeometryProcessing::set_UV_border_edges(
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
     in >> mesh;
 
+    int north_pole_int = 1;
+    int south_pole_int = mesh.number_of_vertices();
+    _3D::vertex_descriptor north_pole(north_pole_int);
+    _3D::vertex_descriptor south_pole(south_pole_int);
+
+    // Remove the poles from the mesh that they are never part of the border
+    mesh.remove_vertex(north_pole);
+    mesh.remove_vertex(south_pole);
+
     // Create vectors to store the predecessors (p) and the distances from the root (d)
     std::vector<_3D::vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
     std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
@@ -265,13 +274,13 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     Eigen::MatrixXd& vertices_UV,
     Eigen::MatrixXd& vertices_3D
 ){
+    // Set the border edges of the UV mesh
+    auto border_edges = set_UV_border_edges(mesh_file_path, start_node);
+
     // Load the 3D mesh
     _3D::Mesh sm;
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
     in >> sm;
-
-    // Set the border edges of the UV mesh
-    auto border_edges = set_UV_border_edges(mesh_file_path, start_node);
 
     // Canonical Halfedges Representing a Vertex
     _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
@@ -327,11 +336,6 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     std::string mesh_path,
     int32_t start_node_int
 ){
-    // Load the 3D mesh
-    _3D::Mesh sm;
-    std::ifstream in(CGAL::data_file_path(mesh_path));
-    in >> sm;
-
     _3D::vertex_descriptor start_node(start_node_int);
     Eigen::MatrixXd vertices_UV;
     Eigen::MatrixXd vertices_3D;
