@@ -37,7 +37,7 @@ struct Mesh_UV_Struct {
     std::string mesh_file_path;
 };
 
-
+// Mapping zwischen den UV Karten
 struct VertexData {
     Eigen::MatrixXd old_particle_pos;
     Eigen::MatrixXd next_particle_pos;
