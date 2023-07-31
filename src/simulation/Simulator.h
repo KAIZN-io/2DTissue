@@ -79,7 +79,6 @@ private:
     std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n);
     void map_between_arbitrary_seam_edges();
 
-
 FRIEND_TEST(SimulatorTest, ThrowsWhenInputIsEmpty);
 FRIEND_TEST(SimulatorTest, CorrectlyCalculatesMeanAngle);
 FRIEND_TEST(SimulatorTest, CorrectlyHandlesNegativeAngles);

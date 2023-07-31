@@ -223,6 +223,11 @@ void _2DTissue::perform_particle_simulation(){
         simulator.diagonal_seam_edges_square_border();
     }
 
+    Eigen::Vector2d northPole(0.287249, 0.195033); // The north pole (= v1 of the UV mesh)
+    Compass compass(northPole);
+    Eigen::VectorXd n_relative = compass.calculateRelativeAngle(r_UV, n);
+    Eigen::VectorXd n_new_test = compass.assignOrientation(r_UV, n_relative);
+
     // Error checking
     validation_ptr->error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
     validation_ptr->error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
@@ -272,8 +277,7 @@ System _2DTissue::update(){
         p.y_UV = r_UV(i, 1);
         p.x_velocity_UV = r_dot(i, 0);
         p.y_velocity_UV = r_dot(i, 1);
-        p.x_alignment_UV = n(i, 0);
-        p.y_alignment_UV = n(i, 1);
+        p.alignment_UV = n(i, 0);
         p.x_3D = r_3D(i, 0);
         p.y_3D = r_3D(i, 1);
         p.z_3D = r_3D(i, 2);
