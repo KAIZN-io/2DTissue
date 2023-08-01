@@ -97,6 +97,8 @@ _2DTissue::_2DTissue(
 
     // Generate virtual meshes
     virtual_mesh.generate_virtual_mesh();
+    int target_vertex = 43;
+    virtual_mesh.simulate_on_virtual_mesh(target_vertex);
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);

@@ -31,7 +31,7 @@ public:
     );
 
     void generate_virtual_mesh();
-    void simulate_on_virtual_mesh();
+    void simulate_on_virtual_mesh(int old_id);
 
 private:
     Eigen::MatrixXd& distance_matrix;
@@ -44,18 +44,12 @@ private:
     Eigen::MatrixXd halfedge_UV_virtual;
 
     void get_invalid_particle();
-    void find_nearest_vertice_map();
+    std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_furthest_vertice_map(int target_vertex);
     void assign_particle_position();
     void assign_particle_orientation();
     std::vector<int> get_3D_splay_vertices();
 };
 
-
-// std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_nearest_vertice_map(
-//     int target_vertex,
-//     const Eigen::MatrixXd distance_matrix,
-//     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map
-// );
 
 // void process_if_not_valid(
 //     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,

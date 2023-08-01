@@ -7,7 +7,7 @@
 #include <string>
 
 // Individuelle Partikel Informationen
-struct Particle{
+struct Particle {
     double x_UV;
     double y_UV;
     double x_velocity_UV;
@@ -22,7 +22,7 @@ struct Particle{
 };
 
 // System Informationen
-struct System{
+struct System {
     double order_parameter;
     std::vector<Particle> particles;
 };

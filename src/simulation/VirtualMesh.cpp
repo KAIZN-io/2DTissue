@@ -1,7 +1,7 @@
 // author: @Jan-Piotraschke
-// date: 2023-07-19
+// date: 2023-07-31
 // license: Apache License 2.0
-// version: 0.1.0
+// version: 0.1.1
 
 #include <VirtualMesh.h>
 
@@ -75,62 +75,49 @@ void VirtualMesh::generate_virtual_mesh()
     }
 }
 
-// using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
+
+void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
+    auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_furthest_vertice_map(old_id);
+    std::cout << "mesh_file_path: " << mesh_file_path << std::endl;
+}
 
 
-// std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_nearest_vertice_map(
-//     int target_vertex,
-//     const Eigen::MatrixXd distance_matrix,
-//     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map
-// ) {
-//     // Get all the availabe 2D maps
-//     std::vector<int> vertices_2DTissue_map_keys;
-//     for (auto const& [key, val] : vertices_2DTissue_map) {
-//         vertices_2DTissue_map_keys.push_back(key);
-//     }
+std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> VirtualMesh::find_furthest_vertice_map(int target_vertex) {
+    // Get all the availabe 2D maps
+    std::vector<int> vertices_2DTissue_map_keys;
+    for (auto const& [key, val] : vertices_2DTissue_map) {
+        vertices_2DTissue_map_keys.push_back(key);
+    }
 
-//     // double min_distance = std::numeric_limits<double>::max();
-//     // int nearest_vertex = -1;
+    double max_distance = std::numeric_limits<double>::lowest();
+    int furthest_vertex = -1;
 
-//     // for (int vertex : vertices_2DTissue_map_keys) {
-//     //     double distance = distance_matrix(target_vertex, vertex);
-//     //     if (distance < min_distance) {
-//     //         min_distance = distance;
-//     //         nearest_vertex = vertex;
-//     //     }
-//     // }
+    for (int vertex : vertices_2DTissue_map_keys) {
+        double distance = distance_matrix(target_vertex, vertex);
+        if (distance > max_distance) {
+            max_distance = distance;
+            furthest_vertex = vertex;
+        }
+    }
 
-//     double max_distance = std::numeric_limits<double>::lowest();
-//     int furthest_vertex = -1;
+    Eigen::MatrixXd halfedges_uv;
+    std::vector<int64_t> h_v_mapping;
+    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertices_3D;
+    std::string mesh_file_path;
 
-//     for (int vertex : vertices_2DTissue_map_keys) {
-//         double distance = distance_matrix(target_vertex, vertex);
-//         if (distance > max_distance) {
-//             max_distance = distance;
-//             furthest_vertex = vertex;
-//         }
-//     }
+    auto it = vertices_2DTissue_map.find(furthest_vertex);
+    if (it != vertices_2DTissue_map.end()) {
+        // Load the mesh
+        halfedges_uv = it->second.mesh;
+        h_v_mapping = it->second.h_v_mapping;
+        vertices_UV = it->second.vertices_UV;
+        vertices_3D = it->second.vertices_3D;
+        mesh_file_path = it->second.mesh_file_path;
+    }
 
-//     Eigen::MatrixXd halfedges_uv;
-//     std::vector<int64_t> h_v_mapping;
-//     Eigen::MatrixXd vertices_UV;
-//     Eigen::MatrixXd vertices_3D;
-//     std::string mesh_file_path;
-
-//     auto it = vertices_2DTissue_map.find(furthest_vertex);
-//     if (it != vertices_2DTissue_map.end()) {
-//         // Load the mesh
-//         halfedges_uv = it->second.mesh;
-//         h_v_mapping = it->second.h_v_mapping;
-//         vertices_UV = it->second.vertices_UV;
-//         vertices_3D = it->second.vertices_3D;
-//         mesh_file_path = it->second.mesh_file_path;
-//     }
-
-//     return std::tuple(halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path);
-// }
-
-
+    return std::tuple(halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path);
+}
 
 
 
@@ -156,7 +143,7 @@ void VirtualMesh::generate_virtual_mesh()
 //     double current_step
 // ) {
 //     // Get the nearest vertice map
-//     auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_nearest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
+//     auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_furthest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
 
 //     // Find the new row indices of the used vertices
 //     auto row_indices = find_vertice_rows_index(h_v_mapping, old_ids);
