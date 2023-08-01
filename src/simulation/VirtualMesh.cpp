@@ -372,38 +372,4 @@ std::string VirtualMesh::change_UV_map(int target_vertex) {
 // }
 
 
-// // class UVVertices {
-// // public:
-// //     UVVertices(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r)
-// //         : r_(r)
-// //     {
-// //         int nrows = r.rows();
-// //         for (int i = 0; i < nrows; ++i) {
-// //             Eigen::Vector2d first_two_columns = r.row(i).head<2>();
-// //             if (is_inside_uv(first_two_columns)) {
-// //                 inside_uv_ids_.insert(i);
-// //             }
-// //             else {
-// //                 outside_uv_ids_.insert(i);
-// //             }
-// //         }
-// //     }
 
-// //     const std::set<int>& get_inside_uv_ids() const {
-// //         return inside_uv_ids_;
-// //     }
-
-// //     const std::set<int>& get_outside_uv_ids() const {
-// //         return outside_uv_ids_;
-// //     }
-
-// // private:
-// //     // Check if the given point r is inside the UV parametrization bounds
-// //     static bool is_inside_uv(const Eigen::Vector2d& r) {
-// //         return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
-// //     }
-
-// //     Eigen::Matrix<double, Eigen::Dynamic, 2> r_;
-// //     std::set<int> inside_uv_ids_;
-// //     std::set<int> outside_uv_ids_;
-// // };

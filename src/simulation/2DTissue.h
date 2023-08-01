@@ -109,6 +109,35 @@ private:
     void perform_sbml_simulation();
     void update_vertex_data(const std::vector<int>& inside_uv_ids);
 
+    std::set<int> get_inside_UV_id() const {
+        std::set<int> inside_UV_id;
+        int nrows = r_UV.rows();
+        for (int i = 0; i < nrows; ++i) {
+            Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
+            if (is_inside_uv(first_two_columns)) {
+                inside_UV_id.insert(i);
+            }
+        }
+        return inside_UV_id;
+    };
+
+    std::set<int> get_outside_UV_id() const {
+        std::set<int> outside_UV_id;
+        int nrows = r_UV.rows();
+        for (int i = 0; i < nrows; ++i) {
+            Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
+            if (!is_inside_uv(first_two_columns)) {
+                outside_UV_id.insert(i);
+            }
+        }
+        return outside_UV_id;
+    };
+
+    // Check if the given point r is inside the UV parametrization bounds
+    static bool is_inside_uv(const Eigen::Vector2d& r_UV) {
+        return (0 <= r_UV[0] && r_UV[0] <= 1) && (0 <= r_UV[1] && r_UV[1] <= 1);
+    };
+
 public:
     _2DTissue(
         bool save_data,

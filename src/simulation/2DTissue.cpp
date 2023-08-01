@@ -227,6 +227,9 @@ void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
     simulator.simulate_flight();
 
+    auto inside_UV_ids = get_outside_UV_id();
+    std::cout << "inside_UV_ids.size(): " << inside_UV_ids.size() << std::endl;
+
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
     if (mesh_UV_name == "sphere_uv"){
