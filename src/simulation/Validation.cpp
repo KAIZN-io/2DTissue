@@ -9,14 +9,7 @@
 
 #include <Validation.h>
 
-// bool Validation::are_all_valid(const std::vector<VertexData>& vertex_data) {
-//     for (const VertexData& data : vertex_data) {
-//         if (!data.valid) {
-//             return false;
-//         }
-//     }
-//     return true;
-// }
+
 
 bool Validation::checkForInvalidValues(
     const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix
@@ -31,13 +24,20 @@ bool Validation::checkForInvalidValues(
     return false;
 }
 
-// void Validation::error_unvalid_vertices(
-//     std::vector<VertexData> vertex_data
-// ){
-//     if (!are_all_valid(vertex_data)) {
-//         throw std::runtime_error("There are still particles outside the mesh");
-//     }
-// }
+bool Validation::are_all_valid(std::vector<VertexData> particle_change) {
+    for (const VertexData& data : particle_change) {
+        if (!data.valid) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Validation::error_invalid_3D_values(std::vector<VertexData> particle_change){
+    if (!are_all_valid(particle_change)) {
+        throw std::runtime_error("There are still particles outside the mesh");
+    }
+}
 
 void Validation::error_invalid_values(
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_new
