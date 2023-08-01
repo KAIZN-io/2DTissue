@@ -135,26 +135,12 @@ void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
     auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
     r_3D = new_r_3D;
 
-    // Add the north pole to the 3D coordinates
-    r_3D.conservativeResize(r_3D.rows() + 1, 3);
-    r_3D.row(r_3D.rows() - 1) = northPole_3D;
-
     // Find the next UV map
     auto mesh_file_path = change_UV_map(old_id);
 
-    // Map it to the 2D coordinates of the new map
-    r_UV = cell.get_r2d();
-
-    // Get the UV coordinates of the north pole
-    Eigen::Vector2d northPole_virtual = r_UV.row(r_UV.rows() - 1);  // The north pole (= v1 of the UV mesh)
-
-    // Remove the north pole from the coordinates
-    r_3D.conservativeResize(r_3D.rows() - 1, 3);
-    r_UV.conservativeResize(r_UV.rows() - 1, 3);
-
-    Compass compass(northPole, northPole_virtual);
-    Eigen::VectorXd n_relative = compass.calculateRelativeAngle(r_UV, n);
-    n = compass.assignOrientation(r_UV, n_relative);
+    // Add the particles to the new map
+    assign_particle_position();
+    assign_particle_orientation();
 
     r_UV = r_UV_copy;
     n = n_copy;
@@ -162,6 +148,32 @@ void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
     halfedge_UV = halfedge_UV_copy;
     vertice_UV = vertice_UV_copy;
     h_v_mapping = h_v_mapping_copy;
+}
+
+
+void VirtualMesh::assign_particle_position(){
+    // Add the north pole to the 3D coordinates
+    r_3D.conservativeResize(r_3D.rows() + 1, 3);
+    r_3D.row(r_3D.rows() - 1) = northPole_3D;
+
+    // Map it to the 2D coordinates of the new map
+    r_UV = cell.get_r2d();
+
+    // Remove the north pole from the coordinates
+    r_3D.conservativeResize(r_3D.rows() - 1, 3);
+}
+
+
+void VirtualMesh::assign_particle_orientation(){
+    // Get the UV coordinates of the north pole
+    Eigen::Vector2d northPole_virtual = r_UV.row(r_UV.rows() - 1);  // The north pole (= v1 of the UV mesh)
+
+    // Remove the north pole from the coordinates
+    r_UV.conservativeResize(r_UV.rows() - 1, 3);
+
+    Compass compass(northPole, northPole_virtual);
+    Eigen::VectorXd n_relative = compass.calculateRelativeAngle(r_UV, n);
+    n = compass.assignOrientation(r_UV, n_relative);
 }
 
 

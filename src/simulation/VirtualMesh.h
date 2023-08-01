@@ -67,7 +67,6 @@ private:
 };
 
 
-
 class VirtualMesh {
 public:
     VirtualMesh(
