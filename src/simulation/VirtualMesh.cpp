@@ -45,6 +45,22 @@ VirtualMesh::VirtualMesh(
 {
 }
 
+void VirtualMesh::init_north_pole(){
+    northPole_3D.resize(1, 3);
+    northPole_3D << 1.7466, -0.220152, -2.40228;
+    // Get the old 3D coordinates
+    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
+    r_3D = new_r_3D;
+    r_3D.conservativeResize(r_3D.rows() + 1, 3);
+    r_3D.row(r_3D.rows() - 1) = northPole_3D;
+
+    // Map it to the 2D coordinates of the new map
+    auto new_r_UV = cell.get_r2d();
+
+    northPole = new_r_UV.row(new_r_UV.rows() - 1);  // The north pole (= v1 of the basic UV mesh)
+    r_3D.conservativeResize(r_3D.rows() - 1, 3);
+}
+
 std::vector<int> VirtualMesh::get_3D_splay_vertices(){
     std::vector<int> selected_vertices;
 
@@ -106,6 +122,7 @@ void VirtualMesh::generate_virtual_mesh()
 void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
 
     auto r_UV_copy = r_UV;
+    auto n_copy = n;
     auto face_UV_copy = face_UV;
     auto halfedge_UV_copy = halfedge_UV;
     auto vertice_UV_copy = vertice_UV;
@@ -118,13 +135,29 @@ void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
     auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
     r_3D = new_r_3D;
 
+    // Add the north pole to the 3D coordinates
+    r_3D.conservativeResize(r_3D.rows() + 1, 3);
+    r_3D.row(r_3D.rows() - 1) = northPole_3D;
+
     // Find the next UV map
     auto mesh_file_path = change_UV_map(old_id);
 
     // Map it to the 2D coordinates of the new map
     r_UV = cell.get_r2d();
 
+    // Get the UV coordinates of the north pole
+    Eigen::Vector2d northPole_virtual = r_UV.row(r_UV.rows() - 1);  // The north pole (= v1 of the UV mesh)
+
+    // Remove the north pole from the coordinates
+    r_3D.conservativeResize(r_3D.rows() - 1, 3);
+    r_UV.conservativeResize(r_UV.rows() - 1, 3);
+
+    Compass compass(northPole, northPole_virtual);
+    Eigen::VectorXd n_relative = compass.calculateRelativeAngle(r_UV, n);
+    n = compass.assignOrientation(r_UV, n_relative);
+
     r_UV = r_UV_copy;
+    n = n_copy;
     face_UV = face_UV_copy;
     halfedge_UV = halfedge_UV_copy;
     vertice_UV = vertice_UV_copy;

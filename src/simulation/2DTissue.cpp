@@ -96,6 +96,7 @@ _2DTissue::_2DTissue(
     vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, face_UV, vertice_UV, vertice_3D, mesh_UV_path};
 
     // Generate virtual meshes
+    virtual_mesh.init_north_pole();
     virtual_mesh.generate_virtual_mesh();
 
     // Initialize the order parameter vector
@@ -231,11 +232,6 @@ void _2DTissue::perform_particle_simulation(){
     else {
         simulator.diagonal_seam_edges_square_border();
     }
-
-    Eigen::Vector2d northPole(0.287249, 0.195033); // The north pole (= v1 of the UV mesh)
-    Compass compass(northPole);
-    Eigen::VectorXd n_relative = compass.calculateRelativeAngle(r_UV, n);
-    Eigen::VectorXd n_new_test = compass.assignOrientation(r_UV, n_relative);
 
     // Error checking
     validation_ptr->error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
