@@ -331,23 +331,3 @@ std::string VirtualMesh::change_UV_map(int target_vertex) {
 // }
 
 
-// void update_if_valid(
-//     std::vector<VertexData>& vertex_data,
-//     const Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_coord,
-//     const Eigen::MatrixXd& r_3D_coord,
-//     int start_id
-// ){
-//     // Find out which particles are inside the mesh
-//     std::vector<int> inside_uv_ids = find_inside_uv_vertices_id(r_UV_coord);
-
-//     for (int i : inside_uv_ids) {
-//         if (!vertex_data[i].valid) {
-//             VertexData& vd = vertex_data[i];
-
-//             vd.next_particle_pos = r_3D_coord.row(i);
-//             vd.uv_mesh_id = start_id;
-//             vd.valid = true;
-//         }
-//     }
-// }
-

@@ -108,6 +108,7 @@ private:
     static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
     void perform_sbml_simulation();
     void set_new_particle_data(const std::set<int> inside_UV_id);
+    void update_if_valid(std::set<int> inside_UV_id);
 
     std::set<int> get_inside_UV_id() const {
         std::set<int> inside_UV_id;

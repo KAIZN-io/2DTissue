@@ -223,6 +223,34 @@ void _2DTissue::count_particle_neighbors() {
 }
 
 
+void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
+    // Find out which particles are inside the mesh
+
+    for (int i : inside_UV_id) {
+        if (!particle_change[i].valid) {
+            VertexData& vd = particle_change[i];
+
+            vd.next_particle_3D = r_3D.row(i);
+            vd.valid = true;
+        }
+    }
+}
+
+
+void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
+    // Initialize the vertex data
+    for (int i = 0; i < particle_count; ++i) {
+        VertexData& vd = particle_change[i];
+        vd.old_particle_3D = r_3D_old.row(i);
+        vd.next_particle_3D = r_3D_old.row(i);
+        vd.valid = false;
+    }
+
+    // Update the vertex data based on inside_UV_id
+    update_if_valid(inside_UV_id);
+}
+
+
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
     simulator.simulate_flight();
@@ -236,9 +264,19 @@ void _2DTissue::perform_particle_simulation(){
         simulator.diagonal_seam_edges_square_border();
     }
 
+    // Get the 3D vertices coordinates from the 2D particle position coordinates
+    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
+    vertices_3D_active = new_vertices_3D_active;
+    r_3D = new_r_3D;
+
+    // Update the particle 3D position in our control data structure
+    std::set<int> inside_UV_id = get_inside_UV_id();
+    update_if_valid(inside_UV_id);
+
     // Error checking
     validation_ptr->error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
     validation_ptr->error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
+    validation_ptr->error_invalid_3D_values(particle_change);  // 3. Check if the 3D coordinates are valid
 
     // Dye the particles based on their distance
     count_particle_neighbors();
@@ -268,29 +306,6 @@ void _2DTissue::save_our_data() {
 }
 
 
-void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
-    // Initialize the vertex data
-    for (int i = 0; i < particle_count; ++i) {
-        VertexData& vd = particle_change[i];
-        vd.old_particle_3D = r_3D_old.row(i);
-        vd.next_particle_3D = r_3D_old.row(i);
-        vd.valid = false;
-    }
-
-    // Update the vertex data based on inside_UV_id
-    for (int i : inside_UV_id) {
-
-        if (!particle_change[i].valid) {
-            // Get the vertex data
-            VertexData& vd = particle_change[i];
-
-            vd.next_particle_3D = r_3D.row(i);
-            vd.valid = true;
-        }
-    }
-}
-
-
 System _2DTissue::update(){
     // The new is the new old
     r_3D_old = r_3D;
@@ -300,11 +315,6 @@ System _2DTissue::update(){
 
     // Simulate the particles on the 2D surface
     perform_particle_simulation();
-
-    // Get the 3D vertices coordinates from the 2D particle position coordinates
-    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
-    vertices_3D_active = new_vertices_3D_active;
-    r_3D = new_r_3D;
 
     std::vector<Particle> particles;
     // start for loop
