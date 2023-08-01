@@ -119,17 +119,10 @@ void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
     r_3D = new_r_3D;
 
     // Find the next UV map
-    auto [halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertice_UV_virtual, vertice_3D, mesh_file_path] = find_furthest_vertice_map(old_id);
-    face_UV = face_UV_virtual;
-    halfedge_UV = halfedge_UV_virtual;
-    vertice_UV = vertice_UV_virtual;
-    h_v_mapping = h_v_mapping_virtual;
+    auto mesh_file_path = change_UV_map(old_id);
 
-    std::cout << "r_UV: " << r_UV << std::endl;
     // Map it to the 2D coordinates of the new map
-    cell.get_r2d();
-
-    std::cout << "r_UV other map: " << r_UV << std::endl;
+    r_UV = cell.get_r2d();
 
     r_UV = r_UV_copy;
     face_UV = face_UV_copy;
@@ -139,7 +132,7 @@ void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
 }
 
 
-std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd, std::string> VirtualMesh::find_furthest_vertice_map(int target_vertex) {
+std::string VirtualMesh::change_UV_map(int target_vertex) {
     // Get all the availabe 2D maps
     std::vector<int> vertices_2DTissue_map_keys;
     for (auto const& [key, val] : vertices_2DTissue_map) {
@@ -157,25 +150,19 @@ std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXi, Eigen::Matrix
         }
     }
 
-    Eigen::MatrixXd halfedges_uv;
-    std::vector<int64_t> h_v_mapping;
-    Eigen::MatrixXi face_UV;
-    Eigen::MatrixXd vertices_UV;
-    Eigen::MatrixXd vertices_3D;
     std::string mesh_file_path;
 
     auto it = vertices_2DTissue_map.find(furthest_vertex);
     if (it != vertices_2DTissue_map.end()) {
         // Load the mesh
-        halfedges_uv = it->second.mesh;
+        halfedge_UV = it->second.mesh;
         h_v_mapping = it->second.h_v_mapping;
         face_UV = it->second.face_UV;
-        vertices_UV = it->second.vertices_UV;
-        vertices_3D = it->second.vertices_3D;
+        vertice_UV = it->second.vertices_UV;
         mesh_file_path = it->second.mesh_file_path;
     }
 
-    return std::tuple(halfedges_uv, h_v_mapping, face_UV, vertices_UV, vertices_3D, mesh_file_path);
+    return mesh_file_path;
 }
 
 
@@ -202,7 +189,7 @@ std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXi, Eigen::Matrix
 //     double current_step
 // ) {
 //     // Get the nearest vertice map
-//     auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_furthest_vertice_map(old_id, distance_matrix, vertices_2DTissue_map);
+//     auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = change_UV_map(old_id, distance_matrix, vertices_2DTissue_map);
 
 //     // Find the new row indices of the used vertices
 //     auto row_indices = find_vertice_rows_index(h_v_mapping, old_ids);

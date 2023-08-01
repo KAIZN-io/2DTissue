@@ -68,7 +68,7 @@ private:
     Cell cell;
 
     void get_invalid_particle();
-    std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_furthest_vertice_map(int target_vertex);
+    std::string change_UV_map(int target_vertex);
     void assign_particle_position();
     void assign_particle_orientation();
     std::vector<int> get_3D_splay_vertices();
