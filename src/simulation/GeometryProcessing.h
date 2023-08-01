@@ -123,7 +123,7 @@ private:
         const std::string mesh_file_path,
         _3D::vertex_descriptor start_node,
         int uv_mesh_number,
-        Eigen::MatrixXd& vertices_UV,
+        Eigen::MatrixXd& vertice_UV,
         Eigen::MatrixXd& vertices_3D
     );
 

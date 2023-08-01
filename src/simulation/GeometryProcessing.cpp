@@ -171,9 +171,11 @@ std::vector<_3D::edge_descriptor> GeometryProcessing::get_cut_line(
     std::reverse(path_list.begin(), path_list.end());
 
     // Shorten the path list to the longest path with an even number of vertices so that the same seam edges are each on the opposite side of the UV mesh
+    // But only take half of the max_length_mod_two while still ensuring it's an even number.
     std::vector<_3D::edge_descriptor> longest_mod_two;
     size_t size = path_list.size();
     size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
+    size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
     longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
 
     return longest_mod_two;
@@ -271,7 +273,7 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     const std::string mesh_file_path,
     _3D::vertex_descriptor start_node,
     int uv_mesh_number,
-    Eigen::MatrixXd& vertices_UV,
+    Eigen::MatrixXd& vertice_UV,
     Eigen::MatrixXd& vertices_3D
 ){
     // Set the border edges of the UV mesh
@@ -311,7 +313,7 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     }
 
     vertices_3D.resize(points.size(), 3);
-    vertices_UV.resize(points.size(), 3);
+    vertice_UV.resize(points.size(), 3);
     for (size_t i = 0; i < points.size(); ++i)
     {
         // Get the points
@@ -320,9 +322,9 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
         vertices_3D(i, 2) = points[i].z();
 
         // Get the uv points
-        vertices_UV(i, 0) = points_uv[i].x();
-        vertices_UV(i, 1) = points_uv[i].y();
-        vertices_UV(i, 2) = 0;
+        vertice_UV(i, 0) = points_uv[i].x();
+        vertice_UV(i, 1) = points_uv[i].y();
+        vertice_UV(i, 2) = 0;
     }
 
     return h_v_mapping_vector;
@@ -337,13 +339,13 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     int32_t start_node_int
 ){
     _3D::vertex_descriptor start_node(start_node_int);
-    Eigen::MatrixXd vertices_UV;
+    Eigen::MatrixXd vertice_UV;
     Eigen::MatrixXd vertices_3D;
-    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertices_UV, vertices_3D);
+    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
 
     std::string mesh_file_path = meshmeta.mesh_path;
 
-    return std::make_tuple(h_v_mapping_vector, vertices_UV, vertices_3D, mesh_file_path);
+    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
 }
 
 

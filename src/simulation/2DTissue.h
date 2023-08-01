@@ -30,51 +30,6 @@
 #include "VirtualMesh.h"
 #include "Struct.h"
 
-class Compass {
-public:
-    Compass(const Eigen::Vector2d& pole) : pole_(pole) {}
-
-    Eigen::VectorXd calculateRelativeAngle(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::VectorXd& orientations) const {
-        Eigen::VectorXd relativeAngles(positions.rows());
-
-        for(int i = 0; i < positions.rows(); i++) {
-            Eigen::Vector2d position = positions.row(i);
-            double angle = vectorAngle(position);
-            relativeAngles(i) = relativeAngle(orientations(i), angle);
-        }
-
-        return relativeAngles;
-    }
-
-    Eigen::VectorXd assignOrientation(const Eigen::Matrix<double, Eigen::Dynamic, 2>& newPositions, const Eigen::VectorXd& relativeAngles) const {
-        Eigen::VectorXd newOrientations(newPositions.rows());
-
-        for(int i = 0; i < newPositions.rows(); i++) {
-            Eigen::Vector2d newPosition = newPositions.row(i);
-            double angle = vectorAngle(newPosition);
-            newOrientations(i) = fmod(angle - relativeAngles(i) + 360, 360);
-        }
-
-        return newOrientations;
-    }
-
-private:
-    Eigen::Vector2d pole_;
-
-    double vectorAngle(const Eigen::Vector2d& position) const {
-        double dx = position.x() - pole_.x();
-        double dy = position.y() - pole_.y();
-        double rad = atan2(dy, dx);
-        double deg = rad * (180 / M_PI);
-        return fmod(deg + 360, 360);
-    }
-
-    double relativeAngle(double orientation, double vectorAngle) const {
-        double relative = vectorAngle - orientation;
-        return fmod(relative + 360, 360);
-    }
-};
-
 
 class _2DTissue
 {
