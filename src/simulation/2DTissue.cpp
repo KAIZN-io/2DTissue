@@ -100,7 +100,7 @@ _2DTissue::_2DTissue(
     virtual_mesh.generate_virtual_mesh();
 
     // Initialize the Vertex Struct
-    std::vector<VertexData> particle_change(particle_count);
+    particle_change.resize(particle_count);
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
@@ -227,9 +227,6 @@ void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
     simulator.simulate_flight();
 
-    auto inside_UV_ids = get_outside_UV_id();
-    std::cout << "inside_UV_ids.size(): " << inside_UV_ids.size() << std::endl;
-
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
     if (mesh_UV_name == "sphere_uv"){
@@ -271,18 +268,17 @@ void _2DTissue::save_our_data() {
 }
 
 
-void _2DTissue::update_vertex_data(const std::vector<int>& inside_uv_ids){
+void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
     // Initialize the vertex data
     for (int i = 0; i < particle_count; ++i) {
         VertexData& vd = particle_change[i];
-
         vd.old_particle_3D = r_3D_old.row(i);
         vd.next_particle_3D = r_3D_old.row(i);
         vd.valid = false;
     }
 
-    // Update the vertex data based on inside_uv_ids
-    for (int i : inside_uv_ids) {
+    // Update the vertex data based on inside_UV_id
+    for (int i : inside_UV_id) {
 
         if (!particle_change[i].valid) {
             // Get the vertex data
@@ -298,6 +294,9 @@ void _2DTissue::update_vertex_data(const std::vector<int>& inside_uv_ids){
 System _2DTissue::update(){
     // The new is the new old
     r_3D_old = r_3D;
+
+    auto inside_UV_id = get_inside_UV_id();
+    set_new_particle_data(inside_UV_id);
 
     // Simulate the particles on the 2D surface
     perform_particle_simulation();
