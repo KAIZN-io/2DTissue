@@ -40,8 +40,7 @@ struct Mesh_UV_Struct {
 
 // Mapping zwischen den UV Karten
 struct VertexData {
-    Eigen::MatrixXd old_particle_pos;
-    Eigen::MatrixXd next_particle_pos;
-    bool valid;
-    int uv_mesh_id;
+    Eigen::VectorXd old_particle_3D;
+    Eigen::VectorXd next_particle_3D;
+    bool valid;  // if r_UV inside mesh
 };

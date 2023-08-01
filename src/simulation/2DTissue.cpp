@@ -99,6 +99,9 @@ _2DTissue::_2DTissue(
     virtual_mesh.init_north_pole();
     virtual_mesh.generate_virtual_mesh();
 
+    // Initialize the Vertex Struct
+    std::vector<VertexData> particle_change(particle_count);
+
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
@@ -265,7 +268,34 @@ void _2DTissue::save_our_data() {
 }
 
 
+void _2DTissue::update_vertex_data(const std::vector<int>& inside_uv_ids){
+    // Initialize the vertex data
+    for (int i = 0; i < particle_count; ++i) {
+        VertexData& vd = particle_change[i];
+
+        vd.old_particle_3D = r_3D_old.row(i);
+        vd.next_particle_3D = r_3D_old.row(i);
+        vd.valid = false;
+    }
+
+    // Update the vertex data based on inside_uv_ids
+    for (int i : inside_uv_ids) {
+
+        if (!particle_change[i].valid) {
+            // Get the vertex data
+            VertexData& vd = particle_change[i];
+
+            vd.next_particle_3D = r_3D.row(i);
+            vd.valid = true;
+        }
+    }
+}
+
+
 System _2DTissue::update(){
+    // The new is the new old
+    r_3D_old = r_3D;
+
     // Simulate the particles on the 2D surface
     perform_particle_simulation();
 

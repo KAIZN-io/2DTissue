@@ -53,6 +53,7 @@ private:
     int current_step;
     int map_cache_count;
     bool finished;
+    std::vector<VertexData> particle_change;
 
     std::unique_ptr<Cell> cell_ptr;
     std::unique_ptr<GeometryProcessing> geometry_ptr;
@@ -62,6 +63,7 @@ private:
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
     Eigen::MatrixXd r_3D;
+    Eigen::MatrixXd r_3D_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
     Eigen::VectorXd n;
     std::vector<int> particles_color;
@@ -105,6 +107,7 @@ private:
     void count_particle_neighbors();
     static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
     void perform_sbml_simulation();
+    void update_vertex_data(const std::vector<int>& inside_uv_ids);
 
 public:
     _2DTissue(
