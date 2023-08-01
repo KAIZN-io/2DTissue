@@ -351,25 +351,3 @@ std::string VirtualMesh::change_UV_map(int target_vertex) {
 //     }
 // }
 
-// // Check if the given point r is inside the UV parametrization bounds
-// bool is_inside_uv(const Eigen::Vector2d& r) {
-//     return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
-// }
-
-// std::vector<int> find_inside_uv_vertices_id(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
-//     int nrows = r.rows();
-//     std::vector<int> inside_id;
-
-//     for (int i = 0; i < nrows; ++i) {
-//         // Check if the point is inside the UV parametrization bounds
-//         Eigen::Vector2d first_two_columns = r.row(i).head<2>();
-//         if (is_inside_uv(first_two_columns)) {
-//             inside_id.push_back(i);
-//         }
-//     }
-
-//     return inside_id;
-// }
-
-
-
