@@ -14,6 +14,7 @@
 #include <GeometryProcessing.h>
 #include <Validation.h>
 #include <IO.h>
+#include <Cell.h>
 #include <Struct.h>
 
 using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
@@ -22,6 +23,17 @@ using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
 class VirtualMesh {
 public:
     VirtualMesh(
+        Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
+        Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
+        Eigen::MatrixXd& r_3D,
+        Eigen::MatrixXd& halfedge_UV,
+        Eigen::MatrixXi& face_UV,
+        Eigen::MatrixXd& vertice_UV,
+        std::vector<int64_t>& h_v_mapping,
+        int particle_count,
+        Eigen::VectorXd& n,
+        Eigen::MatrixXi& face_3D,
+        Eigen::MatrixXd& vertice_3D,
         Eigen::MatrixXd& distance_matrix,
         std::string mesh_path,
         int map_cache_count,
@@ -34,6 +46,17 @@ public:
     void simulate_on_virtual_mesh(int old_id);
 
 private:
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old;
+    Eigen::MatrixXd& r_3D;
+    Eigen::MatrixXd& halfedge_UV;
+    Eigen::MatrixXi& face_UV;
+    Eigen::MatrixXd& vertice_UV;
+    std::vector<int64_t>& h_v_mapping;
+    int particle_count;
+    Eigen::VectorXd& n;
+    Eigen::MatrixXi& face_3D;
+    Eigen::MatrixXd& vertice_3D;
     Eigen::MatrixXd& distance_matrix;
     std::string mesh_path;
     int map_cache_count;
@@ -42,9 +65,10 @@ private:
     std::unique_ptr<Validation> validation_ptr;
 
     Eigen::MatrixXd halfedge_UV_virtual;
+    Cell cell;
 
     void get_invalid_particle();
-    std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_furthest_vertice_map(int target_vertex);
+    std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd, std::string> find_furthest_vertice_map(int target_vertex);
     void assign_particle_position();
     void assign_particle_orientation();
     std::vector<int> get_3D_splay_vertices();

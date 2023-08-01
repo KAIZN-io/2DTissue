@@ -6,6 +6,17 @@
 #include <VirtualMesh.h>
 
 VirtualMesh::VirtualMesh(
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
+    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
+    Eigen::MatrixXd& r_3D,
+    Eigen::MatrixXd& halfedge_UV,
+    Eigen::MatrixXi& face_UV,
+    Eigen::MatrixXd& vertice_UV,
+    std::vector<int64_t>& h_v_mapping,
+    int particle_count,
+    Eigen::VectorXd& n,
+    Eigen::MatrixXi& face_3D,
+    Eigen::MatrixXd& vertice_3D,
     Eigen::MatrixXd& distance_matrix,
     std::string mesh_path,
     int map_cache_count,
@@ -13,12 +24,25 @@ VirtualMesh::VirtualMesh(
     std::unique_ptr<GeometryProcessing> geometry_ptr,
     std::unique_ptr<Validation> validation_ptr
 )
-    : distance_matrix(distance_matrix),
+    : r_UV(r_UV),
+      r_UV_old(r_UV_old),
+      r_3D(r_3D),
+      halfedge_UV(halfedge_UV),
+      face_UV(face_UV),
+      vertice_UV(vertice_UV),
+      h_v_mapping(h_v_mapping),
+      particle_count(particle_count),
+      n(n),
+      face_3D(face_3D),
+      vertice_3D(vertice_3D),
+      distance_matrix(distance_matrix),
       mesh_path(mesh_path),
       map_cache_count(map_cache_count),
       vertices_2DTissue_map(vertices_2DTissue_map),
       geometry_ptr(std::move(geometry_ptr)),
-      validation_ptr(std::move(validation_ptr)) {
+      validation_ptr(std::move(validation_ptr)),
+      cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n)
+{
 }
 
 std::vector<int> VirtualMesh::get_3D_splay_vertices(){
@@ -66,23 +90,56 @@ void VirtualMesh::generate_virtual_mesh()
 
     for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
         int splay_state_v = splay_state_vertices_id[i];
+        Eigen::MatrixXi face_UV_virtual;
+        Eigen::MatrixXd halfedge_UV_virtual;
 
         auto [h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = geometry_ptr->create_uv_surface(mesh_path, splay_state_v);
         loadMeshVertices(mesh_file_path_virtual, halfedge_UV_virtual);
+        loadMeshFaces(mesh_file_path_virtual, face_UV_virtual);
 
         // Store the virtual meshes
-        vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_UV_virtual, h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
+        vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
     }
 }
 
 
 void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
-    auto [halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path] = find_furthest_vertice_map(old_id);
-    std::cout << "mesh_file_path: " << mesh_file_path << std::endl;
+
+    auto r_UV_copy = r_UV;
+    auto face_UV_copy = face_UV;
+    auto halfedge_UV_copy = halfedge_UV;
+    auto vertice_UV_copy = vertice_UV;
+    auto h_v_mapping_copy = h_v_mapping;
+
+    // get the old UV coordinates
+    r_UV = r_UV_old;
+
+    // Get the old 3D coordinates
+    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
+    r_3D = new_r_3D;
+
+    // Find the next UV map
+    auto [halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertice_UV_virtual, vertice_3D, mesh_file_path] = find_furthest_vertice_map(old_id);
+    face_UV = face_UV_virtual;
+    halfedge_UV = halfedge_UV_virtual;
+    vertice_UV = vertice_UV_virtual;
+    h_v_mapping = h_v_mapping_virtual;
+
+    std::cout << "r_UV: " << r_UV << std::endl;
+    // Map it to the 2D coordinates of the new map
+    cell.get_r2d();
+
+    std::cout << "r_UV other map: " << r_UV << std::endl;
+
+    r_UV = r_UV_copy;
+    face_UV = face_UV_copy;
+    halfedge_UV = halfedge_UV_copy;
+    vertice_UV = vertice_UV_copy;
+    h_v_mapping = h_v_mapping_copy;
 }
 
 
-std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> VirtualMesh::find_furthest_vertice_map(int target_vertex) {
+std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXi, Eigen::MatrixXd, Eigen::MatrixXd, std::string> VirtualMesh::find_furthest_vertice_map(int target_vertex) {
     // Get all the availabe 2D maps
     std::vector<int> vertices_2DTissue_map_keys;
     for (auto const& [key, val] : vertices_2DTissue_map) {
@@ -102,6 +159,7 @@ std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::Matrix
 
     Eigen::MatrixXd halfedges_uv;
     std::vector<int64_t> h_v_mapping;
+    Eigen::MatrixXi face_UV;
     Eigen::MatrixXd vertices_UV;
     Eigen::MatrixXd vertices_3D;
     std::string mesh_file_path;
@@ -111,12 +169,13 @@ std::tuple<Eigen::MatrixXd, std::vector<int64_t>, Eigen::MatrixXd, Eigen::Matrix
         // Load the mesh
         halfedges_uv = it->second.mesh;
         h_v_mapping = it->second.h_v_mapping;
+        face_UV = it->second.face_UV;
         vertices_UV = it->second.vertices_UV;
         vertices_3D = it->second.vertices_3D;
         mesh_file_path = it->second.mesh_file_path;
     }
 
-    return std::tuple(halfedges_uv, h_v_mapping, vertices_UV, vertices_3D, mesh_file_path);
+    return std::tuple(halfedges_uv, h_v_mapping, face_UV, vertices_UV, vertices_3D, mesh_file_path);
 }
 
 

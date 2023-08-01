@@ -64,7 +64,7 @@ _2DTissue::_2DTissue(
     finished(false),
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
-    virtual_mesh(distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(geometry_ptr), std::move(validation_ptr))
+    virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(geometry_ptr), std::move(validation_ptr))
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
@@ -93,12 +93,10 @@ _2DTissue::_2DTissue(
     loadMeshVertices(mesh_UV_path, halfedge_UV);
     loadMeshFaces(mesh_UV_path, face_UV);
 
-    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path};
+    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, face_UV, vertice_UV, vertice_3D, mesh_UV_path};
 
     // Generate virtual meshes
     virtual_mesh.generate_virtual_mesh();
-    int target_vertex = 43;
-    virtual_mesh.simulate_on_virtual_mesh(target_vertex);
 
     // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
@@ -202,6 +200,9 @@ void _2DTissue::start(){
 
     // Map the 2D coordinates to their 3D vertices counterparts
     std::tie(r_3D, vertices_3D_active) = cell.get_r3d();
+
+    int target_vertex = 43;
+    virtual_mesh.simulate_on_virtual_mesh(target_vertex);
 }
 
 
