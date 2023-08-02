@@ -273,6 +273,20 @@ void _2DTissue::perform_particle_simulation(){
     std::set<int> inside_UV_id = get_inside_UV_id();
     update_if_valid(inside_UV_id);
 
+    std::vector<int> invalid_ids;
+    for (int i = 0; i < particle_change.size(); ++i) {
+        if (!particle_change[i].valid) {
+            invalid_ids.push_back(i);
+        }
+    }
+
+    for (int invalid_id : invalid_ids) {
+        perform_particle_simulation();
+        if (validation_ptr->are_all_valid(particle_change)) {
+            break;
+        }
+    }
+
     // Error checking
     validation_ptr->error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
     validation_ptr->error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
@@ -280,9 +294,6 @@ void _2DTissue::perform_particle_simulation(){
 
     // Dye the particles based on their distance
     count_particle_neighbors();
-
-    // The new UV coordinates are the old ones for the next step
-    r_UV_old = r_UV;
 
     // Calculate the order parameter
     linear_algebra_ptr->calculate_order_parameter(v_order, r_UV, r_dot, current_step);
@@ -307,7 +318,8 @@ void _2DTissue::save_our_data() {
 
 
 System _2DTissue::update(){
-    // The new is the new old
+    // The new coordinates are the old ones for the next step
+    r_UV_old = r_UV;
     r_3D_old = r_3D;
 
     auto inside_UV_id = get_inside_UV_id();
