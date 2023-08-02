@@ -90,9 +90,10 @@ public:
 
     void generate_virtual_mesh();
     void prepare_virtual_mesh(int old_id);
-    void init_north_pole();
+    Eigen::Vector2d init_north_pole();
     void load_UV_map(int target_vertex);
     Eigen::VectorXd get_relative_orientation();
+    void assign_particle_orientation(Eigen::VectorXd n_relative, Eigen::Vector2d northPole_virtual_test);
 
 private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
@@ -123,6 +124,5 @@ private:
     void get_invalid_particle();
     void change_UV_map(int target_vertex);
     void assign_particle_position();
-    void assign_particle_orientation(Eigen::VectorXd n_relative);
     std::vector<int> get_3D_splay_vertices();
 };

@@ -46,7 +46,7 @@ VirtualMesh::VirtualMesh(
 {
 }
 
-void VirtualMesh::init_north_pole(){
+Eigen::Vector2d VirtualMesh::init_north_pole(){
     northPole_3D.resize(1, 3);
     northPole_3D << 1.7466, -0.220152, -2.40228;
     // Get the old 3D coordinates
@@ -60,6 +60,8 @@ void VirtualMesh::init_north_pole(){
 
     northPole = new_r_UV.row(new_r_UV.rows() - 1);  // The north pole (= v1 of the basic UV mesh)
     r_3D.conservativeResize(r_3D.rows() - 1, 3);
+
+    return northPole;
 }
 
 std::vector<int> VirtualMesh::get_3D_splay_vertices(){
@@ -136,7 +138,7 @@ void VirtualMesh::prepare_virtual_mesh(int old_id) {
 
     // Add the particles to the new map
     assign_particle_position();
-    assign_particle_orientation(n_relative);
+    assign_particle_orientation(n_relative, northPole_virtual);
 }
 
 
@@ -185,8 +187,8 @@ void VirtualMesh::assign_particle_position(){
 }
 
 
-void VirtualMesh::assign_particle_orientation(Eigen::VectorXd n_relative){
-    n = compass.assignOrientation(r_UV, n_relative, northPole_virtual);
+void VirtualMesh::assign_particle_orientation(Eigen::VectorXd n_relative, Eigen::Vector2d northPole_virtual_test){
+    n = compass.assignOrientation(r_UV, n_relative, northPole_virtual_test);
 }
 
 

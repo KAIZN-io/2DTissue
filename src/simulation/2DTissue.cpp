@@ -98,7 +98,7 @@ _2DTissue::_2DTissue(
     vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, face_UV, vertice_UV, vertice_3D, mesh_UV_path};
 
     // Generate virtual meshes
-    virtual_mesh.init_north_pole();
+    original_pole = virtual_mesh.init_north_pole();
     virtual_mesh.generate_virtual_mesh();
 
     // Initialize the Vertex Struct
@@ -230,6 +230,7 @@ void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
             VertexData& vd = particle_change[i];
 
             vd.next_particle_3D = r_3D.row(i);
+            // vd.next_n_UV_relative = n_relative[i];  // TODO: Fix this
             vd.next_n_UV_relative = n[i];
             vd.valid = true;
         }
@@ -298,17 +299,16 @@ void _2DTissue::perform_particle_simulation(){
         // Get the 3D coordinates from "particle_change"
         for (size_t i = 0; i < particle_change.size(); ++i) {
             r_3D.row(i) = particle_change[i].next_particle_3D;
-            n_relative[i] = particle_change[i].next_n_UV_relative;
+            // n_relative[i] = particle_change[i].next_n_UV_relative;
         }
 
         // TODO: Get the 2D coordinates and "n" from the 3D vertices coordinates
-
+        r_UV = cell.get_r2d();
+        // virtual_mesh.assign_particle_orientation(n_relative, original_pole);
     }
 
     // Error checking
     validation_ptr->error_invalid_3D_values(particle_change);  // 1. Check if the 3D coordinates are valid
-
-
     validation_ptr->error_lost_particles(r_UV, particle_count);  // 2. Check if we lost particles
     validation_ptr->error_invalid_values(r_UV);  // 3. Check if there are invalid values like NaN or Inf in the output
 
