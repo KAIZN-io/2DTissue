@@ -132,7 +132,8 @@ void VirtualMesh::prepare_virtual_mesh(int old_id) {
 
     // Add the particles to the new map
     assign_particle_position();
-    assign_particle_orientation();
+    auto n_relative = get_relative_orientation();
+    assign_particle_orientation(n_relative);
 }
 
 
@@ -149,15 +150,22 @@ void VirtualMesh::assign_particle_position(){
 }
 
 
-void VirtualMesh::assign_particle_orientation(){
+Eigen::VectorXd VirtualMesh::get_relative_orientation(){
     // Get the UV coordinates of the north pole
-    Eigen::Vector2d northPole_virtual = r_UV.row(r_UV.rows() - 1);  // The north pole (= v1 of the UV mesh)
+    northPole_virtual = r_UV.row(r_UV.rows() - 1);  // The north pole (= v1 of the UV mesh)
 
     // Remove the north pole from the coordinates
     r_UV.conservativeResize(r_UV.rows() - 1, 3);
 
     Compass compass(northPole, northPole_virtual);
     Eigen::VectorXd n_relative = compass.calculateRelativeAngle(r_UV, n);
+
+    return n_relative;
+}
+
+
+void VirtualMesh::assign_particle_orientation(Eigen::VectorXd n_relative){
+    Compass compass(northPole, northPole_virtual);
     n = compass.assignOrientation(r_UV, n_relative);
 }
 
