@@ -295,6 +295,12 @@ void _2DTissue::perform_particle_simulation(){
         // Restore the original UV mesh
         virtual_mesh.load_UV_map(0);
 
+        // Get the 3D coordinates from "particle_change"
+        for (size_t i = 0; i < particle_change.size(); ++i) {
+            r_3D.row(i) = particle_change[i].next_particle_3D;
+            n_relative[i] = particle_change[i].next_n_UV_relative;
+        }
+
         // TODO: Get the 2D coordinates and "n" from the 3D vertices coordinates
 
     }
