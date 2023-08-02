@@ -230,7 +230,7 @@ void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
             VertexData& vd = particle_change[i];
 
             vd.next_particle_3D = r_3D.row(i);
-            // vd.next_n_UV_relative = n_relative[i];  // TODO: Fix this
+            vd.next_n_UV_relative = n_relative[i];
             vd.next_n_UV_relative = n[i];
             vd.valid = true;
         }
@@ -274,6 +274,8 @@ void _2DTissue::perform_particle_simulation(){
     vertices_3D_active = new_vertices_3D_active;
     r_3D = new_r_3D;
 
+    n_relative = virtual_mesh.get_relative_orientation();
+    std::cout << "r_UV: " << r_UV << std::endl;
     // Update the particle 3D position in our control data structure
     std::set<int> inside_UV_id = get_inside_UV_id();
     update_if_valid(inside_UV_id);
@@ -344,6 +346,7 @@ System _2DTissue::update(){
 
     // Get the relative orientation of the particles
     n_relative_old = virtual_mesh.get_relative_orientation();
+    n_relative = n_relative_old;
 
     auto inside_UV_id = get_inside_UV_id();
     set_new_particle_data(inside_UV_id);
