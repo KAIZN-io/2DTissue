@@ -230,7 +230,6 @@ void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
 
             vd.next_particle_3D = r_3D.row(i);
             vd.next_n_UV_relative = n_relative[i];
-            vd.next_n_UV_relative = n[i];
             vd.valid = true;
         }
     }
@@ -302,7 +301,10 @@ void _2DTissue::perform_particle_simulation(){
         }
 
         r_UV = cell.get_r2d();
-        // virtual_mesh.assign_particle_orientation(n_relative, original_pole);
+
+        std::cout << "n before: " << n << std::endl;
+        virtual_mesh.assign_particle_orientation(n_relative, original_pole);
+        std::cout << "n after: " << n << std::endl;
     }
 
     // Error checking
