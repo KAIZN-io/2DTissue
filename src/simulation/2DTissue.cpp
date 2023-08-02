@@ -224,7 +224,6 @@ void _2DTissue::count_particle_neighbors() {
 
 void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
     // Find out which particles are inside the mesh
-
     for (int i : inside_UV_id) {
         if (!particle_change[i].valid) {
             VertexData& vd = particle_change[i];
@@ -248,9 +247,8 @@ void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
         vd.next_n_UV_relative = n_relative_old[i];
         vd.valid = false;
     }
-
     // Update the vertex data based on inside_UV_id
-    update_if_valid(inside_UV_id);
+    // update_if_valid(inside_UV_id);
 }
 
 
@@ -259,7 +257,6 @@ void _2DTissue::perform_particle_simulation(){
     simulator.simulate_flight();
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
-    // ? is it because of the seam edge cut line?
     if (!bool_exact_simulation){
         if (mesh_UV_name == "sphere_uv"){
             simulator.opposite_seam_edges_square_border();
@@ -275,7 +272,7 @@ void _2DTissue::perform_particle_simulation(){
     r_3D = new_r_3D;
 
     n_relative = virtual_mesh.get_relative_orientation();
-    std::cout << "r_UV: " << r_UV << std::endl;
+
     // Update the particle 3D position in our control data structure
     std::set<int> inside_UV_id = get_inside_UV_id();
     update_if_valid(inside_UV_id);
@@ -301,10 +298,9 @@ void _2DTissue::perform_particle_simulation(){
         // Get the 3D coordinates from "particle_change"
         for (size_t i = 0; i < particle_change.size(); ++i) {
             r_3D.row(i) = particle_change[i].next_particle_3D;
-            // n_relative[i] = particle_change[i].next_n_UV_relative;
+            n_relative[i] = particle_change[i].next_n_UV_relative;
         }
 
-        // TODO: Get the 2D coordinates and "n" from the 3D vertices coordinates
         r_UV = cell.get_r2d();
         // virtual_mesh.assign_particle_orientation(n_relative, original_pole);
     }
