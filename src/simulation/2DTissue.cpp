@@ -206,9 +206,6 @@ void _2DTissue::start(){
 
     // Map the 2D coordinates to their 3D vertices counterparts
     std::tie(r_3D, vertices_3D_active) = cell.get_r3d();
-
-    int target_vertex = 43;
-    virtual_mesh.simulate_on_virtual_mesh(target_vertex);
 }
 
 
@@ -286,11 +283,15 @@ void _2DTissue::perform_particle_simulation(){
         }
 
         for (int invalid_id : invalid_ids) {
+
+            virtual_mesh.prepare_virtual_mesh(invalid_id);
             perform_particle_simulation();
             if (validation_ptr->are_all_valid(particle_change)) {
                 break;
             }
         }
+        // Restore the original UV mesh
+        virtual_mesh.load_UV_map(0);
     }
 
     // Error checking

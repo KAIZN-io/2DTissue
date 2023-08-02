@@ -90,8 +90,9 @@ public:
     );
 
     void generate_virtual_mesh();
-    void simulate_on_virtual_mesh(int old_id);
+    void prepare_virtual_mesh(int old_id);
     void init_north_pole();
+    void load_UV_map(int target_vertex);
 
 private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
@@ -118,7 +119,7 @@ private:
     Cell cell;
 
     void get_invalid_particle();
-    std::string change_UV_map(int target_vertex);
+    void change_UV_map(int target_vertex);
     void assign_particle_position();
     void assign_particle_orientation();
     std::vector<int> get_3D_splay_vertices();

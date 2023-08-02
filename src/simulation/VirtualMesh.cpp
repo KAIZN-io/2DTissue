@@ -119,15 +119,7 @@ void VirtualMesh::generate_virtual_mesh()
 }
 
 
-void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
-
-    auto r_UV_copy = r_UV;
-    auto n_copy = n;
-    auto face_UV_copy = face_UV;
-    auto halfedge_UV_copy = halfedge_UV;
-    auto vertice_UV_copy = vertice_UV;
-    auto h_v_mapping_copy = h_v_mapping;
-
+void VirtualMesh::prepare_virtual_mesh(int old_id) {
     // get the old UV coordinates
     r_UV = r_UV_old;
 
@@ -136,18 +128,11 @@ void VirtualMesh::simulate_on_virtual_mesh(int old_id) {
     r_3D = new_r_3D;
 
     // Find the next UV map
-    auto mesh_file_path = change_UV_map(old_id);
+    change_UV_map(old_id);
 
     // Add the particles to the new map
     assign_particle_position();
     assign_particle_orientation();
-
-    r_UV = r_UV_copy;
-    n = n_copy;
-    face_UV = face_UV_copy;
-    halfedge_UV = halfedge_UV_copy;
-    vertice_UV = vertice_UV_copy;
-    h_v_mapping = h_v_mapping_copy;
 }
 
 
@@ -177,7 +162,21 @@ void VirtualMesh::assign_particle_orientation(){
 }
 
 
-std::string VirtualMesh::change_UV_map(int target_vertex) {
+void VirtualMesh::load_UV_map(int target_vertex){
+    std::string mesh_file_path;
+
+    auto it = vertices_2DTissue_map.find(target_vertex);
+    if (it != vertices_2DTissue_map.end()) {
+        // Load the mesh
+        halfedge_UV = it->second.mesh;
+        h_v_mapping = it->second.h_v_mapping;
+        face_UV = it->second.face_UV;
+        vertice_UV = it->second.vertices_UV;
+    }
+}
+
+
+void VirtualMesh::change_UV_map(int target_vertex) {
     // Get all the availabe 2D maps
     std::vector<int> vertices_2DTissue_map_keys;
     for (auto const& [key, val] : vertices_2DTissue_map) {
@@ -194,20 +193,7 @@ std::string VirtualMesh::change_UV_map(int target_vertex) {
             furthest_vertex = vertex;
         }
     }
-
-    std::string mesh_file_path;
-
-    auto it = vertices_2DTissue_map.find(furthest_vertex);
-    if (it != vertices_2DTissue_map.end()) {
-        // Load the mesh
-        halfedge_UV = it->second.mesh;
-        h_v_mapping = it->second.h_v_mapping;
-        face_UV = it->second.face_UV;
-        vertice_UV = it->second.vertices_UV;
-        mesh_file_path = it->second.mesh_file_path;
-    }
-
-    return mesh_file_path;
+    load_UV_map(furthest_vertex);
 }
 
 
