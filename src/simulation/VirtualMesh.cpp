@@ -41,7 +41,8 @@ VirtualMesh::VirtualMesh(
       vertices_2DTissue_map(vertices_2DTissue_map),
       geometry_ptr(std::move(geometry_ptr)),
       validation_ptr(std::move(validation_ptr)),
-      cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n)
+      cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
+      compass(northPole)
 {
 }
 
@@ -127,60 +128,20 @@ void VirtualMesh::prepare_virtual_mesh(int old_id) {
     auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
     r_3D = new_r_3D;
 
+    // Get the relative orientation
+    auto n_relative = get_relative_orientation();
+
     // Find the next UV map
     change_UV_map(old_id);
 
     // Add the particles to the new map
     assign_particle_position();
-    auto n_relative = get_relative_orientation();
     assign_particle_orientation(n_relative);
 }
 
 
-void VirtualMesh::assign_particle_position(){
-    // Add the north pole to the 3D coordinates
-    r_3D.conservativeResize(r_3D.rows() + 1, 3);
-    r_3D.row(r_3D.rows() - 1) = northPole_3D;
-
-    // Map it to the 2D coordinates of the new map
-    r_UV = cell.get_r2d();
-
-    // Remove the north pole from the coordinates
-    r_3D.conservativeResize(r_3D.rows() - 1, 3);
-}
-
-
 Eigen::VectorXd VirtualMesh::get_relative_orientation(){
-    // Get the UV coordinates of the north pole
-    northPole_virtual = r_UV.row(r_UV.rows() - 1);  // The north pole (= v1 of the UV mesh)
-
-    // Remove the north pole from the coordinates
-    r_UV.conservativeResize(r_UV.rows() - 1, 3);
-
-    Compass compass(northPole, northPole_virtual);
-    Eigen::VectorXd n_relative = compass.calculateRelativeAngle(r_UV, n);
-
-    return n_relative;
-}
-
-
-void VirtualMesh::assign_particle_orientation(Eigen::VectorXd n_relative){
-    Compass compass(northPole, northPole_virtual);
-    n = compass.assignOrientation(r_UV, n_relative);
-}
-
-
-void VirtualMesh::load_UV_map(int target_vertex){
-    std::string mesh_file_path;
-
-    auto it = vertices_2DTissue_map.find(target_vertex);
-    if (it != vertices_2DTissue_map.end()) {
-        // Load the mesh
-        halfedge_UV = it->second.mesh;
-        h_v_mapping = it->second.h_v_mapping;
-        face_UV = it->second.face_UV;
-        vertice_UV = it->second.vertices_UV;
-    }
+    return compass.calculateRelativeAngle(r_UV, n);
 }
 
 
@@ -204,6 +165,43 @@ void VirtualMesh::change_UV_map(int target_vertex) {
     load_UV_map(furthest_vertex);
 }
 
+
+void VirtualMesh::assign_particle_position(){
+    // Add the north pole to the 3D coordinates
+    r_3D.conservativeResize(r_3D.rows() + 1, 3);
+    r_3D.row(r_3D.rows() - 1) = northPole_3D;
+
+    // Map it to the 2D coordinates of the new map
+    r_UV = cell.get_r2d();
+
+    // Remove the north pole from the coordinates
+    r_3D.conservativeResize(r_3D.rows() - 1, 3);
+
+    // Get the UV coordinates of the north pole
+    northPole_virtual = r_UV.row(r_UV.rows() - 1);  // The north pole (= v1 of the UV mesh)
+
+    // Remove the North Pole from the coordinates
+    r_UV.conservativeResize(r_UV.rows() - 1, 3);
+}
+
+
+void VirtualMesh::assign_particle_orientation(Eigen::VectorXd n_relative){
+    n = compass.assignOrientation(r_UV, n_relative, northPole_virtual);
+}
+
+
+void VirtualMesh::load_UV_map(int target_vertex){
+    std::string mesh_file_path;
+
+    auto it = vertices_2DTissue_map.find(target_vertex);
+    if (it != vertices_2DTissue_map.end()) {
+        // Load the mesh
+        halfedge_UV = it->second.mesh;
+        h_v_mapping = it->second.h_v_mapping;
+        face_UV = it->second.face_UV;
+        vertice_UV = it->second.vertices_UV;
+    }
+}
 
 
 

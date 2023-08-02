@@ -21,27 +21,27 @@ using Matrix3Xi = Eigen::Matrix<int, Eigen::Dynamic, 3>;
 
 class Compass {
 public:
-    Compass(const Eigen::Vector2d& pole1, const Eigen::Vector2d& pole2)
-        : pole1_(pole1), pole2_(pole2) {}
+    Compass(const Eigen::Vector2d& original_pole)
+        : original_pole_(original_pole) {}
 
     Eigen::VectorXd calculateRelativeAngle(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::VectorXd& orientations) const {
         Eigen::VectorXd relativeAngles(positions.rows());
 
         for(int i = 0; i < positions.rows(); i++) {
             Eigen::Vector2d position = positions.row(i);
-            double angle = vectorAngle(position, pole1_); // use pole1
+            double angle = vectorAngle(position, original_pole_); // use original_pole
             relativeAngles(i) = relativeAngle(orientations(i), angle);
         }
 
         return relativeAngles;
     }
 
-    Eigen::VectorXd assignOrientation(const Eigen::Matrix<double, Eigen::Dynamic, 2>& newPositions, const Eigen::VectorXd& relativeAngles) const {
+    Eigen::VectorXd assignOrientation(const Eigen::Matrix<double, Eigen::Dynamic, 2>& newPositions, const Eigen::VectorXd& relativeAngles, Eigen::Vector2d virtual_pole_) const {
         Eigen::VectorXd newOrientations(newPositions.rows());
 
         for(int i = 0; i < newPositions.rows(); i++) {
             Eigen::Vector2d newPosition = newPositions.row(i);
-            double angle = vectorAngle(newPosition, pole2_); // use pole2
+            double angle = vectorAngle(newPosition, virtual_pole_); // use virtual_pole
             newOrientations(i) = fmod(angle - relativeAngles(i) + 360, 360);
         }
 
@@ -49,8 +49,7 @@ public:
     }
 
 private:
-    Eigen::Vector2d pole1_;
-    Eigen::Vector2d pole2_;
+    Eigen::Vector2d original_pole_;
 
     double vectorAngle(const Eigen::Vector2d& position, const Eigen::Vector2d& pole) const {
         double dx = position.x() - pole.x();
@@ -119,6 +118,7 @@ private:
     Eigen::Vector2d northPole_virtual;
     Eigen::MatrixXd halfedge_UV_virtual;
     Cell cell;
+    Compass compass;
 
     void get_invalid_particle();
     void change_UV_map(int target_vertex);

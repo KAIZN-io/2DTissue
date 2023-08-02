@@ -230,6 +230,7 @@ void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
             VertexData& vd = particle_change[i];
 
             vd.next_particle_3D = r_3D.row(i);
+            vd.next_n_UV_relative = n[i];
             vd.valid = true;
         }
     }
@@ -242,6 +243,8 @@ void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
         VertexData& vd = particle_change[i];
         vd.old_particle_3D = r_3D_old.row(i);
         vd.next_particle_3D = r_3D_old.row(i);
+        vd.old_n_UV_relative = n_relative_old[i];
+        vd.next_n_UV_relative = n_relative_old[i];
         vd.valid = false;
     }
 
@@ -283,7 +286,6 @@ void _2DTissue::perform_particle_simulation(){
         }
 
         for (int invalid_id : invalid_ids) {
-
             virtual_mesh.prepare_virtual_mesh(invalid_id);
             perform_particle_simulation();
             if (validation_ptr->are_all_valid(particle_change)) {
@@ -292,12 +294,14 @@ void _2DTissue::perform_particle_simulation(){
         }
         // Restore the original UV mesh
         virtual_mesh.load_UV_map(0);
+
+        // TODO: Get the 2D coordinates and "n" from the 3D vertices coordinates
+
     }
 
     // Error checking
     validation_ptr->error_invalid_3D_values(particle_change);  // 1. Check if the 3D coordinates are valid
 
-    // TODO: Get the 2D coordinates and "n" from the 3D vertices coordinates
 
     validation_ptr->error_lost_particles(r_UV, particle_count);  // 2. Check if we lost particles
     validation_ptr->error_invalid_values(r_UV);  // 3. Check if there are invalid values like NaN or Inf in the output
@@ -331,6 +335,9 @@ System _2DTissue::update(){
     // The new coordinates are the old ones for the next step
     r_UV_old = r_UV;
     r_3D_old = r_3D;
+
+    // Get the relative orientation of the particles
+    n_relative_old = virtual_mesh.get_relative_orientation();
 
     auto inside_UV_id = get_inside_UV_id();
     set_new_particle_data(inside_UV_id);
