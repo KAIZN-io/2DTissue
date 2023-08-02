@@ -31,6 +31,7 @@
 _2DTissue::_2DTissue(
     bool save_data,
     bool particle_innenleben,
+    bool bool_exact_simulation,
     std::string mesh_path,
     int particle_count,
     int step_count,
@@ -47,6 +48,7 @@ _2DTissue::_2DTissue(
 ) :
     save_data(save_data),
     particle_innenleben(particle_innenleben),
+    bool_exact_simulation(bool_exact_simulation),
     mesh_path(mesh_path),
     particle_count(particle_count),
     step_count(step_count),
@@ -257,11 +259,13 @@ void _2DTissue::perform_particle_simulation(){
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     // ? is it because of the seam edge cut line?
-    if (mesh_UV_name == "sphere_uv"){
-        simulator.opposite_seam_edges_square_border();
-    }
-    else {
-        simulator.diagonal_seam_edges_square_border();
+    if (!bool_exact_simulation){
+        if (mesh_UV_name == "sphere_uv"){
+            simulator.opposite_seam_edges_square_border();
+        }
+        else {
+            simulator.diagonal_seam_edges_square_border();
+        }
     }
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
@@ -273,24 +277,29 @@ void _2DTissue::perform_particle_simulation(){
     std::set<int> inside_UV_id = get_inside_UV_id();
     update_if_valid(inside_UV_id);
 
-    std::vector<int> invalid_ids;
-    for (int i = 0; i < particle_change.size(); ++i) {
-        if (!particle_change[i].valid) {
-            invalid_ids.push_back(i);
+    if (bool_exact_simulation){
+        std::vector<int> invalid_ids;
+        for (int i = 0; i < particle_change.size(); ++i) {
+            if (!particle_change[i].valid) {
+                invalid_ids.push_back(i);
+            }
         }
-    }
 
-    for (int invalid_id : invalid_ids) {
-        perform_particle_simulation();
-        if (validation_ptr->are_all_valid(particle_change)) {
-            break;
+        for (int invalid_id : invalid_ids) {
+            perform_particle_simulation();
+            if (validation_ptr->are_all_valid(particle_change)) {
+                break;
+            }
         }
     }
 
     // Error checking
-    validation_ptr->error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
-    validation_ptr->error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
-    validation_ptr->error_invalid_3D_values(particle_change);  // 3. Check if the 3D coordinates are valid
+    validation_ptr->error_invalid_3D_values(particle_change);  // 1. Check if the 3D coordinates are valid
+
+    // TODO: Get the 2D coordinates and "n" from the 3D vertices coordinates
+
+    validation_ptr->error_lost_particles(r_UV, particle_count);  // 2. Check if we lost particles
+    validation_ptr->error_invalid_values(r_UV);  // 3. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
     count_particle_neighbors();

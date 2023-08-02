@@ -37,6 +37,7 @@ private:
     // Include here your class variables (the ones used in start and update methods)
     bool save_data;
     bool particle_innenleben;
+    bool bool_exact_simulation;
     std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
     int particle_count;
     std::string mesh_path;
@@ -143,6 +144,7 @@ public:
     _2DTissue(
         bool save_data,
         bool particle_innenleben,
+        bool bool_exact_simulation,
         std::string mesh_path,
         int particle_count,
         int step_count = 1,
