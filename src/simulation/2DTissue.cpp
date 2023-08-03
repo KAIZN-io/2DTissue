@@ -229,7 +229,7 @@ void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
             VertexData& vd = particle_change[i];
 
             vd.next_particle_3D = r_3D.row(i);
-            vd.next_n_UV_relative = n_relative[i];
+            vd.next_n_UV_relative = n_pole[i];
             vd.valid = true;
         }
     }
@@ -242,8 +242,8 @@ void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
         VertexData& vd = particle_change[i];
         vd.old_particle_3D = r_3D_old.row(i);
         vd.next_particle_3D = r_3D_old.row(i);
-        vd.old_n_UV_relative = n_relative_old[i];
-        vd.next_n_UV_relative = n_relative_old[i];
+        vd.old_n_UV_relative = n_pole_old[i];
+        vd.next_n_UV_relative = n_pole_old[i];
         vd.valid = false;
     }
     // Update the vertex data based on inside_UV_id
@@ -270,7 +270,7 @@ void _2DTissue::perform_particle_simulation(){
     vertices_3D_active = new_vertices_3D_active;
     r_3D = new_r_3D;
 
-    n_relative = virtual_mesh.get_relative_orientation();
+    n_pole = virtual_mesh.get_relative_orientation();
 
     // Update the particle 3D position in our control data structure
     std::set<int> inside_UV_id = get_inside_UV_id();
@@ -297,14 +297,13 @@ void _2DTissue::perform_particle_simulation(){
         // Get the 3D coordinates from "particle_change"
         for (size_t i = 0; i < particle_change.size(); ++i) {
             r_3D.row(i) = particle_change[i].next_particle_3D;
-            n_relative[i] = particle_change[i].next_n_UV_relative;
+            n_pole[i] = particle_change[i].next_n_UV_relative;
         }
 
+        // ! BUG: Fix the accurancy of storing float numbers OR/AND of the 2D coordinates calculation --> otherwise sometimes the particles wont move anymore because it got trapped 
         r_UV = cell.get_r2d();
-
-        std::cout << "n before: " << n << std::endl;
-        virtual_mesh.assign_particle_orientation(n_relative, original_pole);
-        std::cout << "n after: " << n << std::endl;
+        // ! Only assign particle orientation if a particle left the mesh -> otherwise we get a wrong orientation
+        // virtual_mesh.assign_particle_orientation(n_pole, original_pole);
     }
 
     // Error checking
@@ -343,8 +342,8 @@ System _2DTissue::update(){
     r_3D_old = r_3D;
 
     // Get the relative orientation of the particles
-    n_relative_old = virtual_mesh.get_relative_orientation();
-    n_relative = n_relative_old;
+    n_pole_old = virtual_mesh.get_relative_orientation();
+    n_pole = n_pole_old;
 
     auto inside_UV_id = get_inside_UV_id();
     set_new_particle_data(inside_UV_id);

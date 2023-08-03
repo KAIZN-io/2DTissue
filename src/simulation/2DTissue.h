@@ -68,8 +68,8 @@ private:
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
     Eigen::VectorXd n;
     Eigen::Vector2d original_pole;
-    Eigen::VectorXd n_relative;
-    Eigen::VectorXd n_relative_old;
+    Eigen::VectorXd n_pole;
+    Eigen::VectorXd n_pole_old;
     std::vector<int> particles_color;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;

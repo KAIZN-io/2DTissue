@@ -93,7 +93,7 @@ public:
     Eigen::Vector2d init_north_pole();
     void load_UV_map(int target_vertex);
     Eigen::VectorXd get_relative_orientation();
-    void assign_particle_orientation(Eigen::VectorXd n_relative, Eigen::Vector2d northPole_virtual_test);
+    void assign_particle_orientation(Eigen::VectorXd n_pole, Eigen::Vector2d northPole_virtual_test);
 
 private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
