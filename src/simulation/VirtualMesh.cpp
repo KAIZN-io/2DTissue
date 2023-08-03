@@ -142,6 +142,11 @@ void VirtualMesh::prepare_virtual_mesh(int old_id) {
 }
 
 
+double VirtualMesh::get_n_orientation(Eigen::Vector2d position_, Eigen::Vector2d northPole_, double n_pole_) {
+    return compass.calculate_n_orientation(position_, northPole_, n_pole_) ;
+}
+
+
 Eigen::VectorXd VirtualMesh::get_relative_orientation(){
     return compass.calculateRelativeAngle(r_UV, n);
 }

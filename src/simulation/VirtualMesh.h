@@ -36,6 +36,18 @@ public:
         return relativeAngles;
     }
 
+    double calculate_n_orientation(const Eigen::Vector2d& position, const Eigen::Vector2d& pole, double n_pole_) const {
+        std::cout << "position: " << position << std::endl;
+        std::cout << "pole: " << pole << std::endl;
+        std::cout << "n_pole_: " << n_pole_ << std::endl;
+
+        // Gete the angle between the vertical 0-degree line and the pole vector
+        double delta = angleBetweenVectors(position, pole);
+        std::cout << "delta: " << delta << std::endl;
+
+        return fmod(std::abs(delta - n_pole_) + 360, 360);
+    }
+
     Eigen::VectorXd assignOrientation(const Eigen::Matrix<double, Eigen::Dynamic, 2>& newPositions, const Eigen::VectorXd& relativeAngles, Eigen::Vector2d virtual_pole_) const {
         Eigen::VectorXd newOrientations(newPositions.rows());
 
@@ -63,6 +75,26 @@ private:
         double relative = vectorAngle - orientation;
         return fmod(relative + 360, 360);
     }
+
+    double angleBetweenVectors(const Eigen::Vector2d& position, const Eigen::Vector2d& pole) const {
+        Eigen::Vector2d vectorToPole = pole - position;
+        Eigen::Vector2d upVector(0, 1); // A vector pointing directly up
+
+        double dotProduct = vectorToPole.dot(upVector);
+        double magnitudeA = vectorToPole.norm();
+        double magnitudeB = upVector.norm();
+
+        double cosineAngle = dotProduct / (magnitudeA * magnitudeB);
+
+        // Clamp the value to the range [-1, 1] to handle potential numerical inaccuracies
+        cosineAngle = std::max(-1.0, std::min(1.0, cosineAngle));
+
+        double rad = acos(cosineAngle);
+        double deg = rad * (180 / M_PI);
+
+        return deg;
+    }
+
 };
 
 
@@ -94,6 +126,7 @@ public:
     void load_UV_map(int target_vertex);
     Eigen::VectorXd get_relative_orientation();
     void assign_particle_orientation(Eigen::VectorXd n_pole, Eigen::Vector2d northPole_virtual_test);
+    double get_n_orientation(Eigen::Vector2d position_, Eigen::Vector2d northPole_, double n_);
 
 private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
