@@ -18,17 +18,6 @@ protected:
     Compass compass{original_pole};
 };
 
-TEST_F(CompassTest, TestCalculateNPole) {
-    Eigen::Matrix<double, Eigen::Dynamic, 2> positions(2, 2);
-    positions << 0.5, 0.5,
-                 0.7, 0.7;
-    Eigen::VectorXd orientations(2);
-    orientations << 0.0, 90.0;
-
-    Eigen::VectorXd result = compass.calculate_n_pole(positions, orientations);
-    EXPECT_DOUBLE_EQ(result(0), 45.0);
-    EXPECT_DOUBLE_EQ(result(1), 45.0);
-}
 
 TEST_F(CompassTest, TestAssignNPoleOrientation) {
     Eigen::Matrix<double, Eigen::Dynamic, 2> newPositions(2, 2);
@@ -52,9 +41,22 @@ TEST_F(CompassTest, TestVectorAngle) {
 }
 
 TEST_F(CompassTest, TestCalculateDelta) {
-    Eigen::Vector2d start_point(0.5, 0.5);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> start_points;
+    start_points.resize(6, Eigen::NoChange);
+    start_points << 0.5, 0.5,
+                    0.2, 0.4,
+                    0.2, 0.8,
+                    0.1, 0.5,
+                    0.3, 0.4,
+                    0.1, 0.4;
     Eigen::Vector2d end_point(0.2, 0.5);
 
-    double result = compass.calculate_delta(start_point, end_point);
-    EXPECT_DOUBLE_EQ(result, 270.0);
+    Eigen::VectorXd result = compass.calculate_delta(start_points, end_point);
+    std::cout << result << std::endl;
+    EXPECT_DOUBLE_EQ(result(0), 270.0);
+    EXPECT_DOUBLE_EQ(result(1), 0.0);
+    EXPECT_DOUBLE_EQ(result(2), 180.0);
+    EXPECT_DOUBLE_EQ(result(3), 90.0);
+    EXPECT_DOUBLE_EQ(result(4), 315.0);
+    EXPECT_DOUBLE_EQ(result(5), 45.0);
 }

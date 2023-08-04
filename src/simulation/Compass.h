@@ -29,12 +29,17 @@ public:
         return n_pole_;
     }
 
-    double calculate_n(const Eigen::Vector2d& position, const Eigen::Vector2d& pole, double n_pole_) const {
+    Eigen::VectorXd calculate_n(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::Vector2d& pole, const Eigen::VectorXd& n_pole_) const {
+        Eigen::VectorXd n_values(positions.rows());
 
-        // Gete the angle between the vertical 0-degree line and the pole vector
-        double delta = calculate_delta(position, pole);
+        // Calculate the angle between the vertical 0-degree line and the pole vector for each position
+        Eigen::VectorXd deltas = calculate_delta(positions, pole);
 
-        return fmod(std::abs(delta - n_pole_) + 360, 360);
+        for(int i = 0; i < positions.rows(); i++) {
+            n_values(i) = fmod(std::abs(deltas(i) - n_pole_(i)) + 360, 360);
+        }
+
+        return n_values;
     }
 
     Eigen::VectorXd assign_n_pole_orientation(const Eigen::Matrix<double, Eigen::Dynamic, 2>& newPositions, const Eigen::VectorXd& n_pole_, Eigen::Vector2d virtual_pole_) const {
@@ -65,30 +70,37 @@ private:
         return fmod(relative + 360, 360);
     }
 
-    double calculate_delta(const Eigen::Vector2d& position, const Eigen::Vector2d& pole) const {
-        Eigen::Vector2d vectorToPole = pole - position;
+    Eigen::VectorXd calculate_delta(const Eigen::Matrix<double, Eigen::Dynamic, 2>& start_points, const Eigen::Vector2d& end_point) const {
+        Eigen::VectorXd angles(start_points.rows());
         Eigen::Vector2d upVector(0, 1); // A vector pointing directly up
 
-        double dotProduct = upVector.dot(vectorToPole);
-        double magnitudeA = vectorToPole.norm();
-        double magnitudeB = upVector.norm();
-        double cosineAngle = dotProduct / (magnitudeA * magnitudeB);
+        for(int i = 0; i < start_points.rows(); i++) {
+            Eigen::Vector2d position = start_points.row(i);
+            Eigen::Vector2d vectorToPole = end_point - position;
 
-        // Calculate the cross product to determine the sign of the angle
-        double crossProduct = upVector.x() * vectorToPole.y() - upVector.y() * vectorToPole.x();
+            double dotProduct = upVector.dot(vectorToPole);
+            double magnitudeA = vectorToPole.norm();
+            double magnitudeB = upVector.norm();
+            double cosineAngle = dotProduct / (magnitudeA * magnitudeB);
 
-        // Use atan2 to find the angle, convert to degrees
-        double angle_rad = std::atan2(crossProduct, cosineAngle);
-        double angle_deg = angle_rad * 180 / M_PI;
+            // Calculate the cross product to determine the sign of the angle
+            double crossProduct = upVector.x() * vectorToPole.y() - upVector.y() * vectorToPole.x();
 
-       // Since we want the clockwise angle, subtract the angle from 360 if it's positive
-        if (angle_deg > 0) {
-            angle_deg = 360 - angle_deg;
-        } else {
-            angle_deg = -angle_deg;
+            // Use atan2 to find the angle, convert to degrees
+            double angle_rad = std::atan2(crossProduct, cosineAngle);
+            double angle_deg = angle_rad * 180 / M_PI;
+
+            // Since we want the clockwise angle, subtract the angle from 360 if it's positive
+            if (angle_deg > 0) {
+                angle_deg = 360 - angle_deg;
+            } else {
+                angle_deg = -angle_deg;
+            }
+
+            angles(i) = angle_deg;
         }
 
-        return angle_deg;
+        return angles;
     }
 
 FRIEND_TEST(CompassTest, TestVectorAngle);

@@ -142,13 +142,13 @@ void VirtualMesh::prepare_virtual_mesh(int old_id) {
 }
 
 
-double VirtualMesh::get_n_orientation(Eigen::Vector2d position_, Eigen::Vector2d northPole_, double n_pole_) {
-    return compass.calculate_n_orientation(position_, northPole_, n_pole_) ;
+Eigen::VectorXd VirtualMesh::get_n_orientation(Eigen::Matrix<double, Eigen::Dynamic, 2> position_, Eigen::Vector2d northPole_, Eigen::VectorXd n_pole_) {
+    return compass.calculate_n(position_, northPole_, n_pole_) ;
 }
 
 
 Eigen::VectorXd VirtualMesh::get_relative_orientation(){
-    return compass.calculateRelativeAngle(r_UV, n);
+    return compass.calculate_n_pole(r_UV, n);
 }
 
 
@@ -193,7 +193,7 @@ void VirtualMesh::assign_particle_position(){
 
 
 void VirtualMesh::assign_particle_orientation(Eigen::VectorXd n_pole, Eigen::Vector2d northPole_virtual_test){
-    n = compass.assignOrientation(r_UV, n_pole, northPole_virtual_test);
+    n = compass.assign_n_pole_orientation(r_UV, n_pole, northPole_virtual_test);
 }
 
 
