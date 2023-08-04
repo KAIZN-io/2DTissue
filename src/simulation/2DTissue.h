@@ -29,7 +29,7 @@
 #include "Validation.h"
 #include "VirtualMesh.h"
 #include "Struct.h"
-
+#include "Compass.h"
 
 class _2DTissue
 {
@@ -89,6 +89,7 @@ private:
     Simulator simulator;
     Cell cell;
     VirtualMesh virtual_mesh;
+    Compass compass;
 
     // Differential Equation Simulation
     realtype reltol, abstol; // Tolerances

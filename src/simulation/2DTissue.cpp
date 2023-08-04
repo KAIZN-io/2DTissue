@@ -66,7 +66,8 @@ _2DTissue::_2DTissue(
     finished(false),
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
-    virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(geometry_ptr), std::move(validation_ptr))
+    virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(geometry_ptr), std::move(validation_ptr)),
+    compass(original_pole)
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
@@ -270,8 +271,8 @@ void _2DTissue::perform_particle_simulation(){
     vertices_3D_active = new_vertices_3D_active;
     r_3D = new_r_3D;
 
-    n_pole = virtual_mesh.get_relative_orientation();
-    std::cout << "n_pole: " << n_pole << std::endl;
+    n_pole = compass.calculate_n_pole(r_UV, n);
+
     // Update the particle 3D position in our control data structure
     std::set<int> inside_UV_id = get_inside_UV_id();
     update_if_valid(inside_UV_id);
@@ -302,11 +303,8 @@ void _2DTissue::perform_particle_simulation(){
 
         // ! BUG: Fix the accurancy of storing float numbers OR/AND of the 2D coordinates calculation --> otherwise sometimes the particles wont move anymore because it got trapped 
         r_UV = cell.get_r2d();
-        std::cout << "normal n: " << n << std::endl;
-        auto normal_n = virtual_mesh.get_n_orientation(r_UV, original_pole, n_pole);
-        std::cout << "check normal n: " << normal_n << std::endl;
-        // ! Only assign particle orientation if a particle left the mesh -> otherwise we get a wrong orientation
-        // virtual_mesh.assign_particle_orientation(n_pole, original_pole);
+
+        virtual_mesh.assign_particle_orientation(original_pole, n_pole);
     }
 
     // Error checking

@@ -19,12 +19,15 @@ protected:
 };
 
 TEST_F(CompassTest, TestCalculateNPole) {
-    Eigen::Matrix<double, Eigen::Dynamic, 2> positions(3, 2);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> positions(6, 2);
     positions << 0.3021, 0.0347795,
                  0.3, 0.4,
-                 0.1021, 0.3;
-    Eigen::VectorXd orientations(3);
-    orientations << 0.0, 90.0, 270.0;
+                 0.1021, 0.3,
+                 0.440034, 0.400082,
+                 0.293719, 0.423743,
+                  0.67198, 0.531419;
+    Eigen::VectorXd orientations(6);
+    orientations << 0.0, 90.0, 270.0, 273, 321, 339;
 
     Eigen::VectorXd result = compass.calculate_n_pole(positions, orientations);
 
@@ -32,6 +35,9 @@ TEST_F(CompassTest, TestCalculateNPole) {
     EXPECT_DOUBLE_EQ(result(0), 270.0);
     EXPECT_NEAR(result(1), 120, tolerance);
     EXPECT_DOUBLE_EQ(result(2), 270);
+    EXPECT_NEAR(result(3), 309, tolerance);
+    EXPECT_NEAR(result(4), 245, tolerance);
+    EXPECT_NEAR(result(5), 250, tolerance);
 }
 
 TEST_F(CompassTest, TestCalculateDelta) {
@@ -72,3 +78,15 @@ TEST_F(CompassTest, TestCalculateN) {
     EXPECT_NEAR(result(2), 270.0, tolerance);
     EXPECT_NEAR(result(3), 133.1, tolerance);
 }
+
+TEST_F(CompassTest, TestCalculateN_Base) {
+    Eigen::Matrix<double, Eigen::Dynamic, 2> positions(1, 2);
+    positions << 0.67198, 0.531419;
+    Eigen::VectorXd n_pole(1);
+    n_pole << 250;
+
+    Eigen::VectorXd result = compass.assign_n(positions, original_pole, n_pole);
+
+    double tolerance = 3;
+    EXPECT_NEAR(result(0), 339, tolerance);
+} 
