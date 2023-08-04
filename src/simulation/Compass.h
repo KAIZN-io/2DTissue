@@ -49,7 +49,7 @@ public:
         Eigen::VectorXd deltas = calculate_delta(positions, pole);
 
         for(int i = 0; i < positions.rows(); i++) {
-            n_values(i) = fmod(std::abs(deltas(i) - n_pole_(i)) + 360, 360);
+            n_values(i) = fmod(deltas(i) - n_pole_(i) + 360, 360);
         }
 
         return n_values;
@@ -96,14 +96,4 @@ private:
         double deg = rad * (180 / M_PI);
         return fmod(deg + 360, 360);
     }
-
-    double relativeAngle(double orientation, double vectorAngle) const {
-        double relative = vectorAngle - orientation;
-        return fmod(relative + 360, 360);
-    }
-
-
-FRIEND_TEST(CompassTest, TestVectorAngle);
-FRIEND_TEST(CompassTest, TestCalculateDelta);
-
 };
