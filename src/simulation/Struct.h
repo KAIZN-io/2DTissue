@@ -42,7 +42,9 @@ struct Mesh_UV_Struct {
 struct VertexData {
     Eigen::Vector3d old_particle_3D;
     Eigen::Vector3d next_particle_3D;
-    double old_n_UV_relative;
-    double next_n_UV_relative;
+    Eigen::Vector2d original_r_UV;
+    double old_n_pole;
+    double next_n_pole;
+    bool left_original_mesh;
     bool valid;  // if r_UV inside mesh
 };

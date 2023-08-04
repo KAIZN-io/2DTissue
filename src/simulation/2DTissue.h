@@ -106,6 +106,7 @@ private:
     double startTime;
     double endTime;
     int numberOfPoints;
+    bool mark_outside;
 
     void perform_particle_simulation();
     void save_our_data();
@@ -114,6 +115,7 @@ private:
     void perform_sbml_simulation();
     void set_new_particle_data(const std::set<int> inside_UV_id);
     void update_if_valid(std::set<int> inside_UV_id);
+    void mark_outside_original(std::set<int> outside_UV_id, std::set<int> inside_UV_id);
 
     std::set<int> get_inside_UV_id() const {
         std::set<int> inside_UV_id;
