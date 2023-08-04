@@ -69,21 +69,29 @@ private:
         Eigen::Vector2d vectorToPole = pole - position;
         Eigen::Vector2d upVector(0, 1); // A vector pointing directly up
 
-        double dotProduct = vectorToPole.dot(upVector);
+        double dotProduct = upVector.dot(vectorToPole);
         double magnitudeA = vectorToPole.norm();
         double magnitudeB = upVector.norm();
-
         double cosineAngle = dotProduct / (magnitudeA * magnitudeB);
 
-        // Clamp the value to the range [-1, 1] to handle potential numerical inaccuracies
-        cosineAngle = std::max(-1.0, std::min(1.0, cosineAngle));
+        // Calculate the cross product to determine the sign of the angle
+        double crossProduct = upVector.x() * vectorToPole.y() - upVector.y() * vectorToPole.x();
 
-        double rad = acos(cosineAngle);
-        double deg = rad * (180 / M_PI);
+        // Use atan2 to find the angle, convert to degrees
+        double angle_rad = std::atan2(crossProduct, cosineAngle);
+        double angle_deg = angle_rad * 180 / M_PI;
 
-        return deg;
+       // Since we want the clockwise angle, subtract the angle from 360 if it's positive
+        if (angle_deg > 0) {
+            angle_deg = 360 - angle_deg;
+        } else {
+            angle_deg = -angle_deg;
+        }
+
+        return angle_deg;
     }
 
 FRIEND_TEST(CompassTest, TestVectorAngle);
+FRIEND_TEST(CompassTest, TestCalculateDelta);
 
 };

@@ -50,3 +50,11 @@ TEST_F(CompassTest, TestVectorAngle) {
     double result = compass.vectorAngle(position, pole);
     EXPECT_DOUBLE_EQ(result, 135.0);
 }
+
+TEST_F(CompassTest, TestCalculateDelta) {
+    Eigen::Vector2d start_point(0.5, 0.5);
+    Eigen::Vector2d end_point(0.2, 0.5);
+
+    double result = compass.calculate_delta(start_point, end_point);
+    EXPECT_DOUBLE_EQ(result, 270.0);
+}
