@@ -42,7 +42,7 @@ public:
         return angles;
     }
 
-    Eigen::VectorXd calculate_n(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::Vector2d& pole, const Eigen::VectorXd& n_pole_) const {
+    Eigen::VectorXd assign_n(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::Vector2d& pole, const Eigen::VectorXd& n_pole_) const {
         Eigen::VectorXd n_values(positions.rows());
 
         // Calculate the angle between the vertical 0-degree line and the pole vector for each position
@@ -53,18 +53,6 @@ public:
         }
 
         return n_values;
-    }
-
-    Eigen::VectorXd assign_n_pole_orientation(const Eigen::Matrix<double, Eigen::Dynamic, 2>& newPositions, const Eigen::VectorXd& n_pole_, Eigen::Vector2d virtual_pole_) const {
-        Eigen::VectorXd newOrientations(newPositions.rows());
-
-        for(int i = 0; i < newPositions.rows(); i++) {
-            Eigen::Vector2d newPosition = newPositions.row(i);
-            double angle = vectorAngle(newPosition, virtual_pole_); // use virtual_pole
-            newOrientations(i) = fmod(angle - n_pole_(i) + 360, 360);
-        }
-
-        return newOrientations;
     }
 
 private:
@@ -87,13 +75,5 @@ private:
         }
 
         return angle_deg;
-    }
-
-    double vectorAngle(const Eigen::Vector2d& position, const Eigen::Vector2d& pole) const {
-        double dx = position.x() - pole.x();
-        double dy = position.y() - pole.y();
-        double rad = atan2(dy, dx);
-        double deg = rad * (180 / M_PI);
-        return fmod(deg + 360, 360);
     }
 };

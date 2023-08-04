@@ -143,7 +143,11 @@ void VirtualMesh::prepare_virtual_mesh(int old_id) {
 
 
 Eigen::VectorXd VirtualMesh::get_n_orientation(Eigen::Matrix<double, Eigen::Dynamic, 2> position_, Eigen::Vector2d northPole_, Eigen::VectorXd n_pole_) {
-    return compass.calculate_n(position_, northPole_, n_pole_) ;
+    return compass.assign_n(position_, northPole_, n_pole_) ;
+}
+
+void VirtualMesh::assign_particle_orientation(Eigen::VectorXd n_pole, Eigen::Vector2d northPole_virtual_test){
+    n = compass.assign_n(r_UV, n_pole, northPole_virtual_test);
 }
 
 
@@ -190,12 +194,6 @@ void VirtualMesh::assign_particle_position(){
     // Remove the North Pole from the coordinates
     r_UV.conservativeResize(r_UV.rows() - 1, 3);
 }
-
-
-void VirtualMesh::assign_particle_orientation(Eigen::VectorXd n_pole, Eigen::Vector2d northPole_virtual_test){
-    n = compass.assign_n_pole_orientation(r_UV, n_pole, northPole_virtual_test);
-}
-
 
 void VirtualMesh::load_UV_map(int target_vertex){
     std::string mesh_file_path;

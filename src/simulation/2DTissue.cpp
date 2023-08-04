@@ -271,7 +271,7 @@ void _2DTissue::perform_particle_simulation(){
     r_3D = new_r_3D;
 
     n_pole = virtual_mesh.get_relative_orientation();
-
+    std::cout << "n_pole: " << n_pole << std::endl;
     // Update the particle 3D position in our control data structure
     std::set<int> inside_UV_id = get_inside_UV_id();
     update_if_valid(inside_UV_id);
@@ -302,6 +302,9 @@ void _2DTissue::perform_particle_simulation(){
 
         // ! BUG: Fix the accurancy of storing float numbers OR/AND of the 2D coordinates calculation --> otherwise sometimes the particles wont move anymore because it got trapped 
         r_UV = cell.get_r2d();
+        std::cout << "normal n: " << n << std::endl;
+        auto normal_n = virtual_mesh.get_n_orientation(r_UV, original_pole, n_pole);
+        std::cout << "check normal n: " << normal_n << std::endl;
         // ! Only assign particle orientation if a particle left the mesh -> otherwise we get a wrong orientation
         // virtual_mesh.assign_particle_orientation(n_pole, original_pole);
     }
