@@ -18,6 +18,21 @@ protected:
     Compass compass{original_pole};
 };
 
+TEST_F(CompassTest, TestCalculateNPole) {
+    Eigen::Matrix<double, Eigen::Dynamic, 2> positions(3, 2);
+    positions << 0.3021, 0.0347795,
+                 0.3, 0.4,
+                 0.1021, 0.3;
+    Eigen::VectorXd orientations(3);
+    orientations << 0.0, 90.0, 270.0;
+
+    Eigen::VectorXd result = compass.calculate_n_pole(positions, orientations);
+
+    double tolerance = 3;
+    EXPECT_DOUBLE_EQ(result(0), 270.0);
+    EXPECT_NEAR(result(1), 120, tolerance);
+    EXPECT_DOUBLE_EQ(result(2), 270);
+}
 
 TEST_F(CompassTest, TestAssignNPoleOrientation) {
     Eigen::Matrix<double, Eigen::Dynamic, 2> newPositions(2, 2);
