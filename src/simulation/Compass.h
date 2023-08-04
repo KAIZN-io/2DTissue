@@ -79,15 +79,9 @@ private:
             Eigen::Vector2d vectorToPole = end_point - position;
 
             double dotProduct = upVector.dot(vectorToPole);
-            double magnitudeA = vectorToPole.norm();
-            double magnitudeB = upVector.norm();
-            double cosineAngle = dotProduct / (magnitudeA * magnitudeB);
-
-            // Calculate the cross product to determine the sign of the angle
             double crossProduct = upVector.x() * vectorToPole.y() - upVector.y() * vectorToPole.x();
 
-            // Use atan2 to find the angle, convert to degrees
-            double angle_rad = std::atan2(crossProduct, cosineAngle);
+            double angle_rad = std::atan2(crossProduct, dotProduct);
             double angle_deg = angle_rad * 180 / M_PI;
 
             // Since we want the clockwise angle, subtract the angle from 360 if it's positive

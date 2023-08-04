@@ -52,7 +52,6 @@ TEST_F(CompassTest, TestCalculateDelta) {
     Eigen::Vector2d end_point(0.2, 0.5);
 
     Eigen::VectorXd result = compass.calculate_delta(start_points, end_point);
-    std::cout << result << std::endl;
     EXPECT_DOUBLE_EQ(result(0), 270.0);
     EXPECT_DOUBLE_EQ(result(1), 0.0);
     EXPECT_DOUBLE_EQ(result(2), 180.0);
