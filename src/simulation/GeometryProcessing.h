@@ -77,7 +77,7 @@ public:
         const std::vector<int> distance
     );
 
-    std::vector<_3D::edge_descriptor> get_cut_line(
+    std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> get_cut_line(
         const _3D::Mesh mesh,
         const _3D::vertex_descriptor start_node,
         _3D::vertex_descriptor current,
@@ -89,7 +89,7 @@ public:
         int32_t start_node_int
     );
 
-    std::vector<_3D::edge_descriptor> set_UV_border_edges(
+    std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> set_UV_border_edges(
         const std::string mesh_file_path,
         _3D::vertex_descriptor start_node
     );
@@ -134,4 +134,5 @@ private:
         const std::string mesh_path,
         int uv_mesh_number
     );
+    // UV::Mesh virtual_mesh;
 };

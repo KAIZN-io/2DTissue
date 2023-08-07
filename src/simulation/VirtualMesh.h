@@ -45,10 +45,10 @@ public:
     void generate_virtual_mesh();
     void prepare_virtual_mesh(int old_id);
     Eigen::Vector2d init_north_pole();
-    void load_UV_map(int target_vertex);
     Eigen::VectorXd get_relative_orientation();
     void assign_particle_orientation(Eigen::Vector2d northPole_, Eigen::VectorXd n_pole_);
     Eigen::VectorXd get_n_orientation(Eigen::Matrix<double, Eigen::Dynamic, 2> position_, Eigen::Vector2d northPole_, Eigen::VectorXd n_pole_);
+    void change_UV_map(int target_vertex);
 
 private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
@@ -77,7 +77,6 @@ private:
     Compass compass;
 
     void get_invalid_particle();
-    void change_UV_map(int target_vertex);
     void assign_particle_position();
     std::vector<int> get_3D_splay_vertices();
 };

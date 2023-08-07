@@ -187,7 +187,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryPro
 *
 * @info: Unittest implemented
 */
-std::vector<_3D::edge_descriptor> GeometryProcessing::set_UV_border_edges(
+std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> GeometryProcessing::set_UV_border_edges(
     const std::string mesh_file_path,
     _3D::vertex_descriptor start_node
 ){
@@ -243,7 +243,7 @@ std::vector<_3D::edge_descriptor> GeometryProcessing::set_UV_border_edges(
     size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
     longest_mod_two = std::vector<_3D::edge_descriptor>(virtual_path_list.begin(), virtual_path_list.begin() + half_length_mod_two);
 
-    return path_list;
+    return std::make_pair(longest_mod_two, path_list);
 }
 
 
@@ -302,7 +302,9 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     Eigen::MatrixXd& vertices_3D
 ){
     // Set the border edges of the UV mesh
-    auto border_edges = set_UV_border_edges(mesh_file_path, start_node);
+    auto results_border = set_UV_border_edges(mesh_file_path, start_node);
+    auto border_edges = results_border.first;
+    auto virtual_border_edges = results_border.second;
 
     // Load the 3D mesh
     _3D::Mesh sm;
@@ -319,10 +321,16 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     UV::halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
     // Perform parameterization
-    SMP::Error_code err = parameterize_UV_mesh(mesh, bhd, uvmap);
+    parameterize_UV_mesh(mesh, bhd, uvmap);
 
     // Save the uv mesh
-    save_UV_mesh(mesh, bhd, uvmap, mesh_file_path, uv_mesh_number);
+    save_UV_mesh(mesh, bhd, uvmap, mesh_file_path, 0);
+
+    // Do the same for the virtual mesh
+    UV::Mesh virtual_mesh = create_UV_mesh(sm, virtual_border_edges);
+    UV::halfedge_descriptor virtual_bhd = CGAL::Polygon_mesh_processing::longest_border(virtual_mesh).first;
+    parameterize_UV_mesh(virtual_mesh, virtual_bhd, uvmap);
+    save_UV_mesh(virtual_mesh, virtual_bhd, uvmap, mesh_file_path, 1);
 
     std::vector<Point_2> points_uv;
     std::vector<Point_3> points;
