@@ -118,6 +118,7 @@ private:
     void update_if_valid(std::set<int> inside_UV_id);
     void mark_outside_original(std::set<int> outside_UV_id, std::set<int> inside_UV_id);
     int actual_mesh_id;
+    Eigen::VectorXi marked_outside_particle;
 
     std::set<int> get_inside_UV_id() const {
         std::set<int> inside_UV_id;

@@ -45,6 +45,6 @@ struct VertexData {
     Eigen::Vector2d original_r_UV;
     double old_n_pole;
     double next_n_pole;
-    bool left_original_mesh;
+    bool virtual_mesh;
     bool valid;  // if r_UV inside mesh
 };
