@@ -101,10 +101,10 @@ _2DTissue::_2DTissue(
 
     Eigen::MatrixXd halfedge_UV_virtual;
     Eigen::MatrixXi face_UV_virtual;
-    loadMeshVertices(mesh_UV_path, halfedge_UV_virtual);
-    loadMeshFaces(mesh_UV_path, face_UV_virtual);
+    loadMeshVertices(mesh_UV_path_virtual, halfedge_UV_virtual);
+    loadMeshFaces(mesh_UV_path_virtual, face_UV_virtual);
 
-    vertices_2DTissue_map[1] = Mesh_UV_Struct{1, halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertice_UV_virtual, vertice_3D_virtual, mesh_UV_path};
+    vertices_2DTissue_map[1] = Mesh_UV_Struct{1, halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertice_UV_virtual, vertice_3D_virtual, mesh_UV_path_virtual};
 
     mesh_UV_name = geometry_processing.get_mesh_name(mesh_UV_path);
 
@@ -315,7 +315,6 @@ void _2DTissue::perform_particle_simulation(){
         // Rerun the simulation with the virtual UV mesh
         if (actual_mesh_id == 0) {
             actual_mesh_id = 1;
-            std::cout << "Switching to virtual mesh" << std::endl;
             virtual_mesh.prepare_virtual_mesh(actual_mesh_id);
             perform_particle_simulation();
         }
@@ -378,7 +377,6 @@ void _2DTissue::save_our_data() {
 
 
 System _2DTissue::update(){
-    std::cout << "size of vertices_2DTissue_map: " << vertices_2DTissue_map.size() << std::endl;
     // The new coordinates are the old ones for the next step
     r_UV_old = r_UV;
     r_3D_old = r_3D;
