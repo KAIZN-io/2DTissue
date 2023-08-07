@@ -151,7 +151,7 @@ _3D::vertex_descriptor GeometryProcessing::find_farthest_vertex(
 * So, if you want something like an inverse 'Poincaré disk' you have to really shorten the path_list
 * The same is true if you reverse the logic: If you create a spiral-like seam edge path, your mesh will results in something like a 'Poincaré disk'
 */
-std::vector<_3D::edge_descriptor> GeometryProcessing::get_cut_line(
+std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryProcessing::get_cut_line(
     const _3D::Mesh mesh,
     const _3D::vertex_descriptor start_node,
     _3D::vertex_descriptor current,
@@ -167,19 +167,19 @@ std::vector<_3D::edge_descriptor> GeometryProcessing::get_cut_line(
         current = predecessor;
     }
 
-    // Reverse the path list because we went back from target to start
+    _3D::vertex_descriptor virtual_mesh_start = target(path_list[path_list.size() - 2], mesh);
+
     std::reverse(path_list.begin(), path_list.end());
 
-    // Shorten the path list to the longest path with an even number of vertices so that the same seam edges are each on the opposite side of the UV mesh
-    // But only take half of the max_length_mod_two while still ensuring it's an even number.
     std::vector<_3D::edge_descriptor> longest_mod_two;
     size_t size = path_list.size();
     size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
     size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
-    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
+    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + half_length_mod_two);
 
-    return longest_mod_two;
+    return std::make_pair(longest_mod_two, virtual_mesh_start);
 }
+
 
 
 /**
@@ -216,7 +216,32 @@ std::vector<_3D::edge_descriptor> GeometryProcessing::set_UV_border_edges(
     _3D::vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, distance);
 
     // Get the edges of the path between the start and the target node
-    std::vector<_3D::edge_descriptor> path_list = get_cut_line(mesh, start_node, target_node, predecessor_pmap);
+    auto results = get_cut_line(mesh, start_node, target_node, predecessor_pmap);
+    std::vector<_3D::edge_descriptor> path_list = results.first;
+    _3D::vertex_descriptor virtual_mesh_start = results.second;
+
+    // Find the cut line for the virtual mesh
+    calculate_distances(mesh, virtual_mesh_start, predecessor_pmap, distance);
+    _3D::vertex_descriptor virtual_target_node = find_farthest_vertex(mesh, virtual_mesh_start, distance);
+
+
+    std::vector<_3D::edge_descriptor> virtual_path_list;
+
+    while (virtual_target_node != virtual_mesh_start) {
+        _3D::vertex_descriptor predecessor = predecessor_pmap[virtual_target_node];
+        std::pair<_3D::edge_descriptor, bool> edge_pair = edge(predecessor, virtual_target_node, mesh);
+        _3D::edge_descriptor edge = edge_pair.first;
+        virtual_path_list.push_back(edge);
+        virtual_target_node = predecessor;
+    }
+
+    std::reverse(virtual_path_list.begin(), virtual_path_list.end());
+
+    std::vector<_3D::edge_descriptor> longest_mod_two;
+    size_t size = virtual_path_list.size();
+    size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
+    size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
+    longest_mod_two = std::vector<_3D::edge_descriptor>(virtual_path_list.begin(), virtual_path_list.begin() + half_length_mod_two);
 
     return path_list;
 }
