@@ -188,7 +188,6 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryPro
 }
 
 
-
 /**
 * @brief Calculate the virtual border of the mesh
 *
@@ -244,13 +243,13 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
 
     std::reverse(virtual_path_list.begin(), virtual_path_list.end());
 
-    std::vector<_3D::edge_descriptor> longest_mod_two;
+    std::vector<_3D::edge_descriptor> virtual_path_mod;
     size_t size = virtual_path_list.size();
     size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
     size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
-    longest_mod_two = std::vector<_3D::edge_descriptor>(virtual_path_list.begin(), virtual_path_list.begin() + half_length_mod_two);
+    virtual_path_mod = std::vector<_3D::edge_descriptor>(virtual_path_list.begin(), virtual_path_list.begin() + half_length_mod_two);
 
-    return std::make_pair(longest_mod_two, path_list);
+    return std::make_pair(virtual_path_mod, path_list);
 }
 
 
@@ -314,8 +313,8 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
 ){
     // Set the border edges of the UV mesh
     auto results_border = set_UV_border_edges(mesh_file_path, start_node);
-    auto border_edges = results_border.first;
-    auto virtual_border_edges = results_border.second;
+    auto virtual_border_edges = results_border.first;
+    auto border_edges = results_border.second;
 
     // Load the 3D mesh
     _3D::Mesh sm;
