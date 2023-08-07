@@ -332,6 +332,34 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     parameterize_UV_mesh(virtual_mesh, virtual_bhd, uvmap);
     save_UV_mesh(virtual_mesh, virtual_bhd, uvmap, mesh_file_path, 1);
 
+
+    int number_of_virtual = size(vertices(virtual_mesh));
+    Eigen::MatrixXd vertices_UV_virtual_temp(number_of_virtual, 3);
+    Eigen::MatrixXd vertices_3D_virtual_temp(number_of_virtual, 3);
+    std::vector<int64_t> h_v_mapping_vector_virtual;
+
+    int i = 0;
+    for (UV::vertex_descriptor vd : vertices(virtual_mesh)) {
+        int64_t target_vertice = target(vd, sm);
+        auto point_3D = sm.point(target(vd, sm));
+        auto uv = get(uvmap, halfedge(vd, virtual_mesh));
+
+        h_v_mapping_vector_virtual.push_back(target_vertice);
+
+        // Get the points
+        vertices_3D_virtual_temp(i, 0) = point_3D.x();
+        vertices_3D_virtual_temp(i, 1) = point_3D.y();
+        vertices_3D_virtual_temp(i, 2) = point_3D.z();
+
+        // Get the uv points
+        vertices_UV_virtual_temp(i, 0) = uv.x();
+        vertices_UV_virtual_temp(i, 1) = uv.y();
+        vertices_UV_virtual_temp(i, 2) = 0;
+        i++;
+    }
+    vertices_UV_virtual.resize(number_of_virtual, 3);
+    // vertices_UV_virtual = vertices_UV_virtual_temp;
+
     std::vector<Point_2> points_uv;
     std::vector<Point_3> points;
     std::vector<int64_t> h_v_mapping_vector;
