@@ -21,7 +21,6 @@ VirtualMesh::VirtualMesh(
     std::string mesh_path,
     int map_cache_count,
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
-    std::unique_ptr<GeometryProcessing> geometry_ptr,
     std::unique_ptr<Validation> validation_ptr
 )
     : r_UV(r_UV),
@@ -39,7 +38,6 @@ VirtualMesh::VirtualMesh(
       mesh_path(mesh_path),
       map_cache_count(map_cache_count),
       vertices_2DTissue_map(vertices_2DTissue_map),
-      geometry_ptr(std::move(geometry_ptr)),
       validation_ptr(std::move(validation_ptr)),
       cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
       compass(northPole)
@@ -58,15 +56,23 @@ Eigen::Vector2d VirtualMesh::init_north_pole(){
     // Map it to the 2D coordinates of the new map
     auto new_r_UV = cell.get_r2d();
 
-    northPole = new_r_UV.row(new_r_UV.rows() - 1);  // The north pole (= v1 of the basic UV mesh)
+    northPole = new_r_UV.row(new_r_UV.rows() - 1);
+
+    // Change to the virtual UV mesh
+    change_UV_map(1);
+    auto virtual_r_UV = cell.get_r2d();
+    northPole_virtual = virtual_r_UV.row(virtual_r_UV.rows() - 1);
+
+    // Change back to the basic UV mesh
+    change_UV_map(0);
     r_3D.conservativeResize(r_3D.rows() - 1, 3);
 
     return northPole;
 }
 
 
-void VirtualMesh::prepare_virtual_mesh(int old_id) {
-    // get the old UV coordinates
+void VirtualMesh::prepare_virtual_mesh(int mesh_id) {
+    // Get the old UV coordinates
     r_UV = r_UV_old;
 
     // Get the old 3D coordinates
@@ -77,11 +83,11 @@ void VirtualMesh::prepare_virtual_mesh(int old_id) {
     auto n_pole = get_relative_orientation();
 
     // Find the next UV map
-    change_UV_map(old_id);
+    change_UV_map(mesh_id);
 
     // ! todo: diese zwei Schritte dauern ZU lang!
     // Add the particles to the new map
-    assign_particle_position();
+    r_UV = cell.get_r2d();
     assign_particle_orientation(n_pole, northPole_virtual);
 }
 
@@ -94,27 +100,8 @@ void VirtualMesh::assign_particle_orientation(Eigen::Vector2d northPole_, Eigen:
     n = compass.assign_n(r_UV, northPole_, n_pole_);
 }
 
-
 Eigen::VectorXd VirtualMesh::get_relative_orientation(){
     return compass.calculate_n_pole(r_UV, n);
-}
-
-void VirtualMesh::assign_particle_position(){
-    // Add the north pole to the 3D coordinates
-    r_3D.conservativeResize(r_3D.rows() + 1, 3);
-    r_3D.row(r_3D.rows() - 1) = northPole_3D;
-
-    // Map it to the 2D coordinates of the new map
-    r_UV = cell.get_r2d();
-
-    // Remove the north pole from the coordinates
-    r_3D.conservativeResize(r_3D.rows() - 1, 3);
-
-    // Get the UV coordinates of the north pole
-    northPole_virtual = r_UV.row(r_UV.rows() - 1);  // The north pole (= v1 of the UV mesh)
-
-    // Remove the North Pole from the coordinates
-    r_UV.conservativeResize(r_UV.rows() - 1, 3);
 }
 
 void VirtualMesh::change_UV_map(int mesh_id){

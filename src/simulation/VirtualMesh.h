@@ -38,7 +38,6 @@ public:
         std::string mesh_path,
         int map_cache_count,
         std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
-        std::unique_ptr<GeometryProcessing> geometry_ptr,
         std::unique_ptr<Validation> validation_ptr
     );
 
@@ -74,7 +73,4 @@ private:
     Eigen::MatrixXd halfedge_UV_virtual;
     Cell cell;
     Compass compass;
-
-    void get_invalid_particle();
-    void assign_particle_position();
 };
