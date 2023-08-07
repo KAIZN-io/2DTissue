@@ -42,7 +42,6 @@ public:
         std::unique_ptr<Validation> validation_ptr
     );
 
-    void generate_virtual_mesh();
     void prepare_virtual_mesh(int old_id);
     Eigen::Vector2d init_north_pole();
     Eigen::VectorXd get_relative_orientation();

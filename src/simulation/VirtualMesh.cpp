@@ -103,25 +103,6 @@ std::vector<int> VirtualMesh::get_3D_splay_vertices(){
 }
 
 
-void VirtualMesh::generate_virtual_mesh()
-{
-    auto splay_state_vertices_id = get_3D_splay_vertices();
-
-    for (int i = 0; i < splay_state_vertices_id.size(); ++i) {
-        int splay_state_v = splay_state_vertices_id[i];
-        Eigen::MatrixXi face_UV_virtual;
-        Eigen::MatrixXd halfedge_UV_virtual;
-
-        auto [h_v_mapping_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual] = geometry_ptr->create_uv_surface(mesh_path, splay_state_v);
-        loadMeshVertices(mesh_file_path_virtual, halfedge_UV_virtual);
-        loadMeshFaces(mesh_file_path_virtual, face_UV_virtual);
-
-        // Store the virtual meshes
-        vertices_2DTissue_map[splay_state_v] = Mesh_UV_Struct{splay_state_v, halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertices_UV_splay, vertices_3D_splay, mesh_file_path_virtual};
-    }
-}
-
-
 void VirtualMesh::prepare_virtual_mesh(int old_id) {
     // get the old UV coordinates
     r_UV = r_UV_old;
