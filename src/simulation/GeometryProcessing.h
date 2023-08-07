@@ -64,6 +64,8 @@ namespace UV {
 
 class GeometryProcessing {
 public:
+    GeometryProcessing();
+
     void calculate_distances(
         _3D::Mesh mesh,
         _3D::vertex_descriptor start_node,
@@ -100,8 +102,13 @@ public:
 
     std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node = 0);
     int get_all_distances(std::string mesh_file_path);
+    std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
 
 private:
+    Eigen::MatrixXd vertices_UV_virtual;
+    Eigen::MatrixXd vertices_3D_virtual;
+    std::vector<int64_t> h_v_mapping_vector_virtual;
+
     void fill_distance_matrix(
         const std::string mesh_path,
         Eigen::MatrixXd &distance_matrix,
@@ -134,5 +141,4 @@ private:
         const std::string mesh_path,
         int uv_mesh_number
     );
-    // UV::Mesh virtual_mesh;
 };

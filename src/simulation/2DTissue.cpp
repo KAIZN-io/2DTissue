@@ -84,14 +84,29 @@ _2DTissue::_2DTissue(
 
         // ! Access the functions using the pointer
         // Calculate the distance matrix of the static 3D mesh
-        geometry_ptr->get_all_distances(mesh_path);
+        geometry_processing.get_all_distances(mesh_path);
     }
     distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = geometry_ptr->create_uv_surface(mesh_path, 0);
-    mesh_UV_name = geometry_ptr->get_mesh_name(mesh_UV_path);
+    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = geometry_processing.create_uv_surface(mesh_path, 0);
+
+    // Load the virtual mesh
+    auto results = geometry_processing.get_virtual_mesh();
+    auto h_v_mapping_virtual = std::get<0>(results);
+    auto vertice_UV_virtual = std::get<1>(results);
+    auto vertice_3D_virtual = std::get<2>(results);
+    auto mesh_UV_path_virtual = std::get<3>(results);
+
+    Eigen::MatrixXd halfedge_UV_virtual;
+    Eigen::MatrixXi face_UV_virtual;
+    loadMeshVertices(mesh_UV_path, halfedge_UV_virtual);
+    loadMeshFaces(mesh_UV_path, face_UV_virtual);
+
+    vertices_2DTissue_map[1] = Mesh_UV_Struct{1, halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertice_UV_virtual, vertice_3D_virtual, mesh_UV_path};
+
+    mesh_UV_name = geometry_processing.get_mesh_name(mesh_UV_path);
 
     loadMeshVertices(mesh_UV_path, halfedge_UV);
     loadMeshFaces(mesh_UV_path, face_UV);
@@ -100,7 +115,6 @@ _2DTissue::_2DTissue(
 
     // Generate virtual meshes
     original_pole = virtual_mesh.init_north_pole();
-    virtual_mesh.generate_virtual_mesh();
 
     // Initialize the Vertex Struct
     particle_change.resize(particle_count);
@@ -291,28 +305,23 @@ void _2DTissue::perform_particle_simulation(){
 
     if (bool_exact_simulation){
 
+        // Mark the particles that are outside the original UV mesh
         if (!mark_outside){
             std::set<int> outside_UV_id = get_outside_UV_id();
             mark_outside_original(outside_UV_id, inside_UV_id);
             mark_outside = true;
         }
 
-        std::vector<int> invalid_ids;
-        for (int i = 0; i < particle_change.size(); ++i) {
-            if (!particle_change[i].valid) {
-                invalid_ids.push_back(i);
-            }
+        // Rerun the simulation with the virtual UV mesh
+        if (actual_mesh_id == 0) {
+            actual_mesh_id = 1;
+            std::cout << "Switching to virtual mesh" << std::endl;
+            virtual_mesh.prepare_virtual_mesh(actual_mesh_id);
+            perform_particle_simulation();
         }
 
-        for (int invalid_id : invalid_ids) {
-            virtual_mesh.prepare_virtual_mesh(invalid_id);
-            perform_particle_simulation();
-            if (validation_ptr->are_all_valid(particle_change)) {
-                break;
-            }
-        }
         // Restore the original UV mesh
-        virtual_mesh.load_UV_map(0);
+        virtual_mesh.change_UV_map(0);
         Eigen::VectorXi marked_outside_particle;
         marked_outside_particle.resize(particle_change.size());
 
@@ -323,10 +332,7 @@ void _2DTissue::perform_particle_simulation(){
             marked_outside_particle[i] = particle_change[i].left_original_mesh;
         }
 
-
-        // ! BUG: Fix the accurancy of storing float numbers OR/AND of the 2D coordinates calculation --> otherwise sometimes the particles wont move anymore because it got trapped 
         auto r_UV_mapped = cell.get_r2d();
-
         auto n_compass = virtual_mesh.get_n_orientation(r_UV, original_pole, n_pole);
 
         // Only assign for the new n values where the particle left the original mesh
@@ -372,6 +378,7 @@ void _2DTissue::save_our_data() {
 
 
 System _2DTissue::update(){
+    std::cout << "size of vertices_2DTissue_map: " << vertices_2DTissue_map.size() << std::endl;
     // The new coordinates are the old ones for the next step
     r_UV_old = r_UV;
     r_3D_old = r_3D;
@@ -385,7 +392,7 @@ System _2DTissue::update(){
 
     // reset mark_outside to false
     mark_outside = false;
-
+    actual_mesh_id = 0;
     // Simulate the particles on the 2D surface
     perform_particle_simulation();
 

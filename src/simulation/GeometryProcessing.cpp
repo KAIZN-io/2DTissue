@@ -28,11 +28,16 @@ using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Trian
 
 struct MeshMeta{
     std::string mesh_path;
+    std::string mesh_path_virtual;
 };
 
 // Global Struct Object
 MeshMeta meshmeta;
 
+GeometryProcessing::GeometryProcessing(
+){
+
+}
 
 /**
  * @brief Extract the mesh name (without extension) from its file path
@@ -70,19 +75,21 @@ int GeometryProcessing::save_UV_mesh(
 
     if (uv_mesh_number == 0) {
         output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv.off");
+        std::string output_file_path_str = output_file_path.string();
+        meshmeta.mesh_path = output_file_path_str;
+        // Create the output file stream
+        std::ofstream out(output_file_path_str);
+        // Write the UV map to the output file
+        SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
     } else {
         output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv_" + std::to_string(uv_mesh_number) + ".off");
+        std::string output_file_path_str = output_file_path.string();
+        meshmeta.mesh_path_virtual = output_file_path_str;
+        // Create the output file stream
+        std::ofstream out(output_file_path_str);
+        // Write the UV map to the output file
+        SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
     }
-    std::string output_file_path_str = output_file_path.string();
-
-    // Create the output file stream
-    std::ofstream out(output_file_path_str);
-
-    // Write the UV map to the output file
-    SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
-
-    // Store the file path as a meta data
-    meshmeta.mesh_path = output_file_path_str;
 
     return 0;
 }
@@ -291,6 +298,10 @@ SMP::Error_code GeometryProcessing::parameterize_UV_mesh(
 }
 
 
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::get_virtual_mesh(){
+    return std::make_tuple(h_v_mapping_vector_virtual, vertices_UV_virtual, vertices_3D_virtual, meshmeta.mesh_path_virtual);
+}
+
 /**
  * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
 */
@@ -334,9 +345,8 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
 
 
     int number_of_virtual = size(vertices(virtual_mesh));
-    Eigen::MatrixXd vertices_UV_virtual_temp(number_of_virtual, 3);
-    Eigen::MatrixXd vertices_3D_virtual_temp(number_of_virtual, 3);
-    std::vector<int64_t> h_v_mapping_vector_virtual;
+    vertices_UV_virtual.resize(number_of_virtual, 3);
+    vertices_3D_virtual.resize(number_of_virtual, 3);
 
     int i = 0;
     for (UV::vertex_descriptor vd : vertices(virtual_mesh)) {
@@ -347,18 +357,16 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
         h_v_mapping_vector_virtual.push_back(target_vertice);
 
         // Get the points
-        vertices_3D_virtual_temp(i, 0) = point_3D.x();
-        vertices_3D_virtual_temp(i, 1) = point_3D.y();
-        vertices_3D_virtual_temp(i, 2) = point_3D.z();
+        vertices_3D_virtual(i, 0) = point_3D.x();
+        vertices_3D_virtual(i, 1) = point_3D.y();
+        vertices_3D_virtual(i, 2) = point_3D.z();
 
         // Get the uv points
-        vertices_UV_virtual_temp(i, 0) = uv.x();
-        vertices_UV_virtual_temp(i, 1) = uv.y();
-        vertices_UV_virtual_temp(i, 2) = 0;
+        vertices_UV_virtual(i, 0) = uv.x();
+        vertices_UV_virtual(i, 1) = uv.y();
+        vertices_UV_virtual(i, 2) = 0;
         i++;
     }
-    vertices_UV_virtual.resize(number_of_virtual, 3);
-    // vertices_UV_virtual = vertices_UV_virtual_temp;
 
     std::vector<Point_2> points_uv;
     std::vector<Point_3> points;

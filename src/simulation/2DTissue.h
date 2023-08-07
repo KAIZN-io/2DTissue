@@ -90,6 +90,7 @@ private:
     Cell cell;
     VirtualMesh virtual_mesh;
     Compass compass;
+    GeometryProcessing geometry_processing;
 
     // Differential Equation Simulation
     realtype reltol, abstol; // Tolerances
@@ -116,6 +117,7 @@ private:
     void set_new_particle_data(const std::set<int> inside_UV_id);
     void update_if_valid(std::set<int> inside_UV_id);
     void mark_outside_original(std::set<int> outside_UV_id, std::set<int> inside_UV_id);
+    int actual_mesh_id;
 
     std::set<int> get_inside_UV_id() const {
         std::set<int> inside_UV_id;
