@@ -66,7 +66,7 @@ _2DTissue::_2DTissue(
     finished(false),
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
-    virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(geometry_ptr), std::move(validation_ptr)),
+    virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(validation_ptr)),
     compass(original_pole)
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
@@ -91,6 +91,7 @@ _2DTissue::_2DTissue(
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
     std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = geometry_processing.create_uv_surface(mesh_path, 0);
+    mesh_UV_name = geometry_processing.get_mesh_name(mesh_UV_path);
 
     // Load the virtual mesh
     auto results = geometry_processing.get_virtual_mesh();
@@ -104,23 +105,18 @@ _2DTissue::_2DTissue(
     loadMeshVertices(mesh_UV_path_virtual, halfedge_UV_virtual);
     loadMeshFaces(mesh_UV_path_virtual, face_UV_virtual);
 
-    vertices_2DTissue_map[1] = Mesh_UV_Struct{1, halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertice_UV_virtual, vertice_3D_virtual, mesh_UV_path_virtual};
-
-    mesh_UV_name = geometry_processing.get_mesh_name(mesh_UV_path);
-
     loadMeshVertices(mesh_UV_path, halfedge_UV);
     loadMeshFaces(mesh_UV_path, face_UV);
 
     vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, face_UV, vertice_UV, vertice_3D, mesh_UV_path};
+    vertices_2DTissue_map[1] = Mesh_UV_Struct{1, halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertice_UV_virtual, vertice_3D_virtual, mesh_UV_path_virtual};
 
     // Generate virtual meshes
     original_pole = virtual_mesh.init_north_pole();
 
-    // Initialize the Vertex Struct
+    // Initialize the Variables
     particle_change.resize(particle_count);
     marked_outside_particle.resize(particle_count);
-
-    // Initialize the order parameter vector
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
     mark_outside = false;
@@ -217,7 +213,6 @@ void _2DTissue::start(){
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
-    // cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
     cell.init_particle_position();
     r_UV_old = r_UV;
 
@@ -314,7 +309,7 @@ void _2DTissue::perform_particle_simulation(){
         }
 
         // Rerun the simulation with the virtual UV mesh
-        if (actual_mesh_id == 0) {
+        if (actual_mesh_id == 0){
             actual_mesh_id = 1;
             virtual_mesh.prepare_virtual_mesh(actual_mesh_id);
             perform_particle_simulation();
@@ -346,7 +341,7 @@ void _2DTissue::perform_particle_simulation(){
     }
 
     // Error checking
-    validation_ptr->error_invalid_3D_values(particle_change);  // 1. Check if the 3D coordinates are valid
+    // validation_ptr->error_invalid_3D_values(particle_change);  // 1. Check if the 3D coordinates are valid
     validation_ptr->error_lost_particles(r_UV, particle_count);  // 2. Check if we lost particles
     validation_ptr->error_invalid_values(r_UV);  // 3. Check if there are invalid values like NaN or Inf in the output
 

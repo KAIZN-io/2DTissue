@@ -57,7 +57,6 @@ private:
     std::vector<VertexData> particle_change;
 
     std::unique_ptr<Cell> cell_ptr;
-    std::unique_ptr<GeometryProcessing> geometry_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
     std::unique_ptr<Validation> validation_ptr;
 
