@@ -187,6 +187,10 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryPro
     size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
     longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + half_length_mod_two);
 
+    // for(const auto& edge : longest_mod_two) {
+    //     std::cout << mesh.point(source(edge, mesh)) << std::endl;
+    // }
+
     return std::make_pair(longest_mod_two, virtual_mesh_start);
 }
 
@@ -230,7 +234,7 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
     _3D::vertex_descriptor virtual_mesh_start = results.second;
 
     // Find the cut line for the virtual mesh
-    // calculate_distances(mesh, virtual_mesh_start, predecessor_pmap, distance);
+    calculate_distances(mesh, virtual_mesh_start, predecessor_pmap, distance);
     _3D::vertex_descriptor virtual_target_node = find_farthest_vertex(mesh, virtual_mesh_start, distance);
 
     auto results_virtual = get_cut_line(mesh, virtual_mesh_start, virtual_target_node, predecessor_pmap, false);
