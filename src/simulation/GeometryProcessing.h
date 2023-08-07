@@ -83,7 +83,8 @@ public:
         const _3D::Mesh mesh,
         const _3D::vertex_descriptor start_node,
         _3D::vertex_descriptor current,
-        const std::vector<_3D::vertex_descriptor> predecessor_pmap
+        const std::vector<_3D::vertex_descriptor> predecessor_pmap,
+        const bool bool_reverse
     );
 
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface(

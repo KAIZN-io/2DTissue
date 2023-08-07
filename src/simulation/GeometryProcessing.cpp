@@ -162,7 +162,8 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryPro
     const _3D::Mesh mesh,
     const _3D::vertex_descriptor start_node,
     _3D::vertex_descriptor current,
-    const std::vector<_3D::vertex_descriptor> predecessor_pmap
+    const std::vector<_3D::vertex_descriptor> predecessor_pmap,
+    const bool bool_reverse
 ) {
     std::vector<_3D::edge_descriptor> path_list;
 
@@ -176,7 +177,9 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryPro
 
     _3D::vertex_descriptor virtual_mesh_start = target(path_list[path_list.size() - 2], mesh);
 
-    std::reverse(path_list.begin(), path_list.end());
+    if (bool_reverse){
+        std::reverse(path_list.begin(), path_list.end());
+    }
 
     std::vector<_3D::edge_descriptor> longest_mod_two;
     size_t size = path_list.size();
@@ -222,7 +225,7 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
     _3D::vertex_descriptor target_node = find_farthest_vertex(mesh, start_node, distance);
 
     // Get the edges of the path between the start and the target node
-    auto results = get_cut_line(mesh, start_node, target_node, predecessor_pmap);
+    auto results = get_cut_line(mesh, start_node, target_node, predecessor_pmap, true);
     std::vector<_3D::edge_descriptor> path_list = results.first;
     _3D::vertex_descriptor virtual_mesh_start = results.second;
 
@@ -230,24 +233,8 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
     calculate_distances(mesh, virtual_mesh_start, predecessor_pmap, distance);
     _3D::vertex_descriptor virtual_target_node = find_farthest_vertex(mesh, virtual_mesh_start, distance);
 
-
-    std::vector<_3D::edge_descriptor> virtual_path_list;
-
-    while (virtual_target_node != virtual_mesh_start) {
-        _3D::vertex_descriptor predecessor = predecessor_pmap[virtual_target_node];
-        std::pair<_3D::edge_descriptor, bool> edge_pair = edge(predecessor, virtual_target_node, mesh);
-        _3D::edge_descriptor edge = edge_pair.first;
-        virtual_path_list.push_back(edge);
-        virtual_target_node = predecessor;
-    }
-
-    std::reverse(virtual_path_list.begin(), virtual_path_list.end());
-
-    std::vector<_3D::edge_descriptor> virtual_path_mod;
-    size_t size = virtual_path_list.size();
-    size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
-    size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
-    virtual_path_mod = std::vector<_3D::edge_descriptor>(virtual_path_list.begin(), virtual_path_list.begin() + half_length_mod_two);
+    auto results_virtual = get_cut_line(mesh, virtual_mesh_start, virtual_target_node, predecessor_pmap, false);
+    auto virtual_path_mod = results_virtual.first;
 
     return std::make_pair(virtual_path_mod, path_list);
 }
