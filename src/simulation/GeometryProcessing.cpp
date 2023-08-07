@@ -230,7 +230,7 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
     _3D::vertex_descriptor virtual_mesh_start = results.second;
 
     // Find the cut line for the virtual mesh
-    calculate_distances(mesh, virtual_mesh_start, predecessor_pmap, distance);
+    // calculate_distances(mesh, virtual_mesh_start, predecessor_pmap, distance);
     _3D::vertex_descriptor virtual_target_node = find_farthest_vertex(mesh, virtual_mesh_start, distance);
 
     auto results_virtual = get_cut_line(mesh, virtual_mesh_start, virtual_target_node, predecessor_pmap, false);
@@ -305,40 +305,41 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
 
     // Load the 3D mesh
     _3D::Mesh sm;
+    _3D::Mesh sm_for_virtual;
     std::ifstream in(CGAL::data_file_path(mesh_file_path));
+    std::ifstream in_virtual(CGAL::data_file_path(mesh_file_path));
     in >> sm;
+    in_virtual >> sm_for_virtual;
 
     // Canonical Halfedges Representing a Vertex
     _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
+    _3D::UV_pmap uvmap_virtual = sm_for_virtual.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
 
     // Create the seam mesh
     UV::Mesh mesh = create_UV_mesh(sm, border_edges);
+    UV::Mesh mesh_virtual = create_UV_mesh(sm_for_virtual, virtual_border_edges);
 
     // Choose a halfedge on the (possibly virtual) border
     UV::halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
+    UV::halfedge_descriptor bhd_virtual = CGAL::Polygon_mesh_processing::longest_border(mesh_virtual).first;
 
     // Perform parameterization
     parameterize_UV_mesh(mesh, bhd, uvmap);
+    parameterize_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual);
 
     // Save the uv mesh
     save_UV_mesh(mesh, bhd, uvmap, mesh_file_path, 0);
+    save_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual, mesh_file_path, 1);
 
-    // Do the same for the virtual mesh
-    UV::Mesh virtual_mesh = create_UV_mesh(sm, virtual_border_edges);
-    UV::halfedge_descriptor virtual_bhd = CGAL::Polygon_mesh_processing::longest_border(virtual_mesh).first;
-    parameterize_UV_mesh(virtual_mesh, virtual_bhd, uvmap);
-    save_UV_mesh(virtual_mesh, virtual_bhd, uvmap, mesh_file_path, 1);
-
-
-    int number_of_virtual = size(vertices(virtual_mesh));
+    int number_of_virtual = size(vertices(mesh_virtual));
     vertices_UV_virtual.resize(number_of_virtual, 3);
     vertices_3D_virtual.resize(number_of_virtual, 3);
 
     int i = 0;
-    for (UV::vertex_descriptor vd : vertices(virtual_mesh)) {
-        int64_t target_vertice = target(vd, sm);
-        auto point_3D = sm.point(target(vd, sm));
-        auto uv = get(uvmap, halfedge(vd, virtual_mesh));
+    for (UV::vertex_descriptor vd : vertices(mesh_virtual)) {
+        int64_t target_vertice = target(vd, sm_for_virtual);
+        auto point_3D = sm_for_virtual.point(target(vd, sm_for_virtual));
+        auto uv = get(uvmap_virtual, halfedge(vd, mesh_virtual));
 
         h_v_mapping_vector_virtual.push_back(target_vertice);
 
@@ -448,7 +449,7 @@ void GeometryProcessing::fill_distance_matrix(
 
 
 int GeometryProcessing::get_all_distances(std::string mesh_path){
-    std::cout << mesh_path << std::endl;
+
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
     mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
 
