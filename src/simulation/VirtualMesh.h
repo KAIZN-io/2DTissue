@@ -77,5 +77,4 @@ private:
 
     void get_invalid_particle();
     void assign_particle_position();
-    std::vector<int> get_3D_splay_vertices();
 };

@@ -64,44 +64,6 @@ Eigen::Vector2d VirtualMesh::init_north_pole(){
     return northPole;
 }
 
-std::vector<int> VirtualMesh::get_3D_splay_vertices(){
-    std::vector<int> selected_vertices;
-
-    // Start at a random vertex
-    int start_vertex = rand() % distance_matrix.rows();
-    selected_vertices.push_back(start_vertex);
-
-    while (selected_vertices.size() < map_cache_count) {
-        double max_distance = -1;
-        int furthest_vertex = -1;
-
-        // Find the vertex that is furthest away from all selected vertices
-        for (int i = 0; i < distance_matrix.rows(); ++i) {
-            double min_distance = std::numeric_limits<double>::infinity();
-
-            // Compute the minimum distance to the selected vertices
-            for (int j : selected_vertices) {
-                double distance = distance_matrix(i, j);
-
-                if (distance < min_distance) {
-                    min_distance = distance;
-                }
-            }
-
-            // If this vertex is further away than the current furthest vertex, update it
-            if (min_distance > max_distance) {
-                max_distance = min_distance;
-                furthest_vertex = i;
-            }
-        }
-
-        // Add the furthest vertex to the selected vertices
-        selected_vertices.push_back(furthest_vertex);
-    }
-
-    return selected_vertices;
-}
-
 
 void VirtualMesh::prepare_virtual_mesh(int old_id) {
     // get the old UV coordinates
@@ -117,6 +79,7 @@ void VirtualMesh::prepare_virtual_mesh(int old_id) {
     // Find the next UV map
     change_UV_map(old_id);
 
+    // ! todo: diese zwei Schritte dauern ZU lang!
     // Add the particles to the new map
     assign_particle_position();
     assign_particle_orientation(n_pole, northPole_virtual);
@@ -154,8 +117,8 @@ void VirtualMesh::assign_particle_position(){
     r_UV.conservativeResize(r_UV.rows() - 1, 3);
 }
 
-void VirtualMesh::change_UV_map(int target_vertex){
-    auto it = vertices_2DTissue_map.find(target_vertex);
+void VirtualMesh::change_UV_map(int mesh_id){
+    auto it = vertices_2DTissue_map.find(mesh_id);
     if (it != vertices_2DTissue_map.end()) {
         // Load the mesh
         halfedge_UV = it->second.mesh;
