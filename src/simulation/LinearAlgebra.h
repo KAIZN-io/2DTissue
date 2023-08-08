@@ -15,7 +15,7 @@ public:
         int tt
     );
 
-    Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::VectorXd n);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> angles_to_unit_vectors(const Eigen::VectorXi n);
 
     Eigen::MatrixXd normalize_3D_matrix(const Eigen::MatrixXd A);
 

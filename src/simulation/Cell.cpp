@@ -27,7 +27,7 @@ Cell::Cell(
     std::vector<int64_t>& h_v_mapping,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::MatrixXd& r_3D,
-    Eigen::VectorXd& n
+    Eigen::VectorXi& n
 )
     : particle_count(particle_count),
     halfedge_UV(halfedge_UV),
@@ -311,37 +311,3 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
 
     return new_2D_points;
 }
-
-
-// // (3D Vertice row position -> nD Vertice coordinates) mapping
-// Eigen::MatrixXd get_coordinates(
-//     std::vector<int> indices,
-//     Eigen::MatrixXd coord
-// ){
-//     Eigen::MatrixXd found_coord(indices.size(), coord.cols());
-
-//     for (int i = 0; i < indices.size(); ++i) {
-//         found_coord.row(i) = coord.row(indices[i]);
-//     }
-
-//     return found_coord;
-// }
-
-// (3D Vertice id -> 3D Vertice row position of the h-v map) mapping
-// std::vector<int> find_vertice_rows_index(
-//     std::vector<int64_t> h_v_mapping_vector,
-//     std::vector<int> r3d_vertices
-// ){
-//     std::unordered_set<int> found_ids;
-//     std::vector<int> indices;
-
-//     for (int i = 0; i < h_v_mapping_vector.size(); ++i) {
-//         if (std::find(r3d_vertices.begin(), r3d_vertices.end(), h_v_mapping_vector[i]) != r3d_vertices.end()) {
-//             if (found_ids.find(h_v_mapping_vector[i]) == found_ids.end()) {
-//                 indices.push_back(i);
-//                 found_ids.insert(h_v_mapping_vector[i]);
-//             }
-//         }
-//     }
-//     return indices;
-// }

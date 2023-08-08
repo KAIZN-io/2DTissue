@@ -17,7 +17,7 @@ public:
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
-        Eigen::VectorXd& n,
+        Eigen::VectorXi& n,
         std::vector<int>& vertices_3D_active,
         Eigen::MatrixXd& distance_matrix,
         Eigen::MatrixXd& dist_length,
@@ -39,7 +39,7 @@ private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot;
-    Eigen::VectorXd& n;
+    Eigen::VectorXi& n;
     std::vector<int>& vertices_3D_active;
     Eigen::MatrixXd& distance_matrix;
     Eigen::MatrixXd& dist_length;
@@ -60,7 +60,7 @@ private:
     static void calculate_average_n_within_distance(
         const std::vector<Eigen::MatrixXd> dist_vect,
         const Eigen::MatrixXd dist_length,
-        Eigen::VectorXd& n,
+        Eigen::VectorXi& n,
         double σ
     );
     Eigen::Vector2d repulsive_adhesion_motion(
@@ -78,7 +78,6 @@ private:
     int calculateSteepnessSwitch(double steepness);
     std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n);
     void map_between_arbitrary_seam_edges();
-
 
 FRIEND_TEST(SimulatorTest, ThrowsWhenInputIsEmpty);
 FRIEND_TEST(SimulatorTest, CorrectlyCalculatesMeanAngle);

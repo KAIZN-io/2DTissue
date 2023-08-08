@@ -64,6 +64,8 @@ namespace UV {
 
 class GeometryProcessing {
 public:
+    GeometryProcessing();
+
     void calculate_distances(
         _3D::Mesh mesh,
         _3D::vertex_descriptor start_node,
@@ -77,11 +79,12 @@ public:
         const std::vector<int> distance
     );
 
-    std::vector<_3D::edge_descriptor> get_cut_line(
+    std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> get_cut_line(
         const _3D::Mesh mesh,
         const _3D::vertex_descriptor start_node,
         _3D::vertex_descriptor current,
-        const std::vector<_3D::vertex_descriptor> predecessor_pmap
+        const std::vector<_3D::vertex_descriptor> predecessor_pmap,
+        const bool bool_reverse
     );
 
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> create_uv_surface(
@@ -89,7 +92,7 @@ public:
         int32_t start_node_int
     );
 
-    std::vector<_3D::edge_descriptor> set_UV_border_edges(
+    std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> set_UV_border_edges(
         const std::string mesh_file_path,
         _3D::vertex_descriptor start_node
     );
@@ -100,8 +103,13 @@ public:
 
     std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node = 0);
     int get_all_distances(std::string mesh_file_path);
+    std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
 
 private:
+    Eigen::MatrixXd vertices_UV_virtual;
+    Eigen::MatrixXd vertices_3D_virtual;
+    std::vector<int64_t> h_v_mapping_vector_virtual;
+
     void fill_distance_matrix(
         const std::string mesh_path,
         Eigen::MatrixXd &distance_matrix,
@@ -123,7 +131,7 @@ private:
         const std::string mesh_file_path,
         _3D::vertex_descriptor start_node,
         int uv_mesh_number,
-        Eigen::MatrixXd& vertices_UV,
+        Eigen::MatrixXd& vertice_UV,
         Eigen::MatrixXd& vertices_3D
     );
 

@@ -31,6 +31,7 @@
 _2DTissue::_2DTissue(
     bool save_data,
     bool particle_innenleben,
+    bool bool_exact_simulation,
     std::string mesh_path,
     int particle_count,
     int step_count,
@@ -47,6 +48,7 @@ _2DTissue::_2DTissue(
 ) :
     save_data(save_data),
     particle_innenleben(particle_innenleben),
+    bool_exact_simulation(bool_exact_simulation),
     mesh_path(mesh_path),
     particle_count(particle_count),
     step_count(step_count),
@@ -63,7 +65,9 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false),
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
-    cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n)
+    cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
+    virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(validation_ptr)),
+    compass(original_pole)
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
@@ -80,21 +84,42 @@ _2DTissue::_2DTissue(
 
         // ! Access the functions using the pointer
         // Calculate the distance matrix of the static 3D mesh
-        geometry_ptr->get_all_distances(mesh_path);
+        geometry_processing.get_all_distances(mesh_path);
     }
     distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = geometry_ptr->create_uv_surface(mesh_path, 0);
-    mesh_UV_name = geometry_ptr->get_mesh_name(mesh_UV_path);
+    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = geometry_processing.create_uv_surface(mesh_path, 0);
+    mesh_UV_name = geometry_processing.get_mesh_name(mesh_UV_path);
+
+    // Load the virtual mesh
+    auto results = geometry_processing.get_virtual_mesh();
+    auto h_v_mapping_virtual = std::get<0>(results);
+    auto vertice_UV_virtual = std::get<1>(results);
+    auto vertice_3D_virtual = std::get<2>(results);
+    auto mesh_UV_path_virtual = std::get<3>(results);
+
+    Eigen::MatrixXd halfedge_UV_virtual;
+    Eigen::MatrixXi face_UV_virtual;
+    loadMeshVertices(mesh_UV_path_virtual, halfedge_UV_virtual);
+    loadMeshFaces(mesh_UV_path_virtual, face_UV_virtual);
 
     loadMeshVertices(mesh_UV_path, halfedge_UV);
     loadMeshFaces(mesh_UV_path, face_UV);
 
-    // Initialize the order parameter vector
+    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, face_UV, vertice_UV, vertice_3D, mesh_UV_path};
+    vertices_2DTissue_map[1] = Mesh_UV_Struct{1, halfedge_UV_virtual, h_v_mapping_virtual, face_UV_virtual, vertice_UV_virtual, vertice_3D_virtual, mesh_UV_path_virtual};
+
+    // Generate virtual meshes
+    original_pole = virtual_mesh.init_north_pole();
+
+    // Initialize the Variables
+    particle_change.resize(particle_count);
+    marked_outside_particle.resize(particle_count);
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
+    mark_outside = false;
 
     /*
     Initialize the ODE Simulation
@@ -188,7 +213,6 @@ void _2DTissue::start(){
     n.resize(particle_count);
     particles_color.resize(particle_count);
 
-    // cell_ptr = std::make_unique<Cell>(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping);
     cell.init_particle_position();
     r_UV_old = r_UV;
 
@@ -210,28 +234,144 @@ void _2DTissue::count_particle_neighbors() {
 }
 
 
+void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
+    // Find out which particles are inside the mesh
+    for (int i : inside_UV_id) {
+        if (!particle_change[i].valid) {
+            VertexData& vd = particle_change[i];
+
+            vd.next_particle_3D = r_3D.row(i);
+            vd.next_n_pole = n_pole[i];
+            vd.valid = true;
+        }
+    }
+}
+
+
+void _2DTissue::mark_outside_original(std::set<int> outside_UV_id, std::set<int> inside_UV_id){
+    for (int i : outside_UV_id) {
+        VertexData& vd = particle_change[i];
+        vd.virtual_mesh = true;
+    }
+    for (int i : inside_UV_id) {
+        VertexData& vd = particle_change[i];
+        vd.original_r_UV = r_UV.row(i);
+    }
+}
+
+
+void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
+    // Initialize the vertex data
+    for (int i = 0; i < particle_count; ++i) {
+        VertexData& vd = particle_change[i];
+        vd.old_particle_3D = r_3D_old.row(i);
+        vd.next_particle_3D = r_3D_old.row(i);
+        vd.old_n_pole = n_pole_old[i];
+        vd.next_n_pole = n_pole_old[i];
+        vd.valid = false;
+        vd.virtual_mesh = false;
+    }
+}
+
+
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
     simulator.simulate_flight();
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
-    // ? is it because of the seam edge cut line?
-    if (mesh_UV_name == "sphere_uv"){
-        simulator.opposite_seam_edges_square_border();
+    if (!bool_exact_simulation){
+        if (mesh_UV_name == "sphere_uv"){
+            simulator.opposite_seam_edges_square_border();
+        }
+        else {
+            simulator.diagonal_seam_edges_square_border();
+        }
     }
-    else {
-        simulator.diagonal_seam_edges_square_border();
+
+    // Get the 3D vertices coordinates from the 2D particle position coordinates
+    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
+    vertices_3D_active = new_vertices_3D_active;
+    r_3D = new_r_3D;
+
+    n_pole = compass.calculate_n_pole(r_UV, n);
+
+    // Update the particle 3D position in our control data structure
+    std::set<int> inside_UV_id = get_inside_UV_id();
+    update_if_valid(inside_UV_id);
+
+    if (bool_exact_simulation){
+
+        // Mark the particles that are outside the original UV mesh
+        if (!mark_outside){
+            std::set<int> outside_UV_id = get_outside_UV_id();
+            mark_outside_original(outside_UV_id, inside_UV_id);
+            mark_outside = true;
+        }
+
+        // Rerun the simulation with the virtual UV mesh
+        if (actual_mesh_id == 0){
+            actual_mesh_id = 1;
+            virtual_mesh.prepare_virtual_mesh(actual_mesh_id);
+            perform_particle_simulation();
+            return;
+        }
+
+        // Restore the original UV mesh
+        virtual_mesh.change_UV_map(0);
+
+        // Get the 3D coordinates from "particle_change"
+        for (size_t i = 0; i < particle_change.size(); ++i) {
+            r_3D.row(i) = particle_change[i].next_particle_3D;
+            n_pole[i] = particle_change[i].next_n_pole;
+            marked_outside_particle[i] = particle_change[i].virtual_mesh;
+        }
+
+        // Only get the 2D and n values for the particles that left the original mesh
+        auto r_3D_copy = r_3D;
+        Eigen::MatrixXd r_3D_marked = Eigen::MatrixXd::Zero(particle_count, 3);
+        Eigen::VectorXi originalRowIndices(particle_count); // To store original row indices
+
+        int rowIndex = 0; // To keep track of the row in r_3D_marked
+        for (int i = 0; i < marked_outside_particle.size(); ++i) {
+            if (marked_outside_particle(i) == 1) {
+                // add the row of the Eigen::MatrixXd r_3D_marked object
+                r_3D_marked.row(rowIndex) = r_3D.row(i);
+                originalRowIndices(rowIndex) = i;
+                rowIndex++;
+            }
+        }
+        r_3D_marked.conservativeResize(rowIndex, 3);
+
+        // Set the marked 3D particles as the only particles for pulling their 2D data
+        r_3D = r_3D_marked;
+
+        auto r_UV_mapped = cell.get_r2d();
+        r_3D = r_3D_copy;
+        auto n_compass = virtual_mesh.get_n_orientation(r_UV_mapped, original_pole, n_pole);
+
+        // Map back:
+        for (int i = 0; i < r_3D_marked.rows(); ++i) {
+            int originalRow = originalRowIndices(i);
+
+            r_UV.row(originalRow) = r_UV_mapped.row(i);
+            n(originalRow) = n_compass(i);
+        }
+
+        // Only assign for the new n values where the particle left the original mesh
+        for (int i = 0; i < marked_outside_particle.size(); ++i) {
+            if (marked_outside_particle(i) == 0) {
+                r_UV.row(i) = particle_change[i].original_r_UV;
+            }
+        }
     }
 
     // Error checking
-    validation_ptr->error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
-    validation_ptr->error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
+    // validation_ptr->error_invalid_3D_values(particle_change);  // 1. Check if the 3D coordinates are valid
+    validation_ptr->error_lost_particles(r_UV, particle_count);  // 2. Check if we lost particles
+    validation_ptr->error_invalid_values(r_UV);  // 3. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
     count_particle_neighbors();
-
-    // The new UV coordinates are the old ones for the next step
-    r_UV_old = r_UV;
 
     // Calculate the order parameter
     linear_algebra_ptr->calculate_order_parameter(v_order, r_UV, r_dot, current_step);
@@ -256,13 +396,22 @@ void _2DTissue::save_our_data() {
 
 
 System _2DTissue::update(){
+    // The new coordinates are the old ones for the next step
+    r_UV_old = r_UV;
+    r_3D_old = r_3D;
+
+    // Get the relative orientation of the particles
+    n_pole_old = virtual_mesh.get_relative_orientation();
+    n_pole = n_pole_old;
+
+    auto inside_UV_id = get_inside_UV_id();
+    set_new_particle_data(inside_UV_id);
+
+    // reset mark_outside to false
+    mark_outside = false;
+    actual_mesh_id = 0;
     // Simulate the particles on the 2D surface
     perform_particle_simulation();
-
-    // Get the 3D vertices coordinates from the 2D particle position coordinates
-    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
-    vertices_3D_active = new_vertices_3D_active;
-    r_3D = new_r_3D;
 
     std::vector<Particle> particles;
     // start for loop
@@ -272,8 +421,7 @@ System _2DTissue::update(){
         p.y_UV = r_UV(i, 1);
         p.x_velocity_UV = r_dot(i, 0);
         p.y_velocity_UV = r_dot(i, 1);
-        p.x_alignment_UV = n(i, 0);
-        p.y_alignment_UV = n(i, 1);
+        p.alignment_UV = n(i, 0);
         p.x_3D = r_3D(i, 0);
         p.y_3D = r_3D(i, 1);
         p.z_3D = r_3D(i, 2);

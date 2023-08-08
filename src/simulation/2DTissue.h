@@ -27,27 +27,9 @@
 #include "Cell.h"
 #include "Simulator.h"
 #include "Validation.h"
-
-// Individuelle Partikel Informationen
-struct Particle{
-    double x_UV;
-    double y_UV;
-    double x_velocity_UV;
-    double y_velocity_UV;
-    double x_alignment_UV;
-    double y_alignment_UV;
-    double x_3D;
-    double y_3D;
-    double z_3D;
-    int neighbor_count;
-};
-
-// System Informationen
-struct System{
-    double order_parameter;
-    std::vector<Particle> particles;
-};
-
+#include "VirtualMesh.h"
+#include "Struct.h"
+#include "Compass.h"
 
 class _2DTissue
 {
@@ -55,6 +37,7 @@ private:
     // Include here your class variables (the ones used in start and update methods)
     bool save_data;
     bool particle_innenleben;
+    bool bool_exact_simulation;
     std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
     int particle_count;
     std::string mesh_path;
@@ -71,17 +54,21 @@ private:
     int current_step;
     int map_cache_count;
     bool finished;
+    std::vector<VertexData> particle_change;
 
     std::unique_ptr<Cell> cell_ptr;
-    std::unique_ptr<GeometryProcessing> geometry_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
     std::unique_ptr<Validation> validation_ptr;
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
     Eigen::MatrixXd r_3D;
+    Eigen::MatrixXd r_3D_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
-    Eigen::VectorXd n;
+    Eigen::VectorXi n;
+    Eigen::Vector2d original_pole;
+    Eigen::VectorXi n_pole;
+    Eigen::VectorXi n_pole_old;
     std::vector<int> particles_color;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;
@@ -93,12 +80,16 @@ private:
     Eigen::MatrixXd vertice_UV;
     Eigen::MatrixXd vertice_3D;
     std::vector<int64_t> h_v_mapping;
+    std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
     std::string mesh_file_path;
     double dt;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Simulator simulator;
     Cell cell;
+    VirtualMesh virtual_mesh;
+    Compass compass;
+    GeometryProcessing geometry_processing;
 
     // Differential Equation Simulation
     realtype reltol, abstol; // Tolerances
@@ -115,17 +106,53 @@ private:
     double startTime;
     double endTime;
     int numberOfPoints;
+    bool mark_outside;
 
     void perform_particle_simulation();
     void save_our_data();
     void count_particle_neighbors();
     static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
     void perform_sbml_simulation();
+    void set_new_particle_data(const std::set<int> inside_UV_id);
+    void update_if_valid(std::set<int> inside_UV_id);
+    void mark_outside_original(std::set<int> outside_UV_id, std::set<int> inside_UV_id);
+    int actual_mesh_id;
+    Eigen::VectorXi marked_outside_particle;
+
+    std::set<int> get_inside_UV_id() const {
+        std::set<int> inside_UV_id;
+        int nrows = r_UV.rows();
+        for (int i = 0; i < nrows; ++i) {
+            Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
+            if (is_inside_uv(first_two_columns)) {
+                inside_UV_id.insert(i);
+            }
+        }
+        return inside_UV_id;
+    };
+
+    std::set<int> get_outside_UV_id() const {
+        std::set<int> outside_UV_id;
+        int nrows = r_UV.rows();
+        for (int i = 0; i < nrows; ++i) {
+            Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
+            if (!is_inside_uv(first_two_columns)) {
+                outside_UV_id.insert(i);
+            }
+        }
+        return outside_UV_id;
+    };
+
+    // Check if the given point r is inside the UV parametrization bounds
+    static bool is_inside_uv(const Eigen::Vector2d& r_UV) {
+        return (0 <= r_UV[0] && r_UV[0] <= 1) && (0 <= r_UV[1] && r_UV[1] <= 1);
+    };
 
 public:
     _2DTissue(
         bool save_data,
         bool particle_innenleben,
+        bool bool_exact_simulation,
         std::string mesh_path,
         int particle_count,
         int step_count = 1,
@@ -146,4 +173,5 @@ public:
     Eigen::VectorXd get_order_parameter();
     friend class Simulator;
     friend class Cell;
+    friend class VirtualMesh;
 };
