@@ -18,4 +18,4 @@ The model described is a Vicsek type model (Vicsek et al. 1995, Physical review 
 
 ### Movie: Vicsek model on a Ellipsoid
 
-https://github.com/MorphoPhysics/2DTissue/assets/78916218/c1e1ad8e-04cd-4b7c-b9c9-130691f5741c
+https://github.com/MorphoPhysics/2DTissue/assets/78916218/3e87f9b8-a53f-4227-87ec-73a78f8c246a
