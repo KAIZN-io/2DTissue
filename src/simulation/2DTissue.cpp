@@ -326,17 +326,40 @@ void _2DTissue::perform_particle_simulation(){
             marked_outside_particle[i] = particle_change[i].virtual_mesh;
         }
 
-        // todo: improve the time consuming two lines of code
+        // Only get the 2D and n values for the particles that left the original mesh
+        auto r_3D_copy = r_3D;
+        Eigen::MatrixXd r_3D_marked = Eigen::MatrixXd::Zero(particle_count, 3);
+        Eigen::VectorXi originalRowIndices(particle_count); // To store original row indices
+
+        int rowIndex = 0; // To keep track of the row in r_3D_marked
+        for (int i = 0; i < marked_outside_particle.size(); ++i) {
+            if (marked_outside_particle(i) == 1) {
+                // add the row of the Eigen::MatrixXd r_3D_marked object
+                r_3D_marked.row(rowIndex) = r_3D.row(i);
+                originalRowIndices(rowIndex) = i;
+                rowIndex++;
+            }
+        }
+        r_3D_marked.conservativeResize(rowIndex, 3);
+
+        // Set the marked 3D particles as the only particles for pulling their 2D data
+        r_3D = r_3D_marked;
+
         auto r_UV_mapped = cell.get_r2d();
+        r_3D = r_3D_copy;
         auto n_compass = virtual_mesh.get_n_orientation(r_UV_mapped, original_pole, n_pole);
+
+        // Map back:
+        for (int i = 0; i < r_3D_marked.rows(); ++i) {
+            int originalRow = originalRowIndices(i);
+
+            r_UV.row(originalRow) = r_UV_mapped.row(i);
+            n(originalRow) = n_compass(i);
+        }
 
         // Only assign for the new n values where the particle left the original mesh
         for (int i = 0; i < marked_outside_particle.size(); ++i) {
-            if (marked_outside_particle(i) == 1) {
-                n(i) = n_compass(i);
-                r_UV.row(i) = r_UV_mapped.row(i);
-            }
-            else {
+            if (marked_outside_particle(i) == 0) {
                 r_UV.row(i) = particle_change[i].original_r_UV;
             }
         }
