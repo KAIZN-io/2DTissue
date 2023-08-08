@@ -313,6 +313,7 @@ void _2DTissue::perform_particle_simulation(){
             actual_mesh_id = 1;
             virtual_mesh.prepare_virtual_mesh(actual_mesh_id);
             perform_particle_simulation();
+            return;
         }
 
         // Restore the original UV mesh
@@ -325,8 +326,9 @@ void _2DTissue::perform_particle_simulation(){
             marked_outside_particle[i] = particle_change[i].virtual_mesh;
         }
 
+        // todo: improve the time consuming two lines of code
         auto r_UV_mapped = cell.get_r2d();
-        auto n_compass = virtual_mesh.get_n_orientation(r_UV, original_pole, n_pole);
+        auto n_compass = virtual_mesh.get_n_orientation(r_UV_mapped, original_pole, n_pole);
 
         // Only assign for the new n values where the particle left the original mesh
         for (int i = 0; i < marked_outside_particle.size(); ++i) {
