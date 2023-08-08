@@ -58,7 +58,7 @@ void Simulator::simulate_flight() {
     // Get distance vectors and calculate distances between particles
     auto dist_vect = get_dist_vect(r_UV);
 
-    get_distances_between_particles(dist_length, r_UV, distance_matrix, vertices_3D_active);
+    get_distances_between_particles(dist_length, distance_matrix, vertices_3D_active);
 
     // Calculate force between particles which pulls the particle in one direction within the 2D plane
     calculate_forces_between_particles(dist_vect);
@@ -235,11 +235,10 @@ std::vector<Eigen::MatrixXd> Simulator::get_dist_vect(const Eigen::Matrix<double
 */
 void Simulator::get_distances_between_particles(
     Eigen::MatrixXd& dist_length,
-    Eigen::Matrix<double, Eigen::Dynamic, 2> r,
     Eigen::MatrixXd distance_matrix,
     std::vector<int> vertice_3D_id
 ){
-    int num_part = r.rows();
+    int num_part = vertice_3D_id.size();
 
     // Use the #pragma omp parallel for directive to parallelize the outer loop
     // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them

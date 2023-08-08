@@ -30,7 +30,11 @@ public:
         double step_size,
         std::unique_ptr<LinearAlgebra> linear_algebra_ptr
     );
-
+    static void get_distances_between_particles(
+        Eigen::MatrixXd& dist_length,
+        Eigen::MatrixXd distance_matrix,
+        std::vector<int> vertice_3D_id
+    );
     void simulate_flight();
     void opposite_seam_edges_square_border();
     void diagonal_seam_edges_square_border();
@@ -51,12 +55,6 @@ private:
     void resize_F_track();
     static void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
     static std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
-    static void get_distances_between_particles(
-        Eigen::MatrixXd& dist_length,
-        Eigen::Matrix<double, Eigen::Dynamic, 2> r,
-        Eigen::MatrixXd distance_matrix,
-        std::vector<int> vertice_3D_id
-    );
     static void calculate_average_n_within_distance(
         const std::vector<Eigen::MatrixXd> dist_vect,
         const Eigen::MatrixXd dist_length,
