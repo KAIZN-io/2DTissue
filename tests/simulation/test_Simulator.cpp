@@ -21,7 +21,7 @@ protected:
           r_UV(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
           r_UV_old(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
           r_dot(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
-          n(Eigen::VectorXd()),
+          n(Eigen::VectorXi()),
           vertices_3D_active(std::vector<int>()),
           distance_matrix(Eigen::MatrixXd()),
           dist_length(Eigen::MatrixXd()),
@@ -31,7 +31,7 @@ protected:
 
     double v0, k, σ, μ, r_adh, k_adh, step_size;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV, r_UV_old, r_dot;
-    Eigen::VectorXd n;
+    Eigen::VectorXi n;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix, dist_length;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
@@ -264,7 +264,7 @@ TEST_F(SimulatorTest, GetDistVectTestTenDimensionTest) {
 /**
  * @brief Test the function calculate_average_n_within_distance
 */
-void CompareMatrices(const Eigen::MatrixXd& expected, const Eigen::MatrixXd& actual, double tolerance) {
+void CompareMatrices(const Eigen::MatrixXi& expected, const Eigen::MatrixXi& actual, double tolerance) {
     ASSERT_EQ(expected.rows(), actual.rows());
     ASSERT_EQ(expected.cols(), actual.cols());
 
@@ -318,13 +318,13 @@ TEST_F(SimulatorTest, AverageNWithinDistanceTest1){
             12.7292,  10.894, 7.80554, 5.19999, 5.71498, 12.4246, 3.28317,  11.829,       0, 11.2371,
             10.761, 10.6601, 6.77901, 11.8869, 6.17054, 3.59292, 12.8653, 16.5712, 11.2371,       0;
 
-    Eigen::VectorXd n(10);
+    Eigen::VectorXi n(10);
     n << 168, 154, 290, 83, 110, 46, 48, 144, 227, 48;
 
     sim.calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
-    Eigen::VectorXd expected_n(10);
-    expected_n << 161, 161, 191.31, 83, 191.31, 46, 48, 144, 227, 48;
+    Eigen::VectorXi expected_n(10);
+    expected_n << 161, 161, 191, 83, 191, 46, 48, 144, 227, 48;
 
     CompareMatrices(expected_n, n, 2);
 }
