@@ -17,8 +17,8 @@ public:
     Compass(const Eigen::Vector2d& original_pole)
         : original_pole_(original_pole) {}
 
-    Eigen::VectorXd calculate_n_pole(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::VectorXd& orientations) const {
-        Eigen::VectorXd n_pole_(positions.rows());
+    Eigen::VectorXi calculate_n_pole(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::VectorXi& orientations) const {
+        Eigen::VectorXi n_pole_(positions.rows());
 
         for(int i = 0; i < positions.rows(); i++) {
             Eigen::Vector2d position = positions.row(i);
@@ -30,8 +30,8 @@ public:
         return n_pole_;
     }
 
-    Eigen::VectorXd calculate_delta(const Eigen::Matrix<double, Eigen::Dynamic, 2>& start_points, const Eigen::Vector2d& end_point) const {
-        Eigen::VectorXd angles(start_points.rows());
+    Eigen::VectorXi calculate_delta(const Eigen::Matrix<double, Eigen::Dynamic, 2>& start_points, const Eigen::Vector2d& end_point) const {
+        Eigen::VectorXi angles(start_points.rows());
         Eigen::Vector2d upVector(0, 1); // A vector pointing directly up
 
         for(int i = 0; i < start_points.rows(); i++) {
@@ -42,11 +42,11 @@ public:
         return angles;
     }
 
-    Eigen::VectorXd assign_n(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::Vector2d& pole, const Eigen::VectorXd& n_pole_) const {
-        Eigen::VectorXd n_values(positions.rows());
+    Eigen::VectorXi assign_n(const Eigen::Matrix<double, Eigen::Dynamic, 2>& positions, const Eigen::Vector2d& pole, const Eigen::VectorXi& n_pole_) const {
+        Eigen::VectorXi n_values(positions.rows());
 
         // Calculate the angle between the vertical 0-degree line and the pole vector for each position
-        Eigen::VectorXd deltas = calculate_delta(positions, pole);
+        Eigen::VectorXi deltas = calculate_delta(positions, pole);
 
         for(int i = 0; i < positions.rows(); i++) {
             n_values(i) = fmod(deltas(i) - n_pole_(i) + 360, 360);

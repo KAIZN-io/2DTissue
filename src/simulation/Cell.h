@@ -19,7 +19,7 @@ public:
         std::vector<int64_t>& h_v_mapping,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
         Eigen::MatrixXd& r_3D,
-        Eigen::VectorXd& n
+        Eigen::VectorXi& n
     );
 
     void init_particle_position();
@@ -36,7 +36,7 @@ private:
     std::vector<int64_t>& h_v_mapping;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
     Eigen::MatrixXd& r_3D;
-    Eigen::VectorXd& n;
+    Eigen::VectorXi& n;
 
     std::pair<Eigen::Vector3d, int> calculate_barycentric_3D_coord(int interator);
     Eigen::Vector3d calculate_barycentric_2D_coord(int iterator);

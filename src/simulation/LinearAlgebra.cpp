@@ -14,7 +14,7 @@
  *
  * @info: Unittest implemented
 */
-Eigen::Matrix<double, Eigen::Dynamic, 2> LinearAlgebra::angles_to_unit_vectors(const Eigen::VectorXd avg_n) {
+Eigen::Matrix<double, Eigen::Dynamic, 2> LinearAlgebra::angles_to_unit_vectors(const Eigen::VectorXi avg_n) {
     if (avg_n.cols() != 1) {
         throw std::invalid_argument("The input matrix must have exactly 1 column.");
     }

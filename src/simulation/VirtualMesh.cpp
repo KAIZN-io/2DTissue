@@ -14,7 +14,7 @@ VirtualMesh::VirtualMesh(
     Eigen::MatrixXd& vertice_UV,
     std::vector<int64_t>& h_v_mapping,
     int particle_count,
-    Eigen::VectorXd& n,
+    Eigen::VectorXi& n,
     Eigen::MatrixXi& face_3D,
     Eigen::MatrixXd& vertice_3D,
     Eigen::MatrixXd& distance_matrix,
@@ -88,19 +88,19 @@ void VirtualMesh::prepare_virtual_mesh(int mesh_id) {
     // ! todo: diese zwei Schritte dauern ZU lang!
     // Add the particles to the new map
     r_UV = cell.get_r2d();
-    assign_particle_orientation(n_pole, northPole_virtual);
+    assign_particle_orientation(northPole_virtual, n_pole);
 }
 
 
-Eigen::VectorXd VirtualMesh::get_n_orientation(Eigen::Matrix<double, Eigen::Dynamic, 2> position_, Eigen::Vector2d northPole_, Eigen::VectorXd n_pole_) {
-    return compass.assign_n(position_, northPole_, n_pole_);
+Eigen::VectorXi VirtualMesh::get_n_orientation(Eigen::Matrix<double, Eigen::Dynamic, 2> position_, Eigen::Vector2d pole_coordinate, Eigen::VectorXi n_pole_) {
+    return compass.assign_n(position_, pole_coordinate, n_pole_);
 }
 
-void VirtualMesh::assign_particle_orientation(Eigen::Vector2d northPole_, Eigen::VectorXd n_pole_){
-    n = compass.assign_n(r_UV, northPole_, n_pole_);
+void VirtualMesh::assign_particle_orientation(Eigen::Vector2d pole_coordinate, Eigen::VectorXi n_pole_){
+    n = compass.assign_n(r_UV, pole_coordinate, n_pole_);
 }
 
-Eigen::VectorXd VirtualMesh::get_relative_orientation(){
+Eigen::VectorXi VirtualMesh::get_relative_orientation(){
     return compass.calculate_n_pole(r_UV, n);
 }
 

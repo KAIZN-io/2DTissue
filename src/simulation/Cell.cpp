@@ -27,7 +27,7 @@ Cell::Cell(
     std::vector<int64_t>& h_v_mapping,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::MatrixXd& r_3D,
-    Eigen::VectorXd& n
+    Eigen::VectorXi& n
 )
     : particle_count(particle_count),
     halfedge_UV(halfedge_UV),
