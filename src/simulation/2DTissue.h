@@ -62,10 +62,12 @@ private:
 
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_old;
+    Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_filtered;
     Eigen::MatrixXd r_3D;
     Eigen::MatrixXd r_3D_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
     Eigen::VectorXi n;
+    Eigen::VectorXi n_filtered;
     Eigen::Vector2d original_pole;
     Eigen::VectorXi n_pole;
     Eigen::VectorXi n_pole_old;
@@ -130,6 +132,11 @@ private:
         }
         return inside_UV_id;
     };
+    void get_particles_near_outside_particles(
+        std::vector<int> particles_near_border,
+        std::vector<int>& particles_for_resimulation
+    );
+    void filter_particles_for_resimulation(std::vector<int> particles_outside_UV);
 
     std::set<int> get_outside_UV_id() const {
         std::set<int> outside_UV_id;

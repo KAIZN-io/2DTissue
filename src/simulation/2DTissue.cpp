@@ -273,6 +273,42 @@ void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
     }
 }
 
+void _2DTissue::get_particles_near_outside_particles(
+    std::vector<int> particles_near_border,
+    std::vector<int>& particles_for_resimulation
+) {
+    int num_part = particles_near_border.size();
+
+    for (int i = 0; i < num_part; i++) {
+        for (int j = 0; j < particle_count; j++) {
+            // Get only the particles that within distance < 2 * σ from the leaving particles, because only in this distance they feel their forces
+            if (distance_matrix(particles_near_border[i], vertices_3D_active[j]) < 2 * σ) {
+                if (std::find(particles_for_resimulation.begin(), particles_for_resimulation.end(), j) == particles_for_resimulation.end()) {
+                    particles_for_resimulation.push_back(j);
+                }
+            }
+        }
+    }
+}
+
+
+void _2DTissue::filter_particles_for_resimulation(std::vector<int> particles_outside_UV){
+    std::vector<int> particles_for_resimulation;
+
+    if (particles_outside_UV.size() != 0){
+        get_particles_near_outside_particles(particles_outside_UV, particles_for_resimulation);
+    }
+
+    r_UV_filtered.resize(particles_for_resimulation.size(), 2);
+    n_filtered.resize(particles_for_resimulation.size());
+    int rowIndex_filter = 0;
+    for (int i : particles_for_resimulation) {
+        r_UV_filtered.row(rowIndex_filter) = r_UV_old.row(i);
+        n_filtered[rowIndex_filter] = n[i];
+        rowIndex_filter++;
+    }
+}
+
 
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
@@ -300,13 +336,20 @@ void _2DTissue::perform_particle_simulation(){
     update_if_valid(inside_UV_id);
 
     if (bool_exact_simulation){
+        std::vector<int> particles_outside_UV;
 
         // Mark the particles that are outside the original UV mesh
         if (!mark_outside){
             std::set<int> outside_UV_id = get_outside_UV_id();
+            for (int i : outside_UV_id) {
+                particles_outside_UV.push_back(vertices_3D_active[i]);
+            }
+
             mark_outside_original(outside_UV_id, inside_UV_id);
             mark_outside = true;
         }
+
+        filter_particles_for_resimulation(particles_outside_UV);
 
         // Rerun the simulation with the virtual UV mesh
         if (actual_mesh_id == 0){
