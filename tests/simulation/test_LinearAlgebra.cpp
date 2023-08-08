@@ -12,7 +12,7 @@ std::unique_ptr<LinearAlgebra> linear_algebra_ptr = std::make_unique<LinearAlgeb
 
 TEST(LinearAlgebraTest, BasicAssertions) {
     // Set up the test input
-    Eigen::VectorXd avg_n(6);
+    Eigen::VectorXi avg_n(6);
     avg_n << 0, 45, 90, 180, 270, 360;
 
     // Call the function

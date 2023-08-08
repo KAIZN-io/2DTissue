@@ -26,10 +26,10 @@ TEST_F(CompassTest, TestCalculateNPole) {
                  0.440034, 0.400082,
                  0.293719, 0.423743,
                   0.67198, 0.531419;
-    Eigen::VectorXd orientations(6);
+    Eigen::VectorXi orientations(6);
     orientations << 0.0, 90.0, 270.0, 273, 321, 339;
 
-    Eigen::VectorXd result = compass.calculate_n_pole(positions, orientations);
+    Eigen::VectorXi result = compass.calculate_n_pole(positions, orientations);
 
     double tolerance = 3;
     EXPECT_DOUBLE_EQ(result(0), 270.0);
@@ -51,7 +51,7 @@ TEST_F(CompassTest, TestCalculateDelta) {
                     0.1, 0.4;
     Eigen::Vector2d end_point(0.2, 0.5);
 
-    Eigen::VectorXd result = compass.calculate_delta(start_points, end_point);
+    Eigen::VectorXi result = compass.calculate_delta(start_points, end_point);
     EXPECT_DOUBLE_EQ(result(0), 270.0);
     EXPECT_DOUBLE_EQ(result(1), 0.0);
     EXPECT_DOUBLE_EQ(result(2), 180.0);
@@ -66,26 +66,26 @@ TEST_F(CompassTest, TestCalculateN) {
                  0.3, 0.4,
                  0.1021, 0.3,
                  0.83421, 0.9347795;
-    Eigen::VectorXd n_start(4);
-    n_start << 10.0, 90.0, 270.0, 133.1;
+    Eigen::VectorXi n_start(4);
+    n_start << 10.0, 90.0, 270.0, 133;
 
-    Eigen::VectorXd n_pole = compass.calculate_n_pole(positions, n_start);
-    Eigen::VectorXd result = compass.assign_n(positions, original_pole, n_pole);
+    Eigen::VectorXi n_pole = compass.calculate_n_pole(positions, n_start);
+    Eigen::VectorXi result = compass.assign_n(positions, original_pole, n_pole);
 
     double tolerance = 3;
     EXPECT_NEAR(result(0), 10.0, tolerance);
     EXPECT_NEAR(result(1), 90.0, tolerance);
     EXPECT_NEAR(result(2), 270.0, tolerance);
-    EXPECT_NEAR(result(3), 133.1, tolerance);
+    EXPECT_NEAR(result(3), 133, tolerance);
 }
 
 TEST_F(CompassTest, TestCalculateN_Base) {
     Eigen::Matrix<double, Eigen::Dynamic, 2> positions(1, 2);
     positions << 0.67198, 0.531419;
-    Eigen::VectorXd n_pole(1);
+    Eigen::VectorXi n_pole(1);
     n_pole << 250;
 
-    Eigen::VectorXd result = compass.assign_n(positions, original_pole, n_pole);
+    Eigen::VectorXi result = compass.assign_n(positions, original_pole, n_pole);
 
     double tolerance = 3;
     EXPECT_NEAR(result(0), 339, tolerance);
