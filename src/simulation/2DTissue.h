@@ -118,14 +118,13 @@ private:
     void perform_sbml_simulation();
     void set_new_particle_data(const std::set<int> inside_UV_id);
     void update_if_valid(std::set<int> inside_UV_id);
-    void mark_outside_original(std::set<int> outside_UV_id, std::set<int> inside_UV_id);
     int actual_mesh_id;
     Eigen::VectorXi marked_outside_particle;
-    std::vector<int> simulated_particles;
+    std::vector<bool> simulated_particles;
     std::vector<int> particles_outside_UV;
 
-    void mark_outside_original(std::set<int> inside_UV_id);
-    void rerun_simulation(std::set<int> inside_UV_id);
+    void mark_outside_original();
+    void rerun_simulation();
     void get_all_data();
     void map_marked_particles_to_original_mesh();
     void restore_correct_r_UV();
@@ -135,7 +134,7 @@ private:
         int count_ones = 0;  // to keep track of the number of '1' values we've seen so far
         for (int i = 0; i < nrows; ++i) {
             // Find the next '1' value
-            while (count_ones < simulated_particles.size() && simulated_particles[count_ones] != 1) {
+            while (count_ones < simulated_particles.size() && simulated_particles[count_ones] != true) {
                 ++count_ones;
             }
 
