@@ -67,6 +67,7 @@ private:
     Eigen::MatrixXd r_3D_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
     Eigen::VectorXi n;
+    Eigen::VectorXi n_old;
     Eigen::VectorXi n_filtered;
     Eigen::Vector2d original_pole;
     Eigen::VectorXi n_pole;
@@ -120,15 +121,30 @@ private:
     void mark_outside_original(std::set<int> outside_UV_id, std::set<int> inside_UV_id);
     int actual_mesh_id;
     Eigen::VectorXi marked_outside_particle;
+    std::vector<int> simulated_particles;
+    std::vector<int> particles_outside_UV;
 
+    void mark_outside_original(std::set<int> inside_UV_id);
+    void rerun_simulation(std::set<int> inside_UV_id);
+    void get_all_data();
+    void map_marked_particles_to_original_mesh();
+    void restore_correct_r_UV();
     std::set<int> get_inside_UV_id() const {
         std::set<int> inside_UV_id;
         int nrows = r_UV.rows();
+        int count_ones = 0;  // to keep track of the number of '1' values we've seen so far
         for (int i = 0; i < nrows; ++i) {
+            // Find the next '1' value
+            while (count_ones < simulated_particles.size() && simulated_particles[count_ones] != 1) {
+                ++count_ones;
+            }
+
             Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
             if (is_inside_uv(first_two_columns)) {
-                inside_UV_id.insert(i);
+                // Insert the row index of the '1' value into the set
+                inside_UV_id.insert(count_ones);
             }
+            ++count_ones; 
         }
         return inside_UV_id;
     };
