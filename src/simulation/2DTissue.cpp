@@ -340,7 +340,7 @@ void _2DTissue::rerun_simulation(){
 
 
 void _2DTissue::get_all_data(){
-    for (size_t i = 0; i < particle_change.size(); ++i) {
+    for (size_t i = 0; i < particle_count; ++i) {
         r_3D.row(i) = particle_change[i].next_particle_3D;
         n[i] = particle_change[i].next_n;
         n_pole[i] = particle_change[i].next_n_pole;
@@ -349,8 +349,11 @@ void _2DTissue::get_all_data(){
 }
 
 
+/**
+ * Get the 2D coordinates for particles which stayed on the original UV mesh
+*/
 void _2DTissue::restore_correct_r_UV(){
-    for (int i = 0; i < marked_outside_particle.size(); ++i) {
+    for (int i = 0; i < particle_count; ++i) {
         if (marked_outside_particle(i) == false) {
             r_UV.row(i) = particle_change[i].original_r_UV;
         }
@@ -366,9 +369,9 @@ void _2DTissue::map_marked_particles_to_original_mesh()
     Eigen::VectorXi originalRowIndices(particle_count); // To store original row indices
 
     int rowIndex = 0; // To keep track of the row in r_3D_marked
-    for (int i = 0; i < marked_outside_particle.size(); ++i) {
+    for (int i = 0; i < particle_count; ++i) {
         if (marked_outside_particle(i) == true) {
-            // add the row of the Eigen::MatrixXd r_3D_marked object
+            // Add the row of the Eigen::MatrixXd r_3D_marked object
             r_3D_marked.row(rowIndex) = r_3D.row(i);
             originalRowIndices(rowIndex) = i;
             rowIndex++;
@@ -421,7 +424,6 @@ void _2DTissue::perform_particle_simulation(){
 
     // Sometimes we have ro resimulate for the particles that are outside the UV mesh
     if (bool_exact_simulation && inside_UV_id.size() != particle_count && actual_mesh_id == 0){
-        std::cout << "Resimulating for particles that left the original mesh" << std::endl;
         rerun_simulation();
         return;
     }
@@ -436,12 +438,15 @@ void _2DTissue::perform_particle_simulation(){
         get_all_data();
 
         // Map the particles data that left the original mesh to the correct mesh
-        map_marked_particles_to_original_mesh();
+        if (mark_outside) {
+            map_marked_particles_to_original_mesh();
+            particles_outside_UV.clear();
 
-        // Restore the correct r_UV values, because the barycentric coordinates are not precise enough
-        restore_correct_r_UV();
+            // Restore the correct r_UV values, because the barycentric coordinates are not precise enough
+            restore_correct_r_UV();
+        }
     }
-
+    std::cout << "size of r_UV: " << r_UV.rows() << std::endl;
     // Error checking
     // validation_ptr->error_invalid_3D_values(particle_change);  // 1. Check if the 3D coordinates are valid
     validation_ptr->error_lost_particles(r_UV, particle_count);  // 2. Check if we lost particles
