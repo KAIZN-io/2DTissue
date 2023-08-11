@@ -332,7 +332,6 @@ void _2DTissue::rerun_simulation(){
     // Mark the particles that are outside the original UV mesh
     mark_outside_original();
     filter_particles_for_resimulation(particles_outside_UV);
-    std::cout << "Number of particles for resimulation after filtering: " << particles_outside_UV.size() << std::endl;
 
     actual_mesh_id = 1;
     virtual_mesh.prepare_virtual_mesh(actual_mesh_id);
@@ -418,12 +417,11 @@ void _2DTissue::perform_particle_simulation(){
 
     // Update the particle 3D position in our control data structure
     std::set<int> inside_UV_id = get_inside_UV_id();
-    std::cout << "Number of particles inside the UV mesh: " << inside_UV_id.size() << std::endl;
     update_if_valid(inside_UV_id);
-
 
     // Sometimes we have ro resimulate for the particles that are outside the UV mesh
     if (bool_exact_simulation && inside_UV_id.size() != particle_count && actual_mesh_id == 0){
+        std::cout << "Resimulating for particles that left the original mesh" << std::endl;
         rerun_simulation();
         return;
     }
@@ -436,18 +434,12 @@ void _2DTissue::perform_particle_simulation(){
         // ! next to marked_outside_particle we need the information of simulated_particles, which is equal or more than marked_outside_particle 
         // Get all data from the struct, even they are not completly correct
         get_all_data();
-        std::cout << "Got all data" << std::endl;
 
         // Map the particles data that left the original mesh to the correct mesh
         map_marked_particles_to_original_mesh();
-        std::cout << "Mapped marked particles to original mesh" << std::endl;
 
         // Restore the correct r_UV values, because the barycentric coordinates are not precise enough
         restore_correct_r_UV();
-        std::cout << "Restored correct r_UV values" << std::endl;
-
-        // Empty particles_outside_UV
-        particles_outside_UV.clear();
     }
 
     // Error checking
