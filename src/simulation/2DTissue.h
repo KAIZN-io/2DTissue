@@ -135,7 +135,7 @@ private:
         std::vector<int> particles_near_border,
         std::vector<int>& particles_for_resimulation
     );
-    void filter_particles_for_resimulation(std::vector<int> particles_outside_UV);
+    void filter_old_particles_data_for_resimulation(std::vector<int> particles_outside_UV);
 
     // Check if the given point r is inside the UV parametrization bounds
     static bool is_inside_uv(const Eigen::Vector2d& r_UV) {

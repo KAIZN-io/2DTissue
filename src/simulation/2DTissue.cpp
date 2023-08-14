@@ -308,6 +308,7 @@ void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
 
 
 // Tested and it works
+// 14 AUG 2023
 void _2DTissue::get_particles_near_outside_particles(
     std::vector<int> particles_near_border,
     std::vector<int>& particles_for_resimulation
@@ -329,7 +330,8 @@ void _2DTissue::get_particles_near_outside_particles(
 
 
 // Tested and it works. Please take notice that we want r_UV_old and not r_UV. Switch r_UV_old with r_UV to see that we get the correct results
-void _2DTissue::filter_particles_for_resimulation(std::vector<int> particles_outside_UV){
+// 14 AUG 2023
+void _2DTissue::filter_old_particles_data_for_resimulation(std::vector<int> particles_outside_UV){
     std::vector<int> particles_for_resimulation;
 
     if (particles_outside_UV.size() != 0){ 
@@ -376,8 +378,8 @@ void _2DTissue::rerun_simulation(std::set<int> inside_UV_id){
 
     // Mark the particles that are outside the original UV mesh
     mark_outside_original(inside_UV_id);
-    filter_particles_for_resimulation(particles_outside_UV);
-    std::cout << r_UV << std::endl;
+    filter_old_particles_data_for_resimulation(particles_outside_UV);
+
     actual_mesh_id = 1;
     virtual_mesh.prepare_virtual_mesh(actual_mesh_id);
     perform_particle_simulation();
