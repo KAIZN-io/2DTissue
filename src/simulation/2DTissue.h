@@ -55,7 +55,8 @@ private:
     int map_cache_count;
     bool finished;
     std::vector<VertexData> particle_change;
-
+    int test_outside_ID;
+    
     std::unique_ptr<Cell> cell_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
     std::unique_ptr<Validation> validation_ptr;
@@ -123,13 +124,13 @@ private:
     std::vector<bool> simulated_particles;
     std::vector<int> particles_outside_UV;
 
-    void mark_outside_original();
-    void rerun_simulation();
+    void mark_outside_original(std::set<int> inside_UV_id);
+    void rerun_simulation(std::set<int> inside_UV_id);
     void get_all_data();
     void map_marked_particles_to_original_mesh();
     void restore_correct_r_UV();
-    std::set<int> get_inside_UV_id() const;
-    std::set<int> get_outside_UV_id() const;
+    std::set<int> get_inside_UV_id();
+    std::set<int> get_outside_UV_id(std::set<int> inside_UV_id);
     void get_particles_near_outside_particles(
         std::vector<int> particles_near_border,
         std::vector<int>& particles_for_resimulation

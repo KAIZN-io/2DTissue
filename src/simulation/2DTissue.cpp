@@ -306,18 +306,21 @@ void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
     }
 }
 
+
+// Tested and it works
 void _2DTissue::get_particles_near_outside_particles(
     std::vector<int> particles_near_border,
     std::vector<int>& particles_for_resimulation
 ) {
     int num_part = particles_near_border.size();
+    int active_vertices = vertices_3D_active.size();
 
     for (int i = 0; i < num_part; i++) {
-        for (int j = 0; j < particle_count; j++) {
+        for (int particle_row = 0; particle_row < active_vertices; particle_row++) {
             // Get only the particles that within distance < 2 * σ from the leaving particles, because only in this distance they feel their forces
-            if (distance_matrix(particles_near_border[i], vertices_3D_active[j]) < 2 * σ) {
-                if (std::find(particles_for_resimulation.begin(), particles_for_resimulation.end(), j) == particles_for_resimulation.end()) {
-                    particles_for_resimulation.push_back(j);
+            if (distance_matrix(particles_near_border[i], vertices_3D_active[particle_row]) < 2 * σ) {
+                if (std::find(particles_for_resimulation.begin(), particles_for_resimulation.end(), particle_row) == particles_for_resimulation.end()) {
+                    particles_for_resimulation.push_back(particle_row);
                 }
             }
         }
@@ -325,11 +328,11 @@ void _2DTissue::get_particles_near_outside_particles(
 }
 
 
-// ! Bug
+// Tested and it works. Please take notice that we want r_UV_old and not r_UV. Switch r_UV_old with r_UV to see that we get the correct results
 void _2DTissue::filter_particles_for_resimulation(std::vector<int> particles_outside_UV){
     std::vector<int> particles_for_resimulation;
 
-    if (particles_outside_UV.size() != 0){
+    if (particles_outside_UV.size() != 0){ 
         get_particles_near_outside_particles(particles_outside_UV, particles_for_resimulation);
     }
 
@@ -337,6 +340,7 @@ void _2DTissue::filter_particles_for_resimulation(std::vector<int> particles_out
     n_filtered.resize(particles_for_resimulation.size());
     int rowIndex_filter = 0;
     for (int i : particles_for_resimulation) {
+        // find the row of the 3D active particle ID
         r_UV_filtered.row(rowIndex_filter) = r_UV_old.row(i);
         n_filtered[rowIndex_filter] = n_old[i];
         rowIndex_filter++;
@@ -344,8 +348,6 @@ void _2DTissue::filter_particles_for_resimulation(std::vector<int> particles_out
     }
     n = n_filtered;
     r_UV = r_UV_filtered;
-
-    std::cout << "r_UV_filtered: " << r_UV_filtered << std::endl;
 }
 
 
