@@ -129,23 +129,12 @@ private:
     void map_marked_particles_to_original_mesh();
     void restore_correct_r_UV();
     std::set<int> get_inside_UV_id() const;
+    std::set<int> get_outside_UV_id() const;
     void get_particles_near_outside_particles(
         std::vector<int> particles_near_border,
         std::vector<int>& particles_for_resimulation
     );
     void filter_particles_for_resimulation(std::vector<int> particles_outside_UV);
-
-    std::set<int> get_outside_UV_id() const {
-        std::set<int> outside_UV_id;
-        int nrows = r_UV.rows();
-        for (int i = 0; i < nrows; ++i) {
-            Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
-            if (!is_inside_uv(first_two_columns)) {
-                outside_UV_id.insert(i);
-            }
-        }
-        return outside_UV_id;
-    };
 
     // Check if the given point r is inside the UV parametrization bounds
     static bool is_inside_uv(const Eigen::Vector2d& r_UV) {

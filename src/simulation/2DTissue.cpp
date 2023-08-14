@@ -238,25 +238,36 @@ void _2DTissue::count_particle_neighbors() {
 
 std::set<int> _2DTissue::get_inside_UV_id() const {
     std::set<int> inside_UV_id;
-    int nrows = r_UV.rows();
-    int particle_ID = 0;  // to keep track of the number of '1' values we've seen so far
+    int particle_ID = 0;  // to keep track of the number of 'true' values we've seen so far
+    int trueCount = 0;
 
-    for (int i = 0; i < nrows; ++i) {
-        // Find the next 'true' value
-        while (particle_ID < particle_count && simulated_particles[particle_ID] != true) {
-            ++particle_ID;
+    while (trueCount < r_UV.rows() && particle_ID < particle_count) {
+        if (simulated_particles[particle_ID] == true) {
+            Eigen::Vector2d first_two_columns = r_UV.row(particle_ID).head<2>();
+            if (is_inside_uv(first_two_columns)) {
+                inside_UV_id.insert(particle_ID);
+            }
+            ++trueCount;
         }
-        Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
-
-        if (is_inside_uv(first_two_columns)) {
-            // Insert the row index of the '1' value into the set
-            inside_UV_id.insert(particle_ID);
-        }
-
         ++particle_ID;
     }
 
     return inside_UV_id;
+};
+
+
+std::set<int> _2DTissue::get_outside_UV_id() const {
+    std::set<int> inside_UV_id = get_inside_UV_id();
+    std::set<int> outside_UV_id;
+
+    int nrows = r_UV.rows();
+    for (int i = 0; i < nrows; ++i) {
+        if (inside_UV_id.find(i) == inside_UV_id.end()) {
+            outside_UV_id.insert(i);
+        }
+    }
+
+    return outside_UV_id;
 };
 
 
@@ -338,7 +349,7 @@ void _2DTissue::mark_outside_original()
 {
     if (!mark_outside){
         std::set<int> outside_UV_id = get_outside_UV_id();
-        std::cout << "size of outside particles : " << outside_UV_id.size() << std::endl;
+
         for (int i : outside_UV_id) {
             particles_outside_UV.push_back(vertices_3D_active[i]);
         }
@@ -356,7 +367,6 @@ void _2DTissue::mark_outside_original()
 void _2DTissue::rerun_simulation(){
     // Set all particles to invalid to later activate only the filtered particles to True
     simulated_particles.assign(particle_count, false);
-
 
     // Mark the particles that are outside the original UV mesh
     mark_outside_original();
@@ -406,7 +416,6 @@ void _2DTissue::map_marked_particles_to_original_mesh()
 
     for (int particle_ID = 0; particle_ID < particle_count; ++particle_ID) {
         if (marked_outside_particle(particle_ID) == true) {
-            std::cout << "particle ID : " << particle_ID << std::endl;
             r_3D_marked.row(rowIndex) = r_3D.row(particle_ID);
             trueRowIDs(rowIndex) = particle_ID;
             rowIndex++;
@@ -416,8 +425,8 @@ void _2DTissue::map_marked_particles_to_original_mesh()
 
     // Set the marked 3D particles as the only particles for pulling their 2D data
     r_3D = r_3D_marked;
+
     auto r_UV_mapped = cell.get_r2d();
-    std::cout << "r_UV from virtual mesh " << r_UV_mapped << std::endl;
     auto n_compass = virtual_mesh.get_n_orientation(r_UV_mapped, original_pole, n_pole);
 
     // Get all the original data back
