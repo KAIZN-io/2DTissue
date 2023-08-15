@@ -2,15 +2,9 @@
 
 This physics engine *2DTissue* was developed to simulate the collective behaviour of active (self-propelled) particles on arbitrary curved closed surfaces.
 
-## Init the Project
+## How to compile the C++ code 
 
-run `make init` to initialize the project. With this the required packages for C++ and Julia will be installed.
-
-## Compile the C++ code
-
-1. register your C++ script in the CMakeLists.txt file
-2. open a terminal in the root of the project
-3. run `make build` to compile the C++ code
+Simply run `make` in your terminal in the root of this project and everything will get installed and compiled.
 
 ## Theoretical Model
 
