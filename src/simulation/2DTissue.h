@@ -124,8 +124,8 @@ private:
     std::vector<bool> simulated_particles;
     std::vector<int> particles_outside_UV;
 
-    void mark_outside_original(std::vector<int> inside_UV_id);
-    void rerun_simulation(std::vector<int> inside_UV_id);
+    void mark_outside_original();
+    void rerun_simulation();
     void get_all_data_without_r_UV();
     void map_marked_particles_to_original_mesh();
     void get_particles_near_outside_particles(

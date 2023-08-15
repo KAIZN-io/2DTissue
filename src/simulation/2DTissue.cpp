@@ -285,7 +285,7 @@ void _2DTissue::filter_old_particles_data_for_resimulation(std::vector<int> part
 }
 
 
-void _2DTissue::mark_outside_original(std::vector<int> inside_UV_id)
+void _2DTissue::mark_outside_original()
 {
     if (!mark_outside){
         std::vector<int> outside_UV_id = simulator_helper.get_outside_UV_id();
@@ -301,12 +301,12 @@ void _2DTissue::mark_outside_original(std::vector<int> inside_UV_id)
 }
 
 
-void _2DTissue::rerun_simulation(std::vector<int> inside_UV_id){
+void _2DTissue::rerun_simulation(){
     // Set all particles to invalid to later activate only the filtered particles to True
     simulated_particles.assign(particle_count, false);
 
     // Mark the particles that are outside the original UV mesh
-    mark_outside_original(inside_UV_id);
+    mark_outside_original();
     filter_old_particles_data_for_resimulation(particles_outside_UV);
 
     actual_mesh_id = 1;
@@ -407,7 +407,7 @@ void _2DTissue::perform_particle_simulation(){
 
     // Sometimes we have ro resimulate for the particles that are outside the UV mesh
     if (bool_exact_simulation && inside_UV_id.size() != particle_count && actual_mesh_id == 0){
-        rerun_simulation(inside_UV_id);
+        rerun_simulation();
 
         return;
     }
