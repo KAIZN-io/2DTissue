@@ -65,6 +65,7 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false),
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
+    simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old),
     cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
     virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(validation_ptr)),
     compass(original_pole)
@@ -236,77 +237,6 @@ void _2DTissue::count_particle_neighbors() {
 }
 
 
-std::set<int> _2DTissue::get_inside_UV_id() {
-    std::set<int> inside_UV_id;
-    int particle_row_ID = 0;  // to keep track of the number of 'true' values we've seen so far
-    int trueCount = 0;
-
-    while (trueCount < r_UV.rows() && particle_row_ID < particle_count) {
-        if (simulated_particles[particle_row_ID] == true) {
-            Eigen::Vector2d first_two_columns = r_UV.row(particle_row_ID).head<2>();
-            if (is_inside_uv(first_two_columns)) {
-                inside_UV_id.insert(particle_row_ID);
-            }
-            ++trueCount;
-        }
-        ++particle_row_ID;
-    }
-
-    return inside_UV_id;
-}
-
-
-std::set<int> _2DTissue::get_outside_UV_id(std::set<int> inside_UV_id) {
-    std::set<int> outside_UV_id;
-
-    int nrows = r_UV.rows();
-    for (int particle_row_ID = 0; particle_row_ID < nrows; ++particle_row_ID) {
-        if (inside_UV_id.find(particle_row_ID) == inside_UV_id.end()) {
-            std::cout << "particle ID " << particle_row_ID << " : " << r_UV.row(particle_row_ID) << std::endl;
-            outside_UV_id.insert(particle_row_ID);
-            test_outside_ID = particle_row_ID;
-        }
-    }
-
-    return outside_UV_id;
-}
-
-
-void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
-    // Find out which particles are inside the mesh
-    int index = 0;
-
-    for (int particle_row_ID : inside_UV_id) {
-        VertexData& vd = particle_change[particle_row_ID];
-
-        if (!vd.valid) {
-            vd.next_particle_3D = r_3D.row(index);
-            vd.original_r_UV = r_UV.row(index);
-            vd.r_UV_dot = r_dot.row(index);
-            vd.next_n = n[index];
-            vd.next_n_pole = n_pole[index];
-            vd.valid = true;
-        }
-
-        index++;
-    }
-}
-
-
-void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
-    // Initialize the vertex data
-    for (int i = 0; i < particle_count; ++i) {
-        VertexData& vd = particle_change[i];
-
-        vd.old_particle_3D = r_3D_old.row(i);
-        vd.next_particle_3D = r_3D_old.row(i);
-        vd.old_n_pole = n_pole_old[i];
-        vd.next_n_pole = n_pole_old[i];
-        vd.valid = false;
-        vd.virtual_mesh = false;
-    }
-}
-
 
 // Tested and it works
 // 14 AUG 2023
@@ -355,26 +285,23 @@ void _2DTissue::filter_old_particles_data_for_resimulation(std::vector<int> part
 }
 
 
-void _2DTissue::mark_outside_original(std::set<int> inside_UV_id)
+void _2DTissue::mark_outside_original(std::vector<int> inside_UV_id)
 {
     if (!mark_outside){
-        std::set<int> outside_UV_id = get_outside_UV_id(inside_UV_id);
+        std::vector<int> outside_UV_id = simulator_helper.get_outside_UV_id(inside_UV_id);
 
-        for (int i : outside_UV_id) {
-            particles_outside_UV.push_back(vertices_3D_active[i]);
-        }
+        for (int particle_row_ID : outside_UV_id) {
+            particles_outside_UV.push_back(vertices_3D_active[particle_row_ID]);
 
-        mark_outside = true;
-
-        for (int i : outside_UV_id) {
-            VertexData& vd = particle_change[i];
+            VertexData& vd = particle_change[particle_row_ID];
             vd.virtual_mesh = true;
         }
+        mark_outside = true;
     }
 }
 
 
-void _2DTissue::rerun_simulation(std::set<int> inside_UV_id){
+void _2DTissue::rerun_simulation(std::vector<int> inside_UV_id){
     // Set all particles to invalid to later activate only the filtered particles to True
     simulated_particles.assign(particle_count, false);
 
@@ -434,10 +361,6 @@ void _2DTissue::map_marked_particles_to_original_mesh()
     r_3D.resize(particle_count, 3);
     r_UV.resize(particle_count, 2);
     n.resize(particle_count);
-    
-    // get the size of particle_change
-    std::cout << "test data check ID: " << test_outside_ID << std::endl;
-    std::cout << "test data check: " << particle_change[test_outside_ID].original_r_UV << std::endl;
 
     for (int particle_row_ID = 0; particle_row_ID < particle_count; ++particle_row_ID) {
         VertexData& vd = particle_change[particle_row_ID];
@@ -450,9 +373,6 @@ void _2DTissue::map_marked_particles_to_original_mesh()
     // Map back the data from the virtual mesh to the original mesh:
     for (int i = 0; i < r_UV_mapped.rows(); ++i) {
         int particle_row_ID = trueRowIDs(i);
-        std::cout << "particle_row_ID: " << particle_row_ID << " with its data : " << r_UV.row(particle_row_ID) << std::endl;
-        std::cout << "particle_row_ID 2: " << particle_row_ID << " with its data : " << r_UV_mapped.row(i) << std::endl;
-
         r_UV.row(particle_row_ID) = r_UV_mapped.row(i);
         n(particle_row_ID) = n_compass(i);
     }
@@ -482,12 +402,13 @@ void _2DTissue::perform_particle_simulation(){
     n_pole = compass.calculate_n_pole(r_UV, n);
 
     // Update the particle 3D position in our control data structure
-    std::set<int> inside_UV_id = get_inside_UV_id();
-    update_if_valid(inside_UV_id);
+    std::vector<int> inside_UV_id = simulator_helper.get_inside_UV_id();
+    simulator_helper.update_if_valid(inside_UV_id);
 
     // Sometimes we have ro resimulate for the particles that are outside the UV mesh
     if (bool_exact_simulation && inside_UV_id.size() != particle_count && actual_mesh_id == 0){
         rerun_simulation(inside_UV_id);
+
         return;
     }
 
@@ -497,7 +418,6 @@ void _2DTissue::perform_particle_simulation(){
     if (bool_exact_simulation) {
         // Restore the original UV mesh
         virtual_mesh.change_UV_map(0);
-
         // ! next to marked_outside_particle we need the information of simulated_particles, which is equal or more than marked_outside_particle 
         // Get all data from the struct, even they are not completly correct
         get_all_data_without_r_UV();
@@ -549,8 +469,9 @@ System _2DTissue::update(){
     n_pole = n_pole_old;
 
     simulated_particles.resize(particle_count, true);  // Simulate with all particles
-    auto inside_UV_id = get_inside_UV_id();
-    set_new_particle_data(inside_UV_id);
+    std::cout << "calling helper function" << std::endl;
+    simulator_helper.set_new_particle_data();
+    std::cout << "Step: " << current_step << std::endl;
 
     // reset mark_outside to false
     mark_outside = false;
@@ -604,3 +525,5 @@ Eigen::VectorXd _2DTissue::get_order_parameter() {
 
     return v_order;
 }
+
+

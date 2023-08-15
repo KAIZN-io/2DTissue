@@ -26,6 +26,7 @@
 #include "LinearAlgebra.h"
 #include "Cell.h"
 #include "Simulator.h"
+#include "SimulatorHelper.h"
 #include "Validation.h"
 #include "VirtualMesh.h"
 #include "Struct.h"
@@ -55,7 +56,6 @@ private:
     int map_cache_count;
     bool finished;
     std::vector<VertexData> particle_change;
-    int test_outside_ID;
     
     std::unique_ptr<Cell> cell_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
@@ -90,6 +90,7 @@ private:
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Simulator simulator;
+    SimulatorHelper simulator_helper;
     Cell cell;
     VirtualMesh virtual_mesh;
     Compass compass;
@@ -117,30 +118,21 @@ private:
     void count_particle_neighbors();
     static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
     void perform_sbml_simulation();
-    void set_new_particle_data(const std::set<int> inside_UV_id);
-    void update_if_valid(std::set<int> inside_UV_id);
+    void set_new_particle_data();
     int actual_mesh_id;
     Eigen::VectorXi marked_outside_particle;
     std::vector<bool> simulated_particles;
     std::vector<int> particles_outside_UV;
 
-    void mark_outside_original(std::set<int> inside_UV_id);
-    void rerun_simulation(std::set<int> inside_UV_id);
-    void get_all_data();
+    void mark_outside_original(std::vector<int> inside_UV_id);
+    void rerun_simulation(std::vector<int> inside_UV_id);
+    void get_all_data_without_r_UV();
     void map_marked_particles_to_original_mesh();
-    void restore_correct_r_UV();
-    std::set<int> get_inside_UV_id();
-    std::set<int> get_outside_UV_id(std::set<int> inside_UV_id);
     void get_particles_near_outside_particles(
         std::vector<int> particles_near_border,
         std::vector<int>& particles_for_resimulation
     );
     void filter_old_particles_data_for_resimulation(std::vector<int> particles_outside_UV);
-
-    // Check if the given point r is inside the UV parametrization bounds
-    static bool is_inside_uv(const Eigen::Vector2d& r_UV) {
-        return (0 <= r_UV[0] && r_UV[0] <= 1) && (0 <= r_UV[1] && r_UV[1] <= 1);
-    };
 
 public:
     _2DTissue(
