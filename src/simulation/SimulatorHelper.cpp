@@ -46,6 +46,8 @@ void SimulatorHelper::set_new_particle_data(){
         vd.next_n_pole = n_pole_old[i];
         vd.valid = false;
         vd.virtual_mesh = false;
+
+        simulated_particles[i] = true;
     }
 }
 
@@ -91,7 +93,6 @@ std::vector<int> SimulatorHelper::get_inside_UV_id() {
                 inside_UV_id.push_back(particle_row_ID);
             }
             else {
-                std::cout << "Particle " << particle_row_ID << " with " << first_two_columns << " is outside the UV domain." << std::endl;
                 outside_UV_id.push_back(particle_row_ID);
             }
             ++trueCount;

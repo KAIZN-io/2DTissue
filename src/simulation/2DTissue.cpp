@@ -380,10 +380,11 @@ void _2DTissue::map_marked_particles_to_original_mesh()
 
 
 void _2DTissue::perform_particle_simulation(){
-
+    std::cout << "we are simulating : " << r_UV.rows() << " particles" << std::endl;
+    // std::cout << "r_UV : " << r_UV << std::endl;
     // 1. Simulate the flight of the particle on the UV mesh
     simulator.simulate_flight();
-
+    // std::cout << "r_UV after flight : " << r_UV << std::endl;
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     if (!bool_exact_simulation){
         if (mesh_UV_name == "sphere_uv"){
@@ -404,11 +405,10 @@ void _2DTissue::perform_particle_simulation(){
     // Update the particle 3D position in our control data structure
     std::vector<int> inside_UV_id = simulator_helper.get_inside_UV_id();
     simulator_helper.update_if_valid(inside_UV_id);
-
+    std::cout << "    inside UV: " << inside_UV_id.size() << " von " << r_UV.rows() << " simulierten Partikeln." << "\n";
     // Sometimes we have ro resimulate for the particles that are outside the UV mesh
     if (bool_exact_simulation && inside_UV_id.size() != particle_count && actual_mesh_id == 0){
         rerun_simulation();
-
         return;
     }
 
@@ -469,7 +469,7 @@ System _2DTissue::update(){
     n_pole_old = virtual_mesh.get_relative_orientation();
     n_pole = n_pole_old;
 
-    simulated_particles.resize(particle_count, true);  // Simulate with all particles
+    simulated_particles.resize(particle_count);  // Simulate with all particles
     simulator_helper.set_new_particle_data();
     std::cout << "Step: " << current_step << std::endl;
 
