@@ -49,21 +49,22 @@ void SimulatorHelper::set_new_particle_data(){
 }
 
 
-// ? Buggy -> irgendwie macht das mit int index = 0 keinen Sinn
 void SimulatorHelper::update_if_valid(std::vector<int> inside_UV_id){
-    // Find out which particles are inside the mesh
     int index = 0;
-    // Count the number of value "true" inside simulated_particles
-    int trueCount = std::count(simulated_particles.begin(), simulated_particles.end(), true);
-    std::cout << "trueCount : " << trueCount << std::endl;
+    int particle_index_test = 0;
+    std::vector<int> true_row_id;
 
-    // for (int particle_row_ID = 0; particle_row_ID < particle_count; ++particle_row_ID)
-    for (int particle_row_ID : inside_UV_id) {
+    while (particle_index_test <= particle_count) {
+        if (simulated_particles[particle_index_test] == true) {
+            true_row_id.push_back(particle_index_test);
+        }
+        ++particle_index_test;
+    }
 
-        std::cout << "inside and will get updated : " << particle_row_ID << std::endl;
+    for (int particle_row_ID : true_row_id) {
         VertexData& vd = particle_change[particle_row_ID];
 
-        if (!vd.valid) {
+        if (std::find(inside_UV_id.begin(), inside_UV_id.end(), particle_row_ID) != inside_UV_id.end() && !vd.valid){
             vd.next_particle_3D = r_3D.row(index);
             vd.original_r_UV = r_UV.row(index);
             vd.r_UV_dot = r_dot.row(index);
@@ -71,8 +72,7 @@ void SimulatorHelper::update_if_valid(std::vector<int> inside_UV_id){
             vd.next_n_pole = n_pole[index];
             vd.valid = true;
         }
-
-        index++;
+        ++index;
     }
 }
 
