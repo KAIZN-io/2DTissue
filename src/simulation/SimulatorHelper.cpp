@@ -81,6 +81,7 @@ void SimulatorHelper::update_if_valid(std::vector<int> inside_UV_id){
 
 
 std::vector<int> SimulatorHelper::get_inside_UV_id() {
+    outside_UV_id.clear();
     std::vector<int> inside_UV_id;
     int particle_row_ID = 0;  // to keep track of the number of 'true' values we've seen so far
     int trueCount = 0;
