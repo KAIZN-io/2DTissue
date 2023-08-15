@@ -72,9 +72,6 @@ Eigen::Vector2d VirtualMesh::init_north_pole(){
 
 
 void VirtualMesh::prepare_virtual_mesh(int mesh_id) {
-    // Get the old UV coordinates
-    r_UV = r_UV_old;
-
     // Get the old 3D coordinates
     auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
     r_3D = new_r_3D;

@@ -26,6 +26,7 @@
 #include "LinearAlgebra.h"
 #include "Cell.h"
 #include "Simulator.h"
+#include "SimulatorHelper.h"
 #include "Validation.h"
 #include "VirtualMesh.h"
 #include "Struct.h"
@@ -55,7 +56,7 @@ private:
     int map_cache_count;
     bool finished;
     std::vector<VertexData> particle_change;
-
+    
     std::unique_ptr<Cell> cell_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
     std::unique_ptr<Validation> validation_ptr;
@@ -67,6 +68,7 @@ private:
     Eigen::MatrixXd r_3D_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_dot;
     Eigen::VectorXi n;
+    Eigen::VectorXi n_old;
     Eigen::VectorXi n_filtered;
     Eigen::Vector2d original_pole;
     Eigen::VectorXi n_pole;
@@ -88,6 +90,7 @@ private:
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Simulator simulator;
+    SimulatorHelper simulator_helper;
     Cell cell;
     VirtualMesh virtual_mesh;
     Compass compass;
@@ -115,45 +118,21 @@ private:
     void count_particle_neighbors();
     static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
     void perform_sbml_simulation();
-    void set_new_particle_data(const std::set<int> inside_UV_id);
-    void update_if_valid(std::set<int> inside_UV_id);
-    void mark_outside_original(std::set<int> outside_UV_id, std::set<int> inside_UV_id);
+    void set_new_particle_data();
     int actual_mesh_id;
     Eigen::VectorXi marked_outside_particle;
+    std::vector<bool> simulated_particles;
+    std::vector<int> particles_outside_UV;
 
-    std::set<int> get_inside_UV_id() const {
-        std::set<int> inside_UV_id;
-        int nrows = r_UV.rows();
-        for (int i = 0; i < nrows; ++i) {
-            Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
-            if (is_inside_uv(first_two_columns)) {
-                inside_UV_id.insert(i);
-            }
-        }
-        return inside_UV_id;
-    };
+    void mark_outside_original();
+    void rerun_simulation();
+    void get_all_data_without_r_UV();
+    void map_marked_particles_to_original_mesh();
     void get_particles_near_outside_particles(
         std::vector<int> particles_near_border,
         std::vector<int>& particles_for_resimulation
     );
-    void filter_particles_for_resimulation(std::vector<int> particles_outside_UV);
-
-    std::set<int> get_outside_UV_id() const {
-        std::set<int> outside_UV_id;
-        int nrows = r_UV.rows();
-        for (int i = 0; i < nrows; ++i) {
-            Eigen::Vector2d first_two_columns = r_UV.row(i).head<2>();
-            if (!is_inside_uv(first_two_columns)) {
-                outside_UV_id.insert(i);
-            }
-        }
-        return outside_UV_id;
-    };
-
-    // Check if the given point r is inside the UV parametrization bounds
-    static bool is_inside_uv(const Eigen::Vector2d& r_UV) {
-        return (0 <= r_UV[0] && r_UV[0] <= 1) && (0 <= r_UV[1] && r_UV[1] <= 1);
-    };
+    void filter_old_particles_data_for_resimulation(std::vector<int> particles_outside_UV);
 
 public:
     _2DTissue(
@@ -171,7 +150,7 @@ public:
         double μ = 1,
         double r_adh = 1,
         double k_adh = 0.75,
-        double step_size = 0.001,
+        double step_size = 0.0005,
         int map_cache_count = 30
     );
     void start();
