@@ -277,9 +277,9 @@ void _2DTissue::update_if_valid(std::set<int> inside_UV_id){
     int index = 0;
 
     for (int particle_row_ID : inside_UV_id) {
-        if (!particle_change[particle_row_ID].valid) {
-            VertexData& vd = particle_change[particle_row_ID];
+        VertexData& vd = particle_change[particle_row_ID];
 
+        if (!vd.valid) {
             vd.next_particle_3D = r_3D.row(index);
             vd.original_r_UV = r_UV.row(index);
             vd.r_UV_dot = r_dot.row(index);
@@ -297,6 +297,7 @@ void _2DTissue::set_new_particle_data(std::set<int> inside_UV_id){
     // Initialize the vertex data
     for (int i = 0; i < particle_count; ++i) {
         VertexData& vd = particle_change[i];
+
         vd.old_particle_3D = r_3D_old.row(i);
         vd.next_particle_3D = r_3D_old.row(i);
         vd.old_n_pole = n_pole_old[i];
@@ -346,6 +347,7 @@ void _2DTissue::filter_old_particles_data_for_resimulation(std::vector<int> part
         r_UV_filtered.row(rowIndex_filter) = r_UV_old.row(i);
         n_filtered[rowIndex_filter] = n_old[i];
         rowIndex_filter++;
+        // std::cout << "particle ID inside filter data " << i << std::endl;
         simulated_particles[i] = true;
     }
     n = n_filtered;
@@ -386,35 +388,26 @@ void _2DTissue::rerun_simulation(std::set<int> inside_UV_id){
 }
 
 
-void _2DTissue::get_all_data(){
+void _2DTissue::get_all_data_without_r_UV(){
     r_dot.resize(particle_count, 2);
     r_3D.resize(particle_count, 3);
     n.resize(particle_count);
     n_pole.resize(particle_count);
     marked_outside_particle.resize(particle_count);
 
-    for (size_t i = 0; i < particle_count; ++i) {
-        r_dot.row(i) = particle_change[i].r_UV_dot;
-        r_3D.row(i) = particle_change[i].next_particle_3D;
-        n[i] = particle_change[i].next_n;
-        n_pole[i] = particle_change[i].next_n_pole;
-        marked_outside_particle[i] = particle_change[i].virtual_mesh;
+    for (int particle_row_ID = 0; particle_row_ID < particle_count; ++particle_row_ID) {
+        VertexData& vd = particle_change[particle_row_ID];
+
+        r_dot.row(particle_row_ID) = vd.r_UV_dot;
+        r_3D.row(particle_row_ID) = vd.next_particle_3D;
+        n[particle_row_ID] = vd.next_n;
+        n_pole[particle_row_ID] = vd.next_n_pole;
+        marked_outside_particle[particle_row_ID] = vd.virtual_mesh;
     }
 }
 
 
-/**
- * Get the 2D coordinates for particles which stayed on the original UV mesh
-*/
-void _2DTissue::restore_correct_r_UV(){
-    for (int i = 0; i < particle_count; ++i) {
-        if (marked_outside_particle(i) == false) {
-            r_UV.row(i) = particle_change[i].original_r_UV;
-        }
-    }
-}
-
-
+// ! BUGGY -> irgendwie mit Daten holen bzgl des Index
 void _2DTissue::map_marked_particles_to_original_mesh()
 {
     Eigen::MatrixXd r_3D_marked = Eigen::MatrixXd::Zero(particle_count, 3);
@@ -441,16 +434,25 @@ void _2DTissue::map_marked_particles_to_original_mesh()
     r_3D.resize(particle_count, 3);
     r_UV.resize(particle_count, 2);
     n.resize(particle_count);
+    
+    // get the size of particle_change
+    std::cout << "test data check ID: " << test_outside_ID << std::endl;
+    std::cout << "test data check: " << particle_change[test_outside_ID].original_r_UV << std::endl;
 
-    for (size_t i = 0; i < particle_count; ++i) {
-        r_3D.row(i) = particle_change[i].next_particle_3D;
-        r_UV.row(i) = particle_change[i].original_r_UV;
-        n[i] = particle_change[i].next_n;
+    for (int particle_row_ID = 0; particle_row_ID < particle_count; ++particle_row_ID) {
+        VertexData& vd = particle_change[particle_row_ID];
+    
+        r_3D.row(particle_row_ID) = vd.next_particle_3D;
+        r_UV.row(particle_row_ID) = vd.original_r_UV;
+        n[particle_row_ID] = vd.next_n;
     }
 
     // Map back the data from the virtual mesh to the original mesh:
     for (int i = 0; i < r_UV_mapped.rows(); ++i) {
         int particle_row_ID = trueRowIDs(i);
+        std::cout << "particle_row_ID: " << particle_row_ID << " with its data : " << r_UV.row(particle_row_ID) << std::endl;
+        std::cout << "particle_row_ID 2: " << particle_row_ID << " with its data : " << r_UV_mapped.row(i) << std::endl;
+
         r_UV.row(particle_row_ID) = r_UV_mapped.row(i);
         n(particle_row_ID) = n_compass(i);
     }
@@ -498,7 +500,7 @@ void _2DTissue::perform_particle_simulation(){
 
         // ! next to marked_outside_particle we need the information of simulated_particles, which is equal or more than marked_outside_particle 
         // Get all data from the struct, even they are not completly correct
-        get_all_data();
+        get_all_data_without_r_UV();
 
         // Map the particles data that left the original mesh to the correct mesh
         if (mark_outside) {
