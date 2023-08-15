@@ -150,7 +150,7 @@ public:
         double μ = 1,
         double r_adh = 1,
         double k_adh = 0.75,
-        double step_size = 0.001,
+        double step_size = 0.0005,
         int map_cache_count = 30
     );
     void start();

@@ -277,7 +277,6 @@ void _2DTissue::filter_old_particles_data_for_resimulation(std::vector<int> part
         r_UV_filtered.row(rowIndex_filter) = r_UV_old.row(i);
         n_filtered[rowIndex_filter] = n_old[i];
         rowIndex_filter++;
-        // std::cout << "particle ID inside filter data " << i << std::endl;
         simulated_particles[i] = true;
     }
     n = n_filtered;
@@ -380,11 +379,9 @@ void _2DTissue::map_marked_particles_to_original_mesh()
 
 
 void _2DTissue::perform_particle_simulation(){
-    std::cout << "we are simulating : " << r_UV.rows() << " particles" << std::endl;
-    // std::cout << "r_UV : " << r_UV << std::endl;
     // 1. Simulate the flight of the particle on the UV mesh
     simulator.simulate_flight();
-    // std::cout << "r_UV after flight : " << r_UV << std::endl;
+
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     if (!bool_exact_simulation){
         if (mesh_UV_name == "sphere_uv"){
@@ -406,6 +403,8 @@ void _2DTissue::perform_particle_simulation(){
     std::vector<int> inside_UV_id = simulator_helper.get_inside_UV_id();
     simulator_helper.update_if_valid(inside_UV_id);
     std::cout << "    inside UV: " << inside_UV_id.size() << " von " << r_UV.rows() << " simulierten Partikeln." << "\n";
+    auto test_me = simulator_helper.get_outside_UV_id();
+    std::cout << "    outside UV: " << test_me.size() << std::endl;
     // Sometimes we have ro resimulate for the particles that are outside the UV mesh
     if (bool_exact_simulation && inside_UV_id.size() != particle_count && actual_mesh_id == 0){
         rerun_simulation();
@@ -425,7 +424,6 @@ void _2DTissue::perform_particle_simulation(){
         // Map the particles data that left the original mesh to the correct mesh
         if (mark_outside) {
             map_marked_particles_to_original_mesh();
-            std::cout << "first simulation succesful" << std::endl;
             particles_outside_UV.clear();
         }
     }
@@ -448,6 +446,7 @@ void _2DTissue::perform_particle_simulation(){
         // Update v0 by the tenth of the sine wave which oscillates between 0 and 1
         v0 = 0.1 * (0.5 * (1 + NV_Ith_S(y, 0)));
     }
+    std::cout << "\n";
 }
 
 
@@ -471,7 +470,7 @@ System _2DTissue::update(){
 
     simulated_particles.resize(particle_count);  // Simulate with all particles
     simulator_helper.set_new_particle_data();
-    std::cout << "Step: " << current_step << std::endl;
+    std::cout << "Step: " << current_step << "\n";
 
     // reset mark_outside to false
     mark_outside = false;
