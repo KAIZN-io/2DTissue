@@ -288,7 +288,7 @@ void _2DTissue::filter_old_particles_data_for_resimulation(std::vector<int> part
 void _2DTissue::mark_outside_original(std::vector<int> inside_UV_id)
 {
     if (!mark_outside){
-        std::vector<int> outside_UV_id = simulator_helper.get_outside_UV_id(inside_UV_id);
+        std::vector<int> outside_UV_id = simulator_helper.get_outside_UV_id();
 
         for (int particle_row_ID : outside_UV_id) {
             particles_outside_UV.push_back(vertices_3D_active[particle_row_ID]);
@@ -425,6 +425,7 @@ void _2DTissue::perform_particle_simulation(){
         // Map the particles data that left the original mesh to the correct mesh
         if (mark_outside) {
             map_marked_particles_to_original_mesh();
+            std::cout << "first simulation succesful" << std::endl;
             particles_outside_UV.clear();
         }
     }
@@ -469,7 +470,6 @@ System _2DTissue::update(){
     n_pole = n_pole_old;
 
     simulated_particles.resize(particle_count, true);  // Simulate with all particles
-    std::cout << "calling helper function" << std::endl;
     simulator_helper.set_new_particle_data();
     std::cout << "Step: " << current_step << std::endl;
 

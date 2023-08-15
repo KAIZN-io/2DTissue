@@ -31,6 +31,7 @@ SimulatorHelper::SimulatorHelper(
     n_pole(n_pole),
     n_pole_old(n_pole_old)
 {
+    outside_UV_id.resize(particle_count);
 }
 
 
@@ -84,12 +85,14 @@ std::vector<int> SimulatorHelper::get_inside_UV_id() {
 
     while (trueCount < r_UV.rows() && particle_row_ID < particle_count) {
         if (simulated_particles[particle_row_ID] == true) {
-            Eigen::Vector2d first_two_columns = r_UV.row(particle_row_ID).head<2>();
+            Eigen::Vector2d first_two_columns = r_UV.row(particle_row_ID);
+
             if (is_inside_uv(first_two_columns)) {
                 inside_UV_id.push_back(particle_row_ID);
             }
             else {
-                std::cout << "particle ID " << particle_row_ID << " is outside with : " << r_UV.row(particle_row_ID) << std::endl;
+                std::cout << "Particle " << particle_row_ID << " with " << first_two_columns << " is outside the UV domain." << std::endl;
+                outside_UV_id.push_back(particle_row_ID);
             }
             ++trueCount;
         }
@@ -100,17 +103,6 @@ std::vector<int> SimulatorHelper::get_inside_UV_id() {
 }
 
 
-std::vector<int> SimulatorHelper::get_outside_UV_id(std::vector<int> inside_UV_id) {
-    std::vector<int> outside_UV_id;
-    int nrows = r_UV.rows();
-
-    for (int particle_row_ID = 0; particle_row_ID < nrows; ++particle_row_ID) {
-
-        if (!(std::find(inside_UV_id.begin(), inside_UV_id.end(), particle_row_ID) != inside_UV_id.end())) {
-            std::cout << "particle ID " << particle_row_ID << " : " << r_UV.row(particle_row_ID) << std::endl;
-            outside_UV_id.push_back(particle_row_ID);
-        }
-    }
-
+std::vector<int> SimulatorHelper::get_outside_UV_id() {
     return outside_UV_id;
 }
