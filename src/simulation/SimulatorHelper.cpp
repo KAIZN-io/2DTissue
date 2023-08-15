@@ -88,13 +88,14 @@ std::vector<int> SimulatorHelper::get_inside_UV_id() {
 
     while (trueCount < r_UV.rows() && particle_row_ID < particle_count) {
         if (simulated_particles[particle_row_ID] == true) {
-            Eigen::Vector2d first_two_columns = r_UV.row(particle_row_ID);
+            Eigen::Vector2d first_two_columns = r_UV.row(trueCount);
 
             if (is_inside_uv(first_two_columns)) {
                 inside_UV_id.push_back(particle_row_ID);
             }
             else {
                 outside_UV_id.push_back(particle_row_ID);
+                // std::cout << "Particle " << particle_row_ID << " is with " << first_two_columns << " outside the UV domain." << std::endl;
             }
             ++trueCount;
         }
