@@ -143,14 +143,14 @@ public:
         int particle_count,
         int step_count = 1,
         double v0 = 0.1,
-        double k = 10,
+        double k = 1,
         double k_next = 10,
         double v0_next = 0.1,
         double σ = 0.4166666666666667,
         double μ = 1,
         double r_adh = 1,
         double k_adh = 0.75,
-        double step_size = 0.0005,
+        double step_size = 0.001,
         int map_cache_count = 30
     );
     void start();
