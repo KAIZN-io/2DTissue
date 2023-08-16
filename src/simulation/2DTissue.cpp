@@ -224,6 +224,7 @@ void _2DTissue::start(){
 }
 
 
+// ! NOTE: This function should be inside a CartographyHelper class
 void _2DTissue::count_particle_neighbors() {
     const int num_rows = dist_length.rows();
 
@@ -455,6 +456,9 @@ void _2DTissue::save_our_data() {
     save_matrix_to_csv(r_UV, file_name, particle_count);
     std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
     save_matrix_to_csv(r_3D, file_name_3D, particle_count);
+    Eigen::VectorXi particles_color_eigen = Eigen::Map<Eigen::VectorXi, Eigen::Unaligned>(particles_color.data(), particles_color.size());
+    std::string file_name_color = "particles_color_" + std::to_string(current_step) + ".csv";
+    save_matrix_to_csv(particles_color_eigen, file_name_color, particle_count);
 }
 
 
@@ -507,6 +511,10 @@ System _2DTissue::update(){
     if (save_data) {
         save_our_data();
     }
+
+    // Clear the vector
+    particles_color.clear();
+    particles_color.resize(particle_count);
 
     return system;
 }
