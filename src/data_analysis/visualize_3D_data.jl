@@ -58,7 +58,7 @@ function update_colors!(colors, int_matrix)
     colors[] = colors.val
 end
 
-num_part = 999
+num_part = 1200
 
 mesh_loaded = FileIO.load("meshes/ellipsoid_x4.off")  # 3D mesh
 mesh_loaded_uv = FileIO.load("meshes/ellipsoid_x4_uv.off")  # 2D mesh
@@ -119,10 +119,10 @@ wireframe!(ax3, mesh_loaded_uv, color=(parse(Colorant, "#000000"), 0.3), linewid
 record(figure, "assets/confined_active_particles.mp4", 1:300; framerate=60) do tt
     r = read_data("data", "r_data_$(tt).csv")
     r = hcat(r, zeros(size(r,1)))
-    # color = read_data("data", "color_data_$(tt).csv")
+    color = read_data("data", "particles_color_$(tt).csv")
     r_3D = read_data("data", "r_data_3D_$(tt).csv")
 
-    # update_colors!(observe_colors, color)
+    update_colors!(observe_colors, color)
     observe_r_3D[] = array_to_vec_of_vec(r_3D)
     observe_r[] = array_to_vec_of_vec(r)
 end
