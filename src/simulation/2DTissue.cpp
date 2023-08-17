@@ -65,7 +65,7 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false),
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
-    simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old),
+    simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, geometry_processing),
     cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
     virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(validation_ptr)),
     compass(original_pole)

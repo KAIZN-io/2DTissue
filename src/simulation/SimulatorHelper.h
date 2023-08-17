@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <Struct.h>
+#include <GeometryProcessing.h>
 
 class SimulatorHelper {
 public:
@@ -20,7 +21,8 @@ public:
         Eigen::MatrixXd& r_3D_old,
         Eigen::VectorXi& n,
         Eigen::VectorXi& n_pole,
-        Eigen::VectorXi& n_pole_old
+        Eigen::VectorXi& n_pole_old,
+        GeometryProcessing& geometry_processing
     );
 
     void set_new_particle_data();
@@ -29,6 +31,8 @@ public:
     std::vector<int> get_outside_UV_id();
 
 private:
+    GeometryProcessing& geometry_processing;
+
     std::vector<VertexData>& particle_change;
     std::vector<bool>& simulated_particles;
     int particle_count;
@@ -44,7 +48,7 @@ private:
     std::vector<int> outside_UV_id;
 
     // Check if the given point r is inside the UV parametrization bounds
-    static bool is_inside_uv(const Eigen::Vector2d r_UV_row) {
-        return (0 <= r_UV_row[0] && r_UV_row[0] <= 1) && (0 <= r_UV_row[1] && r_UV_row[1] <= 1);
+    bool is_inside_uv(const Eigen::Vector2d r_UV_row) {
+        return geometry_processing.check_point_in_polygon(r_UV_row, true);
     };
 };

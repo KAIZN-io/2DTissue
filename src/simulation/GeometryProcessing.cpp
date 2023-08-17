@@ -284,6 +284,17 @@ SMP::Error_code GeometryProcessing::parameterize_UV_mesh(
     // from https://doi.org/10.1145/218380.218440
     using Parameterizer = SMP::Discrete_conformal_map_parameterizer_3<UV::Mesh, Border_parameterizer>;
 
+    // ARAP parameterization
+    // using Parameterizer = SMP::ARAP_parameterizer_3<UV::Mesh, Border_parameterizer>;
+
+    // // Specify lambda value and other optional parameters
+    // int lambda = 1000;
+    // unsigned int iterations = 50;
+    // double tolerance = 1e-6;
+    // Parameterizer parameterizer(border_parameterizer, Parameterizer::Solver_traits(), lambda, iterations, tolerance);
+
+    // return SMP::parameterize(mesh, parameterizer, bhd, uvmap);
+
     return SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 }
 
@@ -391,25 +402,6 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
 }
 
 
-/**
- * @brief Create the UV surface
-*/
-std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::create_uv_surface(
-    std::string mesh_path,
-    int32_t start_node_int
-){
-    _3D::vertex_descriptor start_node(start_node_int);
-    Eigen::MatrixXd vertice_UV;
-    Eigen::MatrixXd vertices_3D;
-    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
-
-    std::string mesh_file_path = meshmeta.mesh_path;
-
-    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
-}
-
-
-
 std::vector<double> GeometryProcessing::geo_distance(const std::string mesh_path, int32_t start_node){
     std::ifstream filename(CGAL::data_file_path(mesh_path));
     Triangle_mesh tm;
@@ -482,4 +474,91 @@ int GeometryProcessing::get_all_distances(std::string mesh_path){
     std::cout << "saved" << std::endl;
 
     return 0;
+}
+
+
+/**
+ * @brief Check if a given point is inside our polygon border
+*/
+bool GeometryProcessing::check_point_in_polygon(const Eigen::Vector2d& point, bool is_original_mesh) {
+    Point_2 cgal_point(point[0], point[1]);
+
+    if (is_original_mesh) {
+        auto result = CGAL::bounded_side_2(polygon.vertices_begin(), polygon.vertices_end(), cgal_point, Kernel());
+        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
+    } else {
+        auto result = CGAL::bounded_side_2(polygon_virtual.vertices_begin(), polygon_virtual.vertices_end(), cgal_point, Kernel());
+        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
+    }
+}
+
+
+void GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_path, bool is_original_mesh) {
+    std::ifstream input(CGAL::data_file_path(mesh_path));
+    _3D::Mesh mesh;
+    input >> mesh;
+
+    // Find the border edges of the mesh
+    std::vector<_3D::halfedge_descriptor> border_edges;
+    CGAL::Polygon_mesh_processing::border_halfedges(mesh, std::back_inserter(border_edges));
+
+    // Create a map from source vertex to border halfedge
+    std::unordered_map<_3D::vertex_descriptor, _3D::halfedge_descriptor> source_to_halfedge;
+    for (const _3D::halfedge_descriptor& h : border_edges) {
+        source_to_halfedge[mesh.source(h)] = h;
+    }
+
+    // Create the Eigen matrix to store the border coordinates
+    // Eigen::Matrix<double, Eigen::Dynamic, 2> border_coords(border_edges.size(), 3);
+
+    // Extract the coordinates of the vertices in the correct order
+    std::unordered_set<_3D::vertex_descriptor> visited;
+    _3D::vertex_descriptor v = mesh.source(border_edges[0]);
+    for (std::size_t i = 0; i < border_edges.size(); ++i) {
+        // border_coords.row(i) = Eigen::Vector2d(mesh.point(v).x(), mesh.point(v).y());
+        if (is_original_mesh) {
+            polygon.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
+        } else {
+            polygon_virtual.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
+        }
+
+        visited.insert(v);
+
+        _3D::halfedge_descriptor next_h = source_to_halfedge[mesh.target(source_to_halfedge[v])];
+        v = mesh.source(next_h);
+
+        // Ensure that we don't visit the same vertex again
+        if (visited.count(v)) {
+            break;
+        }
+    }
+}
+
+
+/**
+ * @brief Create the UV surface
+*/
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::create_uv_surface(
+    std::string mesh_path,
+    int32_t start_node_int
+){
+    _3D::vertex_descriptor start_node(start_node_int);
+    Eigen::MatrixXd vertice_UV;
+    Eigen::MatrixXd vertices_3D;
+    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
+
+    std::string mesh_file_path = meshmeta.mesh_path;
+
+    extract_polygon_border_edges(mesh_file_path, true);
+    extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
+
+    Eigen::Vector2d testPoint(0.9, 0.99);
+
+    if (check_point_in_polygon(testPoint, true)) {
+        std::cout << "Point is inside the polygon.\n";
+    } else {
+        std::cout << "Point is outside the polygon.\n";
+    }
+
+    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
 }

@@ -7,17 +7,24 @@
 #include <cstddef>
 #include <fstream>
 #include <iostream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/filesystem.hpp>
 
+#include <CGAL/IO/read_off_points.h>   // TODO: checken, ob Assimp dann noch benötigt wird
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
+#include <CGAL/Polygon_mesh_processing/border.h>
+
+// Check if a point is inside the border
+#include <CGAL/Polygon_2.h>
 
 // Distance calculation
 #include <CGAL/boost/graph/breadth_first_search.h>
@@ -30,12 +37,14 @@
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
+#include <CGAL/Surface_mesh_parameterization/ARAP_parameterizer_3.h>
 
 #include "IO.h"
 
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
 using Point_3 = Kernel::Point_3;
+using Polygon_2 = CGAL::Polygon_2<Kernel>;
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = boost::filesystem;
@@ -104,8 +113,12 @@ public:
     std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node = 0);
     int get_all_distances(std::string mesh_file_path);
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
+    void extract_polygon_border_edges(const std::string& mesh_path, bool is_original_mesh);
+    bool check_point_in_polygon(const Eigen::Vector2d& point, bool is_original_mesh) ;
 
 private:
+    Polygon_2 polygon;
+    Polygon_2 polygon_virtual;
     Eigen::MatrixXd vertices_UV_virtual;
     Eigen::MatrixXd vertices_3D_virtual;
     std::vector<int64_t> h_v_mapping_vector_virtual;
