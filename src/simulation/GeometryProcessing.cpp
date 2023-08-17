@@ -391,25 +391,6 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
 }
 
 
-/**
- * @brief Create the UV surface
-*/
-std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::create_uv_surface(
-    std::string mesh_path,
-    int32_t start_node_int
-){
-    _3D::vertex_descriptor start_node(start_node_int);
-    Eigen::MatrixXd vertice_UV;
-    Eigen::MatrixXd vertices_3D;
-    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
-
-    std::string mesh_file_path = meshmeta.mesh_path;
-
-    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
-}
-
-
-
 std::vector<double> GeometryProcessing::geo_distance(const std::string mesh_path, int32_t start_node){
     std::ifstream filename(CGAL::data_file_path(mesh_path));
     Triangle_mesh tm;
@@ -482,4 +463,43 @@ int GeometryProcessing::get_all_distances(std::string mesh_path){
     std::cout << "saved" << std::endl;
 
     return 0;
+}
+
+
+Eigen::Matrix<double, Eigen::Dynamic, 2> GeometryProcessing::extract_border_edges(const std::string& mesh_path) {
+    std::ifstream input(CGAL::data_file_path(mesh_path));
+    _3D::Mesh mesh;
+    input >> mesh;
+
+    std::vector<_3D::halfedge_descriptor> border_edges;
+    CGAL::Polygon_mesh_processing::border_halfedges(mesh, std::back_inserter(border_edges));
+
+    Eigen::Matrix<double, Eigen::Dynamic, 2> border_coords(border_edges.size(), 3);
+    int row = 0;
+
+    for (const _3D::halfedge_descriptor& h : border_edges) {
+        _3D::vertex_descriptor v1 = mesh.source(h);
+        border_coords.row(row) = Eigen::Vector2d(mesh.point(v1).x(), mesh.point(v1).y());
+        row++;
+    }
+    std::cout << border_coords << std::endl;
+    return border_coords;
+}
+
+
+/**
+ * @brief Create the UV surface
+*/
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::create_uv_surface(
+    std::string mesh_path,
+    int32_t start_node_int
+){
+    _3D::vertex_descriptor start_node(start_node_int);
+    Eigen::MatrixXd vertice_UV;
+    Eigen::MatrixXd vertices_3D;
+    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
+
+    std::string mesh_file_path = meshmeta.mesh_path;
+    extract_border_edges(mesh_file_path);
+    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
 }

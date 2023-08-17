@@ -13,11 +13,13 @@
 #include <boost/property_map/property_map.hpp>
 #include <boost/filesystem.hpp>
 
+#include <CGAL/IO/read_off_points.h>   // TODO: checken, ob Assimp dann noch benötigt wird
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
+#include <CGAL/Polygon_mesh_processing/border.h>
 
 // Distance calculation
 #include <CGAL/boost/graph/breadth_first_search.h>
@@ -104,6 +106,7 @@ public:
     std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node = 0);
     int get_all_distances(std::string mesh_file_path);
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
+    Eigen::Matrix<double, Eigen::Dynamic, 2> extract_border_edges(const std::string& mesh_path);
 
 private:
     Eigen::MatrixXd vertices_UV_virtual;
