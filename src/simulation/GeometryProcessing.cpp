@@ -487,7 +487,7 @@ bool GeometryProcessing::check_point_in_polygon(const Polygon_2& polygon, const 
 }
 
 
-void GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_path) {
+void GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_path, bool is_original_mesh) {
     std::ifstream input(CGAL::data_file_path(mesh_path));
     _3D::Mesh mesh;
     input >> mesh;
@@ -510,7 +510,12 @@ void GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_pa
     _3D::vertex_descriptor v = mesh.source(border_edges[0]);
     for (std::size_t i = 0; i < border_edges.size(); ++i) {
         // border_coords.row(i) = Eigen::Vector2d(mesh.point(v).x(), mesh.point(v).y());
-        polygon.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
+        if (is_original_mesh) {
+            polygon.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
+        } else {
+            polygon_virtual.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
+        }
+
         visited.insert(v);
 
         _3D::halfedge_descriptor next_h = source_to_halfedge[mesh.target(source_to_halfedge[v])];
@@ -537,7 +542,9 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
 
     std::string mesh_file_path = meshmeta.mesh_path;
-    extract_polygon_border_edges(mesh_file_path);
+
+    extract_polygon_border_edges(mesh_file_path, true);
+    extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
     Point_2 testPoint(0.9, 0.99);
 

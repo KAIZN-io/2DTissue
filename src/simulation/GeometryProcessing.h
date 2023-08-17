@@ -113,11 +113,12 @@ public:
     std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node = 0);
     int get_all_distances(std::string mesh_file_path);
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
-    void extract_polygon_border_edges(const std::string& mesh_path);
+    void extract_polygon_border_edges(const std::string& mesh_path, bool is_original_mesh);
     bool check_point_in_polygon(const Polygon_2& polygon, const Point_2& point);
 
 private:
     Polygon_2 polygon;
+    Polygon_2 polygon_virtual;
     Eigen::MatrixXd vertices_UV_virtual;
     Eigen::MatrixXd vertices_3D_virtual;
     std::vector<int64_t> h_v_mapping_vector_virtual;
