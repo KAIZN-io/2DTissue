@@ -17,7 +17,8 @@ SimulatorHelper::SimulatorHelper(
     Eigen::MatrixXd& r_3D_old,
     Eigen::VectorXi& n,
     Eigen::VectorXi& n_pole,
-    Eigen::VectorXi& n_pole_old
+    Eigen::VectorXi& n_pole_old,
+    GeometryProcessing& geometry_processing
 )
     : particle_change(particle_change),
     simulated_particles(simulated_particles),
@@ -29,7 +30,8 @@ SimulatorHelper::SimulatorHelper(
     r_3D_old(r_3D_old),
     n(n),
     n_pole(n_pole),
-    n_pole_old(n_pole_old)
+    n_pole_old(n_pole_old),
+    geometry_processing(geometry_processing)
 {
     outside_UV_id.resize(particle_count);
 }
