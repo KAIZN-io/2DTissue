@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <fstream>
 #include <iostream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
@@ -20,6 +22,9 @@
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
 #include <CGAL/Polygon_mesh_processing/border.h>
+
+// Check if a point is inside the border
+#include <CGAL/Polygon_2.h>
 
 // Distance calculation
 #include <CGAL/boost/graph/breadth_first_search.h>
@@ -38,6 +43,7 @@
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
 using Point_3 = Kernel::Point_3;
+using Polygon_2 = CGAL::Polygon_2<Kernel>;
 
 namespace SMP = CGAL::Surface_mesh_parameterization;
 namespace fs = boost::filesystem;
@@ -106,7 +112,8 @@ public:
     std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node = 0);
     int get_all_distances(std::string mesh_file_path);
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
-    Eigen::Matrix<double, Eigen::Dynamic, 2> extract_border_edges(const std::string& mesh_path);
+    Eigen::Matrix<double, Eigen::Dynamic, 2> extract_polygon_border_edges(const std::string& mesh_path);
+    bool check_point_in_polygon(const Polygon_2& polygon, const Point_2& point);
 
 private:
     Eigen::MatrixXd vertices_UV_virtual;

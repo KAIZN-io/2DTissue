@@ -466,23 +466,64 @@ int GeometryProcessing::get_all_distances(std::string mesh_path){
 }
 
 
-Eigen::Matrix<double, Eigen::Dynamic, 2> GeometryProcessing::extract_border_edges(const std::string& mesh_path) {
+/**
+ * @brief Check if a given point is inside our polygon border
+*/
+bool GeometryProcessing::check_point_in_polygon(const Polygon_2& polygon, const Point_2& point) {
+    auto result = CGAL::bounded_side_2(polygon.vertices_begin(), polygon.vertices_end(), point, Kernel());
+
+    return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
+}
+
+
+Eigen::Matrix<double, Eigen::Dynamic, 2> GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_path) {
     std::ifstream input(CGAL::data_file_path(mesh_path));
     _3D::Mesh mesh;
     input >> mesh;
 
+    // Find the border edges of the mesh
     std::vector<_3D::halfedge_descriptor> border_edges;
     CGAL::Polygon_mesh_processing::border_halfedges(mesh, std::back_inserter(border_edges));
 
-    Eigen::Matrix<double, Eigen::Dynamic, 2> border_coords(border_edges.size(), 3);
-    int row = 0;
-
+    // Create a map from source vertex to border halfedge
+    std::unordered_map<_3D::vertex_descriptor, _3D::halfedge_descriptor> source_to_halfedge;
     for (const _3D::halfedge_descriptor& h : border_edges) {
-        _3D::vertex_descriptor v1 = mesh.source(h);
-        border_coords.row(row) = Eigen::Vector2d(mesh.point(v1).x(), mesh.point(v1).y());
-        row++;
+        source_to_halfedge[mesh.source(h)] = h;
     }
-    std::cout << border_coords << std::endl;
+
+    // Create the Eigen matrix to store the border coordinates
+    Eigen::Matrix<double, Eigen::Dynamic, 2> border_coords(border_edges.size(), 3);
+    Polygon_2 polygon;
+
+    // Extract the coordinates of the vertices in the correct order
+    std::unordered_set<_3D::vertex_descriptor> visited;
+    _3D::vertex_descriptor v = mesh.source(border_edges[0]);
+    for (std::size_t i = 0; i < border_edges.size(); ++i) {
+        border_coords.row(i) = Eigen::Vector2d(mesh.point(v).x(), mesh.point(v).y());
+        polygon.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
+        visited.insert(v);
+
+        _3D::halfedge_descriptor next_h = source_to_halfedge[mesh.target(source_to_halfedge[v])];
+        v = mesh.source(next_h);
+
+        // Ensure that we don't visit the same vertex again
+        if (visited.count(v)) {
+            break;
+        }
+    }
+
+    // for (int i = 0; i < border_coords.rows(); ++i) {
+    //     polygon.push_back(Point_2(border_coords(i, 0), border_coords(i, 1)));
+    // }
+
+    Point_2 testPoint(0.9, 0.99);
+
+    if (check_point_in_polygon(polygon, testPoint)) {
+        std::cout << "Point is inside the polygon.\n";
+    } else {
+        std::cout << "Point is outside the polygon.\n";
+    }
+
     return border_coords;
 }
 
@@ -500,6 +541,6 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
 
     std::string mesh_file_path = meshmeta.mesh_path;
-    extract_border_edges(mesh_file_path);
+    extract_polygon_border_edges(mesh_file_path);
     return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
 }
