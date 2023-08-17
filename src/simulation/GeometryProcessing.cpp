@@ -487,7 +487,7 @@ bool GeometryProcessing::check_point_in_polygon(const Polygon_2& polygon, const 
 }
 
 
-Eigen::Matrix<double, Eigen::Dynamic, 2> GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_path) {
+void GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_path) {
     std::ifstream input(CGAL::data_file_path(mesh_path));
     _3D::Mesh mesh;
     input >> mesh;
@@ -503,14 +503,13 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> GeometryProcessing::extract_polygon_bor
     }
 
     // Create the Eigen matrix to store the border coordinates
-    Eigen::Matrix<double, Eigen::Dynamic, 2> border_coords(border_edges.size(), 3);
-    Polygon_2 polygon;
+    // Eigen::Matrix<double, Eigen::Dynamic, 2> border_coords(border_edges.size(), 3);
 
     // Extract the coordinates of the vertices in the correct order
     std::unordered_set<_3D::vertex_descriptor> visited;
     _3D::vertex_descriptor v = mesh.source(border_edges[0]);
     for (std::size_t i = 0; i < border_edges.size(); ++i) {
-        border_coords.row(i) = Eigen::Vector2d(mesh.point(v).x(), mesh.point(v).y());
+        // border_coords.row(i) = Eigen::Vector2d(mesh.point(v).x(), mesh.point(v).y());
         polygon.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
         visited.insert(v);
 
@@ -522,20 +521,6 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> GeometryProcessing::extract_polygon_bor
             break;
         }
     }
-    // std::cout << "border_coords: " << border_coords << std::endl;
-    // for (int i = 0; i < border_coords.rows(); ++i) {
-    //     polygon.push_back(Point_2(border_coords(i, 0), border_coords(i, 1)));
-    // }
-
-    Point_2 testPoint(0.9, 0.99);
-
-    if (check_point_in_polygon(polygon, testPoint)) {
-        std::cout << "Point is inside the polygon.\n";
-    } else {
-        std::cout << "Point is outside the polygon.\n";
-    }
-
-    return border_coords;
 }
 
 
@@ -553,5 +538,14 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
 
     std::string mesh_file_path = meshmeta.mesh_path;
     extract_polygon_border_edges(mesh_file_path);
+
+    Point_2 testPoint(0.9, 0.99);
+
+    if (check_point_in_polygon(polygon, testPoint)) {
+        std::cout << "Point is inside the polygon.\n";
+    } else {
+        std::cout << "Point is outside the polygon.\n";
+    }
+
     return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
 }
