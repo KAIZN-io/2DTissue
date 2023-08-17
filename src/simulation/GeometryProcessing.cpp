@@ -284,6 +284,17 @@ SMP::Error_code GeometryProcessing::parameterize_UV_mesh(
     // from https://doi.org/10.1145/218380.218440
     using Parameterizer = SMP::Discrete_conformal_map_parameterizer_3<UV::Mesh, Border_parameterizer>;
 
+    // ARAP parameterization
+    // using Parameterizer = SMP::ARAP_parameterizer_3<UV::Mesh, Border_parameterizer>;
+
+    // // Specify lambda value and other optional parameters
+    // int lambda = 1000;
+    // unsigned int iterations = 50;
+    // double tolerance = 1e-6;
+    // Parameterizer parameterizer(border_parameterizer, Parameterizer::Solver_traits(), lambda, iterations, tolerance);
+
+    // return SMP::parameterize(mesh, parameterizer, bhd, uvmap);
+
     return SMP::parameterize(mesh, Parameterizer(), bhd, uvmap);
 }
 
@@ -511,7 +522,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> GeometryProcessing::extract_polygon_bor
             break;
         }
     }
-
+    // std::cout << "border_coords: " << border_coords << std::endl;
     // for (int i = 0; i < border_coords.rows(); ++i) {
     //     polygon.push_back(Point_2(border_coords(i, 0), border_coords(i, 1)));
     // }

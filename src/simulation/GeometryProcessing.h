@@ -37,6 +37,7 @@
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
+#include <CGAL/Surface_mesh_parameterization/ARAP_parameterizer_3.h>
 
 #include "IO.h"
 
