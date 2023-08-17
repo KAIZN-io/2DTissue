@@ -114,7 +114,7 @@ public:
     int get_all_distances(std::string mesh_file_path);
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
     void extract_polygon_border_edges(const std::string& mesh_path, bool is_original_mesh);
-    bool check_point_in_polygon(const Polygon_2& polygon, const Point_2& point);
+    bool check_point_in_polygon(const Eigen::Vector2d& point, bool is_original_mesh) ;
 
 private:
     Polygon_2 polygon;

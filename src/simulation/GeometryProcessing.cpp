@@ -480,10 +480,16 @@ int GeometryProcessing::get_all_distances(std::string mesh_path){
 /**
  * @brief Check if a given point is inside our polygon border
 */
-bool GeometryProcessing::check_point_in_polygon(const Polygon_2& polygon, const Point_2& point) {
-    auto result = CGAL::bounded_side_2(polygon.vertices_begin(), polygon.vertices_end(), point, Kernel());
+bool GeometryProcessing::check_point_in_polygon(const Eigen::Vector2d& point, bool is_original_mesh) {
+    Point_2 cgal_point(point[0], point[1]);
 
-    return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
+    if (is_original_mesh) {
+        auto result = CGAL::bounded_side_2(polygon.vertices_begin(), polygon.vertices_end(), cgal_point, Kernel());
+        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
+    } else {
+        auto result = CGAL::bounded_side_2(polygon_virtual.vertices_begin(), polygon_virtual.vertices_end(), cgal_point, Kernel());
+        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
+    }
 }
 
 
@@ -546,9 +552,9 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     extract_polygon_border_edges(mesh_file_path, true);
     extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
-    Point_2 testPoint(0.9, 0.99);
+    Eigen::Vector2d testPoint(0.9, 0.99);
 
-    if (check_point_in_polygon(polygon, testPoint)) {
+    if (check_point_in_polygon(testPoint, true)) {
         std::cout << "Point is inside the polygon.\n";
     } else {
         std::cout << "Point is outside the polygon.\n";
