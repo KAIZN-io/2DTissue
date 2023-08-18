@@ -11,7 +11,8 @@
 class Validation {
 public:
     Validation(
-        GeometryProcessing& geometry_processing
+        GeometryProcessing& geometry_processing,
+        bool& original_mesh
     );
     bool checkForInvalidValues(const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix);
     void error_invalid_3D_values(std::vector<VertexData> particle_change);
@@ -25,6 +26,7 @@ public:
 
 private:
     GeometryProcessing& geometry_processing;
+    bool& original_mesh;
 
     bool is_inside_uv(const Eigen::Vector2d& r);
 };

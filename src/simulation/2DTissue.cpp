@@ -65,9 +65,9 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false),
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
-    simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, geometry_processing),
+    simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, geometry_processing, original_mesh),
     cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
-    validation(geometry_processing),
+    validation(geometry_processing, original_mesh),
     virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map),
     compass(original_pole)
 {
@@ -122,6 +122,7 @@ _2DTissue::_2DTissue(
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
     mark_outside = false;
+    original_mesh = true;
 
     /*
     Initialize the ODE Simulation
@@ -312,6 +313,7 @@ void _2DTissue::rerun_simulation(){
 
     actual_mesh_id = 1;
     virtual_mesh.prepare_virtual_mesh(actual_mesh_id);
+    original_mesh = false;
     perform_particle_simulation();
 }
 
@@ -420,6 +422,7 @@ void _2DTissue::perform_particle_simulation(){
     if (bool_exact_simulation) {
         // Restore the original UV mesh
         virtual_mesh.change_UV_map(0);
+        original_mesh = true;
 
         // Get all data from the struct, even they are not completly correct
         get_all_data_without_r_UV();

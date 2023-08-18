@@ -121,6 +121,7 @@ private:
     void perform_sbml_simulation();
     void set_new_particle_data();
     int actual_mesh_id;
+    bool original_mesh;
     Eigen::VectorXi marked_outside_particle;
     std::vector<bool> simulated_particles;
     std::vector<int> particles_outside_UV;
