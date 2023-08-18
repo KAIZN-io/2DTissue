@@ -39,6 +39,7 @@ private:
     bool save_data;
     bool particle_innenleben;
     bool bool_exact_simulation;
+    bool free_boundary;
     std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
     int particle_count;
     std::string mesh_path;
@@ -95,6 +96,7 @@ private:
     VirtualMesh virtual_mesh;
     Compass compass;
     GeometryProcessing geometry_processing;
+    Validation validation;
 
     // Differential Equation Simulation
     realtype reltol, abstol; // Tolerances
@@ -120,6 +122,7 @@ private:
     void perform_sbml_simulation();
     void set_new_particle_data();
     int actual_mesh_id;
+    bool original_mesh;
     Eigen::VectorXi marked_outside_particle;
     std::vector<bool> simulated_particles;
     std::vector<int> particles_outside_UV;
@@ -139,6 +142,7 @@ public:
         bool save_data,
         bool particle_innenleben,
         bool bool_exact_simulation,
+        bool free_boundary,
         std::string mesh_path,
         int particle_count,
         int step_count = 1,

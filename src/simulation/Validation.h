@@ -6,9 +6,14 @@
 #include <vector>
 #include <cstdint>
 #include <Struct.h>
+#include <GeometryProcessing.h>
 
 class Validation {
 public:
+    Validation(
+        GeometryProcessing& geometry_processing,
+        bool& original_mesh
+    );
     bool checkForInvalidValues(const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix);
     void error_invalid_3D_values(std::vector<VertexData> particle_change);
     void error_invalid_values(Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_new);
@@ -20,5 +25,8 @@ public:
     std::vector<int> find_inside_uv_vertices_id(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
 
 private:
+    GeometryProcessing& geometry_processing;
+    bool& original_mesh;
+
     bool is_inside_uv(const Eigen::Vector2d& r);
 };

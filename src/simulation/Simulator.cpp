@@ -159,7 +159,8 @@ Eigen::Vector2d Simulator::repulsive_adhesion_motion(
         Fij_adh = (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
     }
 
-    double Fij = 0.1 * Fij_rep + 0.1 * Fij_adh;
+    // double Fij = 0.1 * Fij_rep + 0.1 * Fij_adh;
+    double Fij = Fij_rep + Fij_adh;
 
     return Fij * (dist_v / dist);
 }

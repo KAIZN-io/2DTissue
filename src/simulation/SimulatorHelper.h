@@ -22,7 +22,8 @@ public:
         Eigen::VectorXi& n,
         Eigen::VectorXi& n_pole,
         Eigen::VectorXi& n_pole_old,
-        GeometryProcessing& geometry_processing
+        GeometryProcessing& geometry_processing,
+        bool& original_mesh
     );
 
     void set_new_particle_data();
@@ -45,10 +46,11 @@ private:
     Eigen::VectorXi& n_pole;
     Eigen::VectorXi& n_pole_old;
 
+    bool& original_mesh;
     std::vector<int> outside_UV_id;
 
     // Check if the given point r is inside the UV parametrization bounds
     bool is_inside_uv(const Eigen::Vector2d r_UV_row) {
-        return geometry_processing.check_point_in_polygon(r_UV_row, true);
+        return geometry_processing.check_point_in_polygon(r_UV_row, original_mesh);
     };
 };

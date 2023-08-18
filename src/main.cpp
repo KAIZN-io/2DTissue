@@ -16,13 +16,14 @@ int main()
     bool save_data = false;
     bool particle_innenleben = false;
     bool bool_exact_simulation = false;
+    bool free_boundary = false;  // ! Info: Set it only to "true" if "bool_exact_simulation = true"
 
     // Path to the 3D mesh file
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
     // std::string mesh_path = PROJECT_PATH.string() + "/meshes/sphere.off";
 
     for (int particle_count = 200; particle_count <= 200; particle_count += 100) {
-        _2DTissue _2dtissue(save_data, particle_innenleben, bool_exact_simulation, mesh_path, particle_count, step_count, 0.01);  // Initialize the 2DTissue object
+        _2DTissue _2dtissue(save_data, particle_innenleben, bool_exact_simulation, free_boundary, mesh_path, particle_count, step_count, 0.01);  // Initialize the 2DTissue object
 
         _2dtissue.start();
 

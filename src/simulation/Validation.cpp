@@ -10,6 +10,16 @@
 #include <Validation.h>
 
 
+Validation::Validation(
+    GeometryProcessing& geometry_processing,
+    bool& original_mesh
+)
+    : geometry_processing(geometry_processing),
+        original_mesh(original_mesh)
+{
+
+}
+
 
 bool Validation::checkForInvalidValues(
     const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix
@@ -48,7 +58,7 @@ void Validation::error_invalid_values(
 }
 
 bool Validation::is_inside_uv(const Eigen::Vector2d& r) {
-    return (0 <= r[0] && r[0] <= 1) && (0 <= r[1] && r[1] <= 1);
+    return geometry_processing.check_point_in_polygon(r, original_mesh);
 }
 
 std::vector<int> Validation::find_inside_uv_vertices_id(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {

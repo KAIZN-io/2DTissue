@@ -73,7 +73,9 @@ namespace UV {
 
 class GeometryProcessing {
 public:
-    GeometryProcessing();
+    GeometryProcessing(
+        bool& free_boundary
+    );
 
     void calculate_distances(
         _3D::Mesh mesh,
@@ -118,6 +120,7 @@ public:
 
 private:
     Polygon_2 polygon;
+    bool& free_boundary;
     Polygon_2 polygon_virtual;
     Eigen::MatrixXd vertices_UV_virtual;
     Eigen::MatrixXd vertices_3D_virtual;
