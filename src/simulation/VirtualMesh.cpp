@@ -20,8 +20,7 @@ VirtualMesh::VirtualMesh(
     Eigen::MatrixXd& distance_matrix,
     std::string mesh_path,
     int map_cache_count,
-    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
-    std::unique_ptr<Validation> validation_ptr
+    std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map
 )
     : r_UV(r_UV),
       r_UV_old(r_UV_old),
@@ -38,7 +37,6 @@ VirtualMesh::VirtualMesh(
       mesh_path(mesh_path),
       map_cache_count(map_cache_count),
       vertices_2DTissue_map(vertices_2DTissue_map),
-      validation_ptr(std::move(validation_ptr)),
       cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
       compass(northPole)
 {

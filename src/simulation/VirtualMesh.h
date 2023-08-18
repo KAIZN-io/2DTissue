@@ -12,7 +12,6 @@
 #include <cstdint>
 
 #include <GeometryProcessing.h>
-#include <Validation.h>
 #include <IO.h>
 #include <Cell.h>
 #include <Struct.h>
@@ -37,8 +36,7 @@ public:
         Eigen::MatrixXd& distance_matrix,
         std::string mesh_path,
         int map_cache_count,
-        std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map,
-        std::unique_ptr<Validation> validation_ptr
+        std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map
     );
 
     void prepare_virtual_mesh(int old_id);
@@ -65,7 +63,6 @@ private:
     int map_cache_count;
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map;
     std::unique_ptr<GeometryProcessing> geometry_ptr;
-    std::unique_ptr<Validation> validation_ptr;
 
     Eigen::MatrixXd northPole_3D;
     Eigen::Vector2d northPole;

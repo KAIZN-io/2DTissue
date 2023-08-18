@@ -95,6 +95,7 @@ private:
     VirtualMesh virtual_mesh;
     Compass compass;
     GeometryProcessing geometry_processing;
+    Validation validation;
 
     // Differential Equation Simulation
     realtype reltol, abstol; // Tolerances

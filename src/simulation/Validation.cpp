@@ -10,6 +10,11 @@
 #include <Validation.h>
 
 
+Validation::Validation(
+){
+
+}
+
 
 bool Validation::checkForInvalidValues(
     const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix

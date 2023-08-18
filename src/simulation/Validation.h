@@ -9,6 +9,7 @@
 
 class Validation {
 public:
+    Validation();
     bool checkForInvalidValues(const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix);
     void error_invalid_3D_values(std::vector<VertexData> particle_change);
     void error_invalid_values(Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_new);

@@ -67,7 +67,7 @@ _2DTissue::_2DTissue(
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, geometry_processing),
     cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
-    virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map, std::move(validation_ptr)),
+    virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map),
     compass(original_pole)
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
@@ -406,6 +406,7 @@ void _2DTissue::perform_particle_simulation(){
     std::cout << "    inside UV: " << inside_UV_id.size() << " von " << r_UV.rows() << " simulierten Partikeln." << "\n";
     auto test_me = simulator_helper.get_outside_UV_id();
     std::cout << "    outside UV: " << test_me.size() << std::endl;
+
     // Sometimes we have ro resimulate for the particles that are outside the UV mesh
     if (bool_exact_simulation && inside_UV_id.size() != particle_count && actual_mesh_id == 0){
         rerun_simulation();
@@ -413,12 +414,12 @@ void _2DTissue::perform_particle_simulation(){
     }
 
     // Error check (1.): Check if the 3D coordinates are valid
-    validation_ptr->error_invalid_3D_values(particle_change);
+    validation.error_invalid_3D_values(particle_change);
 
     if (bool_exact_simulation) {
         // Restore the original UV mesh
         virtual_mesh.change_UV_map(0);
-        // ! next to marked_outside_particle we need the information of simulated_particles, which is equal or more than marked_outside_particle 
+
         // Get all data from the struct, even they are not completly correct
         get_all_data_without_r_UV();
 
@@ -430,8 +431,8 @@ void _2DTissue::perform_particle_simulation(){
     }
 
     // Error checking
-    validation_ptr->error_lost_particles(r_UV, particle_count);  // 2. Check if we lost particles
-    validation_ptr->error_invalid_values(r_UV);  // 3. Check if there are invalid values like NaN or Inf in the output
+    validation.error_lost_particles(r_UV, particle_count);  // 2. Check if we lost particles
+    validation.error_invalid_values(r_UV);  // 3. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
     count_particle_neighbors();
