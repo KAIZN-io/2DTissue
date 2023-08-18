@@ -38,6 +38,7 @@ list(APPEND CMAKE_MODULE_PATH "${ROADRUNNER_INSTALL_PREFIX}/lib/cmake")
 
 include(ImportRoadRunnerAndDependencies)
 include_directories("${ROADRUNNER_INSTALL_PREFIX}/include")
+include_directories(${Boost_INCLUDE_DIRS})
 
 # Set the Assimp path
 if(assimp_FOUND)
@@ -63,7 +64,7 @@ add_library(simulation_lib STATIC ${SIMULATION_SOURCES})
 target_link_libraries(simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
 
 # Add C++ source files
-create_single_source_cgal_program("src/main.cpp")
+add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE
         CGAL::Eigen3_support
         simulation_lib
