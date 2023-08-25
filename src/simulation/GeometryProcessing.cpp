@@ -367,30 +367,27 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
         i++;
     }
 
-    std::vector<Point_2> points_uv;
-    std::vector<Point_3> points;
     std::vector<int64_t> h_v_mapping_vector;
+    int number_of_vertices = size(vertices(mesh));
+    vertices_3D.resize(number_of_vertices, 3);
+    vertice_UV.resize(number_of_vertices, 3);
+
+    i = 0;
     for (UV::vertex_descriptor vd : vertices(mesh)) {
         auto [point_3D, uv, target_vertice] = getMeshData(vd, mesh, sm, uvmap);
 
         h_v_mapping_vector.push_back(target_vertice);
-        points.push_back(point_3D);
-        points_uv.push_back(uv);
-    }
 
-    vertices_3D.resize(points.size(), 3);
-    vertice_UV.resize(points.size(), 3);
-    for (size_t i = 0; i < points.size(); ++i)
-    {
         // Get the points
-        vertices_3D(i, 0) = points[i].x();
-        vertices_3D(i, 1) = points[i].y();
-        vertices_3D(i, 2) = points[i].z();
+        vertices_3D(i, 0) = point_3D.x();
+        vertices_3D(i, 1) = point_3D.y();
+        vertices_3D(i, 2) = point_3D.z();
 
         // Get the uv points
-        vertice_UV(i, 0) = points_uv[i].x();
-        vertice_UV(i, 1) = points_uv[i].y();
+        vertice_UV(i, 0) = uv.x();
+        vertice_UV(i, 1) = uv.y();
         vertice_UV(i, 2) = 0;
+        i++;
     }
 
     return h_v_mapping_vector;
