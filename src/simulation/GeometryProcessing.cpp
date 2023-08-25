@@ -351,9 +351,7 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
 
     int i = 0;
     for (UV::vertex_descriptor vd : vertices(mesh_virtual)) {
-        int64_t target_vertice = target(vd, sm_for_virtual);
-        auto point_3D = sm_for_virtual.point(target(vd, sm_for_virtual));
-        auto uv = get(uvmap_virtual, halfedge(vd, mesh_virtual));
+        auto [point_3D, uv, target_vertice] = getMeshData(vd, mesh_virtual, sm_for_virtual, uvmap_virtual);
 
         h_v_mapping_vector_virtual.push_back(target_vertice);
 
@@ -373,9 +371,7 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     std::vector<Point_3> points;
     std::vector<int64_t> h_v_mapping_vector;
     for (UV::vertex_descriptor vd : vertices(mesh)) {
-        int64_t target_vertice = target(vd, sm);
-        auto point_3D = sm.point(target(vd, sm));
-        auto uv = get(uvmap, halfedge(vd, mesh));
+        auto [point_3D, uv, target_vertice] = getMeshData(vd, mesh, sm, uvmap);
 
         h_v_mapping_vector.push_back(target_vertice);
         points.push_back(point_3D);
@@ -401,11 +397,28 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
 }
 
 
-void GeometryProcessing::load3DMeshes(const std::string& path, _3D::Mesh& sm, _3D::Mesh& sm_virtual) {
+void GeometryProcessing::load3DMeshes(
+    const std::string& path,
+    _3D::Mesh& sm,
+    _3D::Mesh& sm_virtual
+){
     std::ifstream in(CGAL::data_file_path(path));
     std::ifstream in_virtual(CGAL::data_file_path(path));
     in >> sm;
     in_virtual >> sm_virtual;
+}
+
+
+std::tuple<Point_3, Point_2, int64_t> GeometryProcessing::getMeshData(
+    const UV::vertex_descriptor& vd,
+    const UV::Mesh& mesh,
+    const _3D::Mesh& sm,
+    _3D::UV_pmap& _uvmap
+){
+    int64_t target_vertice = target(vd, sm);
+    Point_3 point_3D = sm.point(target(vd, sm));
+    Point_2 uv = get(_uvmap, halfedge(vd, mesh));
+    return {point_3D, uv, target_vertice};
 }
 
 
