@@ -142,6 +142,12 @@ private:
         const std::vector<_3D::edge_descriptor> calc_edges
     );
 
+    void load3DMeshes(
+        const std::string& path,
+        _3D::Mesh& sm,
+        _3D::Mesh& sm_virtual
+    );
+
     std::vector<int64_t> calculate_uv_surface(
         const std::string mesh_file_path,
         _3D::vertex_descriptor start_node,

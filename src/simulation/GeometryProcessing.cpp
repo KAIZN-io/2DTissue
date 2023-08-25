@@ -320,17 +320,10 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     Eigen::MatrixXd& vertices_3D
 ){
     // Set the border edges of the UV mesh
-    auto results_border = set_UV_border_edges(mesh_file_path, start_node);
-    auto virtual_border_edges = results_border.first;
-    auto border_edges = results_border.second;
+    auto [virtual_border_edges, border_edges] = set_UV_border_edges(mesh_file_path, start_node);
 
-    // Load the 3D mesh
-    _3D::Mesh sm;
-    _3D::Mesh sm_for_virtual;
-    std::ifstream in(CGAL::data_file_path(mesh_file_path));
-    std::ifstream in_virtual(CGAL::data_file_path(mesh_file_path));
-    in >> sm;
-    in_virtual >> sm_for_virtual;
+    _3D::Mesh sm, sm_for_virtual;
+    load3DMeshes(mesh_file_path, sm, sm_for_virtual);
 
     // Canonical Halfedges Representing a Vertex
     _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
@@ -405,6 +398,14 @@ std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
     }
 
     return h_v_mapping_vector;
+}
+
+
+void GeometryProcessing::load3DMeshes(const std::string& path, _3D::Mesh& sm, _3D::Mesh& sm_virtual) {
+    std::ifstream in(CGAL::data_file_path(path));
+    std::ifstream in_virtual(CGAL::data_file_path(path));
+    in >> sm;
+    in_virtual >> sm_virtual;
 }
 
 
