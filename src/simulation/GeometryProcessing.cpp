@@ -28,7 +28,6 @@ GeometryProcessing::GeometryProcessing(bool& free_boundary)
 }
 
 
-
 // ========================================
 // ========= Public Functions ============
 // ========================================
@@ -47,7 +46,6 @@ std::string GeometryProcessing::get_mesh_name(
     // Use the stem() function to get the mesh name without the extension
     return path.stem().string();
 }
-
 
 
 /**
@@ -197,7 +195,6 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
 
     return std::make_pair(virtual_path_mod, path_list);
 }
-
 
 
 std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::get_virtual_mesh(){
