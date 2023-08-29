@@ -1,4 +1,4 @@
-// Simulator.h
+// Locomotion.h
 
 #pragma once
 
@@ -11,9 +11,9 @@
 
 #include "LinearAlgebra.h"
 
-class Simulator {
+class Locomotion {
 public:
-    Simulator(
+    Locomotion(
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot,
@@ -82,18 +82,18 @@ private:
     static constexpr double FULL_CIRCLE = 360.0;
     static constexpr double QUARTER_CIRCLE = 90.0;
 
-FRIEND_TEST(SimulatorTest, ThrowsWhenInputIsEmpty);
-FRIEND_TEST(SimulatorTest, CorrectlyCalculatesMeanAngle);
-FRIEND_TEST(SimulatorTest, CorrectlyHandlesNegativeAngles);
-FRIEND_TEST(SimulatorTest, SymmetricMatrixTestBasicTest);
-FRIEND_TEST(SimulatorTest, SymmetricMatrixTestZeroTest);
-FRIEND_TEST(SimulatorTest, SymmetricMatrixTestAllZerosTest);
-FRIEND_TEST(SimulatorTest, GetDistVectTestBasicTest);
-FRIEND_TEST(SimulatorTest, GetDistVectTestZeroMatrixTest);
-FRIEND_TEST(SimulatorTest, GetDistVectTestOneDimensionTest);
-FRIEND_TEST(SimulatorTest, GetDistVectTestHandlesSquareMatrixCorrectly);
-FRIEND_TEST(SimulatorTest, GetDistVectTestTenDimensionTest);
-FRIEND_TEST(SimulatorTest, AverageNWithinDistanceTest1);
-FRIEND_TEST(SimulatorTest, RepulsiveAdhesionTest1);
-FRIEND_TEST(SimulatorTest, RepulsiveAdhesionTest2);
+FRIEND_TEST(LocomotionTest, ThrowsWhenInputIsEmpty);
+FRIEND_TEST(LocomotionTest, CorrectlyCalculatesMeanAngle);
+FRIEND_TEST(LocomotionTest, CorrectlyHandlesNegativeAngles);
+FRIEND_TEST(LocomotionTest, SymmetricMatrixTestBasicTest);
+FRIEND_TEST(LocomotionTest, SymmetricMatrixTestZeroTest);
+FRIEND_TEST(LocomotionTest, SymmetricMatrixTestAllZerosTest);
+FRIEND_TEST(LocomotionTest, GetDistVectTestBasicTest);
+FRIEND_TEST(LocomotionTest, GetDistVectTestZeroMatrixTest);
+FRIEND_TEST(LocomotionTest, GetDistVectTestOneDimensionTest);
+FRIEND_TEST(LocomotionTest, GetDistVectTestHandlesSquareMatrixCorrectly);
+FRIEND_TEST(LocomotionTest, GetDistVectTestTenDimensionTest);
+FRIEND_TEST(LocomotionTest, AverageNWithinDistanceTest1);
+FRIEND_TEST(LocomotionTest, RepulsiveAdhesionTest1);
+FRIEND_TEST(LocomotionTest, RepulsiveAdhesionTest2);
 };

@@ -12,7 +12,7 @@
 #include "LinearAlgebra.h"
 #include "Cell.h"
 #include "CellHelper.h"
-#include "Simulator.h"
+#include "Locomotion.h"
 #include "SimulatorHelper.h"
 #include "Validation.h"
 #include "VirtualMesh.h"
@@ -45,7 +45,7 @@ public:
     bool is_finished();
     Eigen::VectorXd get_order_parameter();
 
-    friend class Simulator;
+    friend class Locomotion;
     friend class CellHelper;
     friend class VirtualMesh;
 
@@ -106,7 +106,7 @@ private:
     double dt;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
-    Simulator simulator;
+    Locomotion locomotion;
     SimulatorHelper simulator_helper;
     CellHelper cell_helper;
     VirtualMesh virtual_mesh;

@@ -20,7 +20,7 @@
 #include <GeometryProcessing.h>
 #include <LinearAlgebra.h>
 #include <CellHelper.h>
-#include <Simulator.h>
+#include <Locomotion.h>
 #include <Validation.h>
 
 #include <2DTissue.h>
@@ -65,7 +65,7 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false),
     geometry_processing(free_boundary),
-    simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
+    locomotion(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, geometry_processing, original_mesh),
     cell(),
     cell_helper(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
@@ -229,15 +229,15 @@ Eigen::VectorXd _2DTissue::get_order_parameter() {
 
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
-    simulator.simulate_flight();
+    locomotion.simulate_flight();
 
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     if (!bool_exact_simulation){
         if (mesh_UV_name == "sphere_uv"){
-            simulator.opposite_seam_edges_square_border();
+            locomotion.opposite_seam_edges_square_border();
         }
         else {
-            simulator.diagonal_seam_edges_square_border();
+            locomotion.diagonal_seam_edges_square_border();
         }
     }
 
