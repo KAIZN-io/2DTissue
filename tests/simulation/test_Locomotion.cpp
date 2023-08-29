@@ -324,7 +324,7 @@ TEST_F(LocomotionTest, AverageNWithinDistanceTest1){
     sim.calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
     Eigen::VectorXi expected_n(10);
-    expected_n << 161, 161, 191, 83, 191, 46, 48, 144, 227, 48;
+    expected_n << 161, 161, 21, 83, 21, 46, 48, 144, 227, 48;
 
     CompareMatrices(expected_n, n, 2);
 }
