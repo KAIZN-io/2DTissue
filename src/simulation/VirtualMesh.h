@@ -13,7 +13,7 @@
 
 #include <GeometryProcessing.h>
 #include <IO.h>
-#include <Cell.h>
+#include <CellHelper.h>
 #include <Struct.h>
 #include <Compass.h>
 
@@ -42,8 +42,15 @@ public:
     void prepare_virtual_mesh(int old_id);
     Eigen::Vector2d init_north_pole();
     Eigen::VectorXi get_relative_orientation();
-    void assign_particle_orientation(Eigen::Vector2d northPole_, Eigen::VectorXi n_pole_);
-    Eigen::VectorXi get_n_orientation(Eigen::Matrix<double, Eigen::Dynamic, 2> position_, Eigen::Vector2d northPole_, Eigen::VectorXi n_pole_);
+    void assign_particle_orientation(
+        Eigen::Vector2d northPole_,
+        Eigen::VectorXi n_pole_
+    );
+    Eigen::VectorXi get_n_orientation(
+        Eigen::Matrix<double, Eigen::Dynamic, 2> position_,
+        Eigen::Vector2d northPole_,
+        Eigen::VectorXi n_pole_
+    );
     void change_UV_map(int target_vertex);
 
 private:
@@ -68,6 +75,6 @@ private:
     Eigen::Vector2d northPole;
     Eigen::Vector2d northPole_virtual;
     Eigen::MatrixXd halfedge_UV_virtual;
-    Cell cell;
+    CellHelper cell_helper;
     Compass compass;
 };

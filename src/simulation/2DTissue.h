@@ -7,33 +7,48 @@
 #include <map>
 #include <memory>
 
-// Differential Equation Simulation
-#include <rr/rrRoadRunner.h>
-#include <rr/rrExecutableModel.h>
-
-#include <cvode/cvode.h>
-// #include <idas/idas.h>
-#include <nvector/nvector_serial.h>
-#include <sundials/sundials_types.h>
-#include <sundials/sundials_math.h>
-#include <sunmatrix/sunmatrix_dense.h>
-#include <sunlinsol/sunlinsol_dense.h>
-#include <sundials/sundials_types.h>
-
-
 #include "IO.h"
 #include "GeometryProcessing.h"
 #include "LinearAlgebra.h"
 #include "Cell.h"
-#include "Simulator.h"
+#include "CellHelper.h"
+#include "Locomotion.h"
 #include "SimulatorHelper.h"
 #include "Validation.h"
 #include "VirtualMesh.h"
 #include "Struct.h"
 #include "Compass.h"
 
-class _2DTissue
-{
+class _2DTissue {
+public:
+    _2DTissue(
+        bool save_data,
+        bool particle_innenleben,
+        bool bool_exact_simulation,
+        bool free_boundary,
+        std::string mesh_path,
+        int particle_count,
+        int step_count = 1,
+        double v0 = 0.1,
+        double k = 1,
+        double k_next = 10,
+        double v0_next = 0.1,
+        double σ = 0.4166666666666667,
+        double μ = 1,
+        double r_adh = 1,
+        double k_adh = 0.75,
+        double step_size = 0.001,
+        int map_cache_count = 30
+    );
+    void start();
+    System update();
+    bool is_finished();
+    Eigen::VectorXd get_order_parameter();
+
+    friend class Locomotion;
+    friend class CellHelper;
+    friend class VirtualMesh;
+
 private:
     // Include here your class variables (the ones used in start and update methods)
     bool save_data;
@@ -58,7 +73,8 @@ private:
     bool finished;
     std::vector<VertexData> particle_change;
     
-    std::unique_ptr<Cell> cell_ptr;
+    Cell cell;
+    std::unique_ptr<CellHelper> cell_helper_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
     std::unique_ptr<Validation> validation_ptr;
 
@@ -90,36 +106,20 @@ private:
     double dt;
     std::string mesh_UV_path;
     std::string mesh_UV_name;
-    Simulator simulator;
+    Locomotion locomotion;
     SimulatorHelper simulator_helper;
-    Cell cell;
+    CellHelper cell_helper;
     VirtualMesh virtual_mesh;
     Compass compass;
     GeometryProcessing geometry_processing;
     Validation validation;
-
-    // Differential Equation Simulation
-    realtype reltol, abstol; // Tolerances
-    realtype t; // Time
-    realtype tout = 0.001; // Time for next output
-    void* cvode_mem; // CVODE memory
-    N_Vector y; // Variables
-    SUNMatrix A; // Dense SUNMatrix
-    SUNLinearSolver LS; // Dense SUNLinearSolver object
-
-    // SBML simulation
-    rr::RoadRunner* rr;
-    std::string sbmlModelFilePath;
-    double startTime;
-    double endTime;
     int numberOfPoints;
     bool mark_outside;
 
     void perform_particle_simulation();
     void save_our_data();
     void count_particle_neighbors();
-    static int simulate_sine(realtype t, N_Vector y, N_Vector ydot, void *user_data);
-    void perform_sbml_simulation();
+
     void set_new_particle_data();
     int actual_mesh_id;
     bool original_mesh;
@@ -136,32 +136,4 @@ private:
         std::vector<int>& particles_for_resimulation
     );
     void filter_old_particles_data_for_resimulation(std::vector<int> particles_outside_UV);
-
-public:
-    _2DTissue(
-        bool save_data,
-        bool particle_innenleben,
-        bool bool_exact_simulation,
-        bool free_boundary,
-        std::string mesh_path,
-        int particle_count,
-        int step_count = 1,
-        double v0 = 0.1,
-        double k = 1,
-        double k_next = 10,
-        double v0_next = 0.1,
-        double σ = 0.4166666666666667,
-        double μ = 1,
-        double r_adh = 1,
-        double k_adh = 0.75,
-        double step_size = 0.001,
-        int map_cache_count = 30
-    );
-    void start();
-    System update();
-    bool is_finished();
-    Eigen::VectorXd get_order_parameter();
-    friend class Simulator;
-    friend class Cell;
-    friend class VirtualMesh;
 };

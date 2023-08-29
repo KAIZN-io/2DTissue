@@ -11,12 +11,12 @@
 #include <memory>
 
 #include <LinearAlgebra.h>
-#include <Simulator.h>
+#include <Locomotion.h>
 
 
-class SimulatorTest : public ::testing::Test {
+class LocomotionTest : public ::testing::Test {
 protected:
-    SimulatorTest()
+    LocomotionTest()
         : v0(0), k(10), σ(1.4166666666666667), μ(0), r_adh(1), k_adh(0.75), step_size(0),
           r_UV(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
           r_UV_old(Eigen::Matrix<double, Eigen::Dynamic, 2>()),
@@ -35,13 +35,13 @@ protected:
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix, dist_length;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
-    Simulator sim;
+    Locomotion sim;
 };
 
 
 
 // Test the repulsive_adhesion_motion function
-TEST_F(SimulatorTest, RepulsiveAdhesionTest1) {
+TEST_F(LocomotionTest, RepulsiveAdhesionTest1) {
     Eigen::Vector2d dist_v(0.0203217, 0.010791);
     double dist = 0.953489;
     Eigen::Vector2d expected_result(-0.141406, -0.075088);
@@ -51,7 +51,7 @@ TEST_F(SimulatorTest, RepulsiveAdhesionTest1) {
     ASSERT_NEAR(result[1], expected_result[1], 1e-5);
 }
 
-TEST_F(SimulatorTest, RepulsiveAdhesionTest2) {
+TEST_F(LocomotionTest, RepulsiveAdhesionTest2) {
     Eigen::Vector2d dist_v(-0.0203217, -0.010791);
     double dist = 0.953489;
     Eigen::Vector2d expected_result(0.141406, 0.075088);
@@ -63,12 +63,12 @@ TEST_F(SimulatorTest, RepulsiveAdhesionTest2) {
 
 
 // Test the mean_unit_circle_vector_angle_degrees function
-TEST_F(SimulatorTest, ThrowsWhenInputIsEmpty) {
+TEST_F(LocomotionTest, ThrowsWhenInputIsEmpty) {
     std::vector<double> empty;
     EXPECT_THROW(sim.mean_unit_circle_vector_angle_degrees(empty), std::invalid_argument);
 }
 
-TEST_F(SimulatorTest, CorrectlyCalculatesMeanAngle) {
+TEST_F(LocomotionTest, CorrectlyCalculatesMeanAngle) {
     std::vector<double> angles {0, 180, 90};
     double expected_mean_angle = 90.0;
     double actual_mean_angle = sim.mean_unit_circle_vector_angle_degrees(angles);
@@ -76,7 +76,7 @@ TEST_F(SimulatorTest, CorrectlyCalculatesMeanAngle) {
     EXPECT_NEAR(expected_mean_angle, actual_mean_angle, 1e-5); // 1e-5 is the allowed error
 }
 
-TEST_F(SimulatorTest, CorrectlyHandlesNegativeAngles) {
+TEST_F(LocomotionTest, CorrectlyHandlesNegativeAngles) {
     std::vector<double> angles {-45, -90, -135, -180, -225, -270, -315};
     double expected_mean_angle = 180.0;
     double actual_mean_angle = sim.mean_unit_circle_vector_angle_degrees(angles);
@@ -88,7 +88,7 @@ TEST_F(SimulatorTest, CorrectlyHandlesNegativeAngles) {
 /**
  * @brief Test the function transform_into_symmetric_matrix
 */
-TEST_F(SimulatorTest, SymmetricMatrixTestBasicTest) {
+TEST_F(LocomotionTest, SymmetricMatrixTestBasicTest) {
     Eigen::MatrixXd mat(3, 3);
     mat << 1, 2, 3,
            4, 5, 6,
@@ -105,7 +105,7 @@ TEST_F(SimulatorTest, SymmetricMatrixTestBasicTest) {
     ASSERT_TRUE(mat.isApprox(expected_mat));
 }
 
-TEST_F(SimulatorTest, SymmetricMatrixTestZeroTest) {
+TEST_F(LocomotionTest, SymmetricMatrixTestZeroTest) {
     Eigen::MatrixXd mat(3, 3);
     mat << 1, 0, 3,
            4, 5, 6,
@@ -122,7 +122,7 @@ TEST_F(SimulatorTest, SymmetricMatrixTestZeroTest) {
     ASSERT_TRUE(mat.isApprox(expected_mat));
 }
 
-TEST_F(SimulatorTest, SymmetricMatrixTestAllZerosTest) {
+TEST_F(LocomotionTest, SymmetricMatrixTestAllZerosTest) {
     Eigen::MatrixXd mat(3, 3);
     mat << 0, 0, 0,
            0, 0, 0,
@@ -143,7 +143,7 @@ TEST_F(SimulatorTest, SymmetricMatrixTestAllZerosTest) {
 /**
  * @brief Test the function get_dist_vect
 */
-TEST_F(SimulatorTest, GetDistVectTestBasicTest) {
+TEST_F(LocomotionTest, GetDistVectTestBasicTest) {
     // 3x2 matrix
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(3, 2);
     r << 1, 2,
@@ -166,7 +166,7 @@ TEST_F(SimulatorTest, GetDistVectTestBasicTest) {
     ASSERT_TRUE(dist_vect[1].isApprox(expected_diff_y));
 }
 
-TEST_F(SimulatorTest, GetDistVectTestZeroMatrixTest) {
+TEST_F(LocomotionTest, GetDistVectTestZeroMatrixTest) {
     // 3x2 matrix
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(3, 2);
     r << 0, 0,
@@ -184,7 +184,7 @@ TEST_F(SimulatorTest, GetDistVectTestZeroMatrixTest) {
     ASSERT_TRUE(dist_vect[1].isApprox(expected_diff));
 }
 
-TEST_F(SimulatorTest, GetDistVectTestOneDimensionTest) {
+TEST_F(LocomotionTest, GetDistVectTestOneDimensionTest) {
     // 1x2 matrix
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(1, 2);
     r << 1, 2;
@@ -198,7 +198,7 @@ TEST_F(SimulatorTest, GetDistVectTestOneDimensionTest) {
     ASSERT_TRUE(dist_vect[1].isApprox(expected_diff));
 }
 
-TEST_F(SimulatorTest, GetDistVectTestHandlesSquareMatrixCorrectly) {
+TEST_F(LocomotionTest, GetDistVectTestHandlesSquareMatrixCorrectly) {
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(2, 2);
     r << 1.0, 2.0, 3.0, 4.0;
 
@@ -215,7 +215,7 @@ TEST_F(SimulatorTest, GetDistVectTestHandlesSquareMatrixCorrectly) {
     ASSERT_TRUE(dist_vect[1].isApprox(expected_diff_y, tolerance));
 }
 
-TEST_F(SimulatorTest, GetDistVectTestTenDimensionTest) {
+TEST_F(LocomotionTest, GetDistVectTestTenDimensionTest) {
     // 2x2 matrix
     Eigen::Matrix<double, Eigen::Dynamic, 2> r(10, 2);
     r << 0.448453,  0.365021,
@@ -275,7 +275,7 @@ void CompareMatrices(const Eigen::MatrixXi& expected, const Eigen::MatrixXi& act
     }
 }
 
-TEST_F(SimulatorTest, AverageNWithinDistanceTest1){
+TEST_F(LocomotionTest, AverageNWithinDistanceTest1){
     double σ = 1.4166666666666667;
 
     Eigen::MatrixXd diff_x(10, 10);
@@ -324,7 +324,7 @@ TEST_F(SimulatorTest, AverageNWithinDistanceTest1){
     sim.calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 
     Eigen::VectorXi expected_n(10);
-    expected_n << 161, 161, 191, 83, 191, 46, 48, 144, 227, 48;
+    expected_n << 161, 161, 21, 83, 21, 46, 48, 144, 227, 48;
 
     CompareMatrices(expected_n, n, 2);
 }

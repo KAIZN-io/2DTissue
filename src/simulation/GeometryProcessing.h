@@ -1,58 +1,60 @@
 // 2D_surface.h
+
 #pragma once
+
+// Standard libraries
 #include <string>
-#include <utility>
 #include <vector>
-#include <Eigen/Dense>
+#include <utility>
+#include <unordered_map>
+#include <unordered_set>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
-#include <unordered_map>
-#include <unordered_set>
 
+// Eigen
+#include <Eigen/Dense>
+
+// Boost libraries
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
 
-#include <CGAL/IO/read_off_points.h>   // TODO: checken, ob Assimp dann noch benötigt wird
+// CGAL libraries
+#include <CGAL/IO/read_off_points.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
 #include <CGAL/Polygon_mesh_processing/border.h>
-
-// Check if a point is inside the border
 #include <CGAL/Polygon_2.h>
-
-// Distance calculation
 #include <CGAL/boost/graph/breadth_first_search.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
 #include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
-
-// Surface Parameterization Methods
 #include <CGAL/Surface_mesh_parameterization/IO/File_off.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Surface_mesh_parameterization/ARAP_parameterizer_3.h>
+namespace SMP = CGAL::Surface_mesh_parameterization;
 
+// Custom includes
 #include "IO.h"
 
+// Basic type definitions and constants
 using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
 using Point_3 = Kernel::Point_3;
 using Polygon_2 = CGAL::Polygon_2<Kernel>;
-
-namespace SMP = CGAL::Surface_mesh_parameterization;
-namespace fs = boost::filesystem;
-
 const fs::path PROJECT_PATH_ = PROJECT_SOURCE_DIR;
 const fs::path MESH_FOLDER = PROJECT_PATH_  / "meshes";
 const unsigned int PARAMETERIZATION_ITERATIONS = 9;
 
+// 3D definitions
 namespace _3D {
     using Mesh = CGAL::Surface_mesh<Point_3>;
     using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
@@ -63,19 +65,16 @@ namespace _3D {
     using UV_pmap = Mesh::Property_map<halfedge_descriptor, Point_2>;
 }
 
+// UV definitions
 namespace UV {
-    using Mesh = CGAL::Seam_mesh<_3D::Mesh,
-                                _3D::Seam_edge_pmap,
-                                _3D::Seam_vertex_pmap>;
+    using Mesh = CGAL::Seam_mesh<_3D::Mesh, _3D::Seam_edge_pmap, _3D::Seam_vertex_pmap>;
     using vertex_descriptor = boost::graph_traits<Mesh>::vertex_descriptor;
     using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
 }
 
 class GeometryProcessing {
 public:
-    GeometryProcessing(
-        bool& free_boundary
-    );
+    explicit GeometryProcessing(bool& free_boundary);
 
     void calculate_distances(
         _3D::Mesh mesh,
@@ -109,14 +108,24 @@ public:
     );
 
     std::string get_mesh_name(
-       const std::string mesh_file_path
+        const std::string mesh_file_path
     );
 
-    std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node = 0);
-    int get_all_distances(std::string mesh_file_path);
+    std::vector<double> geo_distance(
+        const std::string mesh_path,
+        int32_t start_node = 0
+    );
+
+    int get_all_distances(
+        std::string mesh_file_path
+    );
+
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
-    void extract_polygon_border_edges(const std::string& mesh_path, bool is_original_mesh);
-    bool check_point_in_polygon(const Eigen::Vector2d& point, bool is_original_mesh) ;
+
+    bool check_point_in_polygon(
+        const Eigen::Vector2d& point,
+        bool is_original_mesh
+    );
 
 private:
     Polygon_2 polygon;
@@ -143,6 +152,19 @@ private:
         const std::vector<_3D::edge_descriptor> calc_edges
     );
 
+    void load3DMeshes(
+        const std::string& path,
+        _3D::Mesh& sm,
+        _3D::Mesh& sm_virtual
+    );
+
+    std::tuple<Point_3, Point_2, int64_t> getMeshData(
+        const UV::vertex_descriptor& vd,
+        const UV::Mesh& mesh,
+        const _3D::Mesh& sm,
+        _3D::UV_pmap& _uvmap
+    );
+
     std::vector<int64_t> calculate_uv_surface(
         const std::string mesh_file_path,
         _3D::vertex_descriptor start_node,
@@ -157,5 +179,10 @@ private:
         _3D::UV_pmap _uvmap,
         const std::string mesh_path,
         int uv_mesh_number
+    );
+
+    void extract_polygon_border_edges(
+        const std::string& mesh_path,
+        bool is_original_mesh
     );
 };

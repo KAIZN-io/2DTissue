@@ -21,6 +21,10 @@ Validation::Validation(
 }
 
 
+// ========================================
+// ========= Public Functions =============
+// ========================================
+
 bool Validation::checkForInvalidValues(
     const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix
 ) {
@@ -57,11 +61,10 @@ void Validation::error_invalid_values(
     }
 }
 
-bool Validation::is_inside_uv(const Eigen::Vector2d& r) {
-    return geometry_processing.check_point_in_polygon(r, original_mesh);
-}
-
-std::vector<int> Validation::find_inside_uv_vertices_id(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
+std::vector<int> Validation::find_inside_uv_vertices_id(
+    const Eigen::Matrix<double,
+    Eigen::Dynamic, 2>& r
+){
     int nrows = r.rows();
     std::vector<int> inside_id;
 
@@ -83,4 +86,14 @@ void Validation::error_lost_particles(
     if (find_inside_uv_vertices_id(r_UV_new).size() != num_part) {
         throw std::runtime_error("We lost particles after getting the original UV mesh coord");
     }
+}
+
+
+
+// ========================================
+// ========= Private Functions ============
+// ========================================
+
+bool Validation::is_inside_uv(const Eigen::Vector2d& r) {
+    return geometry_processing.check_point_in_polygon(r, original_mesh);
 }

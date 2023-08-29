@@ -9,6 +9,14 @@ DATA_DIR := $(PROJECT_DIR)/data
 ASSETS_DIR := $(PROJECT_DIR)/assets
 ARCHITECTURE := arm64
 
+# Platform selection
+PLATFORM ?= executive
+ifeq ($(PLATFORM),wasm)
+	CMAKE_CMD = emcmake cmake
+else
+	CMAKE_CMD = cmake
+endif
+
 .PHONY: all
 all: check_dependencies build_cgal build_llvm_13 build_libroadrunner_deps build_libroadrunner build
 
@@ -53,7 +61,7 @@ build_cgal:
 		if [ ! -d "$(EXTERNAL_DIR)/cgal" ]; then \
 			git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git $(EXTERNAL_DIR)/cgal; \
 			mkdir -p build/cgal; \
-			cd build/cgal && cmake $(EXTERNAL_DIR)/cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF && make && sudo make install; \
+			cd build/cgal && $(CMAKE_CMD) $(EXTERNAL_DIR)/cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF && make && sudo make install; \
 		fi; \
 	fi
 
@@ -67,7 +75,7 @@ build_libroadrunner:
 	cd $(EXTERNAL_DIR)/roadrunner; \
 	mkdir -p build-release; \
 	cd build-release; \
-	cmake -GNinja -DCMAKE_INSTALL_PREFIX="$(EXTERNAL_DIR)/roadrunner/install-release" \
+	$(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="$(EXTERNAL_DIR)/roadrunner/install-release" \
 	    -DLLVM_INSTALL_PREFIX="$(EXTERNAL_DIR)/llvm-13.x/install-release" \
 	    -DRR_DEPENDENCIES_INSTALL_PREFIX="$(EXTERNAL_DIR)/libroadrunner-deps/install-release" \
 	    -DCMAKE_BUILD_TYPE="Release" \
@@ -85,7 +93,7 @@ build_libroadrunner_deps:
 	cd $(EXTERNAL_DIR)/libroadrunner-deps; \
 	mkdir -p build; \
 	cd build; \
-	cmake -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
+	$(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
 		-DCMAKE_BUILD_TYPE="Release" \
 		-DCMAKE_CXX_STANDARD=17 \
 		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
@@ -102,7 +110,7 @@ build_llvm_13:
 	cd $(EXTERNAL_DIR)/llvm-13.x; \
 	mkdir -p build; \
 	cd build; \
-	cmake -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
+	$(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
 		-DCMAKE_BUILD_TYPE="Release" \
 		-DCMAKE_CXX_STANDARD=17 \
 		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ../llvm; \
@@ -112,8 +120,9 @@ build_llvm_13:
 .PHONY: build
 build: $(DATA_DIR)
 	@OS=$$(uname -s); \
+	echo "Building for platform: $(PLATFORM)"; \
 	if [ "$$OS" == "Darwin" ]; then \
-		cmake -S $(PROJECT_DIR) \
+		$(CMAKE_CMD) -S $(PROJECT_DIR) \
 			-B $(PROJECT_DIR)/build \
 			-DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_C_COMPILER=$(shell brew --prefix llvm)/bin/clang \
@@ -124,7 +133,7 @@ build: $(DATA_DIR)
 		ninja -C $(PROJECT_DIR)/build -j $$(sysctl -n hw.logicalcpu); \
 	elif [ "$$OS" == "Linux" ]; then \
 		echo "Building for Linux..."; \
-		cmake -S $(PROJECT_DIR) \
+		$(CMAKE_CMD) -S $(PROJECT_DIR) \
 			-B $(PROJECT_DIR)/build \
 			-DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_C_COMPILER=/usr/bin/gcc \

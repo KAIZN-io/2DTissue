@@ -37,28 +37,33 @@ VirtualMesh::VirtualMesh(
       mesh_path(mesh_path),
       map_cache_count(map_cache_count),
       vertices_2DTissue_map(vertices_2DTissue_map),
-      cell(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
+      cell_helper(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
       compass(northPole)
 {
 }
+
+
+// ========================================
+// ========= Public Functions =============
+// ========================================
 
 Eigen::Vector2d VirtualMesh::init_north_pole(){
     northPole_3D.resize(1, 3);
     northPole_3D << 1.7466, -0.220152, -2.40228;
     // Get the old 3D coordinates
-    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
+    auto [new_r_3D, new_vertices_3D_active] = cell_helper.get_r3d();
     r_3D = new_r_3D;
     r_3D.conservativeResize(r_3D.rows() + 1, 3);
     r_3D.row(r_3D.rows() - 1) = northPole_3D;
 
     // Map it to the 2D coordinates of the new map
-    auto new_r_UV = cell.get_r2d();
+    auto new_r_UV = cell_helper.get_r2d();
 
     northPole = new_r_UV.row(new_r_UV.rows() - 1);
 
     // Change to the virtual UV mesh
     change_UV_map(1);
-    auto virtual_r_UV = cell.get_r2d();
+    auto virtual_r_UV = cell_helper.get_r2d();
     northPole_virtual = virtual_r_UV.row(virtual_r_UV.rows() - 1);
 
     // Change back to the basic UV mesh
@@ -71,7 +76,7 @@ Eigen::Vector2d VirtualMesh::init_north_pole(){
 
 void VirtualMesh::prepare_virtual_mesh(int mesh_id) {
     // Get the old 3D coordinates
-    auto [new_r_3D, new_vertices_3D_active] = cell.get_r3d();
+    auto [new_r_3D, new_vertices_3D_active] = cell_helper.get_r3d();
     r_3D = new_r_3D;
 
     // Get the relative orientation
@@ -82,16 +87,23 @@ void VirtualMesh::prepare_virtual_mesh(int mesh_id) {
 
     // ! todo: diese zwei Schritte dauern ZU lang!
     // Add the particles to the new map
-    r_UV = cell.get_r2d();
+    r_UV = cell_helper.get_r2d();
     assign_particle_orientation(northPole_virtual, n_pole);
 }
 
 
-Eigen::VectorXi VirtualMesh::get_n_orientation(Eigen::Matrix<double, Eigen::Dynamic, 2> position_, Eigen::Vector2d pole_coordinate, Eigen::VectorXi n_pole_) {
+Eigen::VectorXi VirtualMesh::get_n_orientation(
+    Eigen::Matrix<double, Eigen::Dynamic, 2> position_,
+    Eigen::Vector2d pole_coordinate,
+    Eigen::VectorXi n_pole_
+) {
     return compass.assign_n(position_, pole_coordinate, n_pole_);
 }
 
-void VirtualMesh::assign_particle_orientation(Eigen::Vector2d pole_coordinate, Eigen::VectorXi n_pole_){
+void VirtualMesh::assign_particle_orientation(
+    Eigen::Vector2d pole_coordinate,
+    Eigen::VectorXi n_pole_
+) {
     n = compass.assign_n(r_UV, pole_coordinate, n_pole_);
 }
 
@@ -99,7 +111,7 @@ Eigen::VectorXi VirtualMesh::get_relative_orientation(){
     return compass.calculate_n_pole(r_UV, n);
 }
 
-void VirtualMesh::change_UV_map(int mesh_id){
+void VirtualMesh::change_UV_map(int mesh_id) {
     auto it = vertices_2DTissue_map.find(mesh_id);
     if (it != vertices_2DTissue_map.end()) {
         // Load the mesh

@@ -5,8 +5,7 @@
 #include <Eigen/Dense>
 
 
-class LinearAlgebra
-{
+class LinearAlgebra {
 public:
     void calculate_order_parameter(
         Eigen::VectorXd& v_order,
@@ -23,4 +22,9 @@ public:
         const Eigen::MatrixXd A,
         const Eigen::MatrixXd B
     );
+
+private:
+    static constexpr double DEG_TO_RAD = M_PI / 180.0;
+    static constexpr double RAD_TO_DEG = 180.0 / M_PI;
+    static constexpr double FULL_CIRCLE = 360.0;
 };

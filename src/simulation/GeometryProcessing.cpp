@@ -3,17 +3,6 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-// known Issue: https://github.com/CGAL/cgal/issues/2994
-
-
-/*
-Shortest paths on a terrain using one source point 
-The heat method package returns an Approximation of the Geodesic Distance for all vertices of a triangle mesh to the closest vertex in a given set of source vertices.
-As a rule of thumb, the method works well on triangle meshes, which are Delaunay.
-
-Disclaimer: The heat method solver is the bottle neck of the algorithm.
-*/
-
 #include <IO.h>
 #include <GeometryProcessing.h>
 
@@ -35,15 +24,18 @@ struct MeshMeta{
 MeshMeta meshmeta;
 
 GeometryProcessing::GeometryProcessing(bool& free_boundary)
-    : free_boundary(free_boundary)
-{
+    : free_boundary(free_boundary){
 }
 
+
+// ========================================
+// ========= Public Functions =============
+// ========================================
 
 /**
  * @brief Extract the mesh name (without extension) from its file path
  *
- * @info: Unittest implemented
+ * @info: Unittested
 */
 std::string GeometryProcessing::get_mesh_name(
    const std::string mesh_3D_path
@@ -52,54 +44,14 @@ std::string GeometryProcessing::get_mesh_name(
     fs::path path(mesh_3D_path);
 
     // Use the stem() function to get the mesh name without the extension
-    std::string mesh_name = path.stem().string();
-
-    return mesh_name;
-}
-
-
-/**
- * @brief Save the generated UV mesh to a file
-*/
-int GeometryProcessing::save_UV_mesh(
-    UV::Mesh _mesh,
-    UV::halfedge_descriptor _bhd,
-    _3D::UV_pmap _uvmap,
-    const std::string mesh_path,
-    int uv_mesh_number
-){
-    // Get the mesh name without the extension
-    auto mesh_3D_name = get_mesh_name(mesh_path);
-
-    // Create the output file path based on uv_mesh_number
-    fs::path output_file_path;
-
-    if (uv_mesh_number == 0) {
-        output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv.off");
-        std::string output_file_path_str = output_file_path.string();
-        meshmeta.mesh_path = output_file_path_str;
-        // Create the output file stream
-        std::ofstream out(output_file_path_str);
-        // Write the UV map to the output file
-        SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
-    } else {
-        output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv_" + std::to_string(uv_mesh_number) + ".off");
-        std::string output_file_path_str = output_file_path.string();
-        meshmeta.mesh_path_virtual = output_file_path_str;
-        // Create the output file stream
-        std::ofstream out(output_file_path_str);
-        // Write the UV map to the output file
-        SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
-    }
-
-    return 0;
+    return path.stem().string();
 }
 
 
 /**
  * @brief Calculate the distances from a given start vertex to all other vertices
  *
- * @info: Unittest implemented
+ * @info: Unittested
 */
 void GeometryProcessing::calculate_distances(
     _3D::Mesh mesh,
@@ -126,18 +78,18 @@ void GeometryProcessing::calculate_distances(
 /**
  * @brief Find the farthest vertex from a given start vertex
  *
- * @info: Unittest implemented
+ * @info: Unittested
 */
 _3D::vertex_descriptor GeometryProcessing::find_farthest_vertex(
     const _3D::Mesh mesh,
     _3D::vertex_descriptor start_node,
     const std::vector<int> distance
-) {
+){
     int max_distances = 0;
     _3D::vertex_descriptor target_node;
 
-    for(_3D::vertex_descriptor vd : vertices(mesh)){
-        if (vd != boost::graph_traits<_3D::Mesh>::null_vertex()){
+    for (_3D::vertex_descriptor vd : vertices(mesh)) {
+        if (vd != boost::graph_traits<_3D::Mesh>::null_vertex()) {
             if (distance[vd] > max_distances) {
                 max_distances = distance[vd];
                 target_node = vd;
@@ -152,7 +104,7 @@ _3D::vertex_descriptor GeometryProcessing::find_farthest_vertex(
 /**
 * @brief Create a path of vertices from the start node to the target node
 *
-* @info: Unittest implemented
+* @info: Unittested
 *
 * ! The size of the path_list multiplied with 2 is the number of vertices on the border of the UV mesh
 *
@@ -165,7 +117,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryPro
     _3D::vertex_descriptor current,
     const std::vector<_3D::vertex_descriptor> predecessor_pmap,
     const bool bool_reverse
-) {
+){
     std::vector<_3D::edge_descriptor> path_list;
 
     while (current != start_node) {
@@ -178,7 +130,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryPro
 
     _3D::vertex_descriptor virtual_mesh_start = target(path_list[path_list.size() - 2], mesh);
 
-    if (bool_reverse){
+    if (bool_reverse) {
         std::reverse(path_list.begin(), path_list.end());
     }
 
@@ -199,7 +151,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> GeometryPro
 /**
 * @brief Calculate the virtual border of the mesh
 *
-* @info: Unittest implemented
+* @info: Unittested
 */
 std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> GeometryProcessing::set_UV_border_edges(
     const std::string mesh_file_path,
@@ -245,24 +197,225 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
 }
 
 
-/**
- * @brief Create the UV mesh
-*/
-UV::Mesh GeometryProcessing::create_UV_mesh(
-    _3D::Mesh& mesh,
-    const std::vector<_3D::edge_descriptor> calc_edges
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::get_virtual_mesh(){
+    return std::make_tuple(h_v_mapping_vector_virtual, vertices_UV_virtual, vertices_3D_virtual, meshmeta.mesh_path_virtual);
+}
+
+
+std::vector<double> GeometryProcessing::geo_distance(
+    const std::string mesh_path,
+    int32_t start_node
 ){
-    // Create property maps to store seam edges and vertices
-    _3D::Seam_edge_pmap seam_edge_pm = mesh.add_property_map<_3D::edge_descriptor, bool>("e:on_seam", false).first;   // if not false -> we can't add seam edges
-    _3D::Seam_vertex_pmap seam_vertex_pm = mesh.add_property_map<_3D::vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
+    std::ifstream filename(CGAL::data_file_path(mesh_path));
+    Triangle_mesh tm;
+    filename >> tm;
 
-    UV::Mesh UV_mesh(mesh, seam_edge_pm, seam_vertex_pm);
+    //property map for the distance values to the source set
+    Vertex_distance_map vertex_distance = tm.add_property_map<vertex_descriptor, double>("v:distance", 0).first;
 
-    for(_3D::edge_descriptor e : calc_edges) {
-        UV_mesh.add_seam(source(e, mesh), target(e, mesh));  // Add the seams to the UV mesh
+    //pass in the idt object and its vertex_distance_map
+    Heat_method hm_idt(tm);
+
+    //add the first vertex as the source set
+    vertex_descriptor source = *(vertices(tm).first + start_node);
+    hm_idt.add_source(source);
+    hm_idt.estimate_geodesic_distances(vertex_distance);
+
+    std::vector<double> distances_list;
+    for (vertex_descriptor vd : vertices(tm)) {
+        distances_list.push_back(get(vertex_distance, vd));
     }
 
-    return UV_mesh;
+    return distances_list;
+}
+
+
+int GeometryProcessing::get_all_distances(
+    std::string mesh_path
+){
+    std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
+    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
+
+    std::ifstream filename(CGAL::data_file_path(mesh_path));
+    Triangle_mesh tm;
+    filename >> tm;
+
+    Eigen::MatrixXd distance_matrix_v(num_vertices(tm), num_vertices(tm));
+    // ! dieser Schritt ist der Bottleneck der Simulation!
+    // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
+    // loop over all vertices and fill the distance matrix
+    for (auto vi = vertices(tm).first; vi != vertices(tm).second; ++vi) {
+        fill_distance_matrix(mesh_path, distance_matrix_v, *vi);
+    }
+
+    // save the distance matrix to a csv file using comma as delimiter
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+
+    const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
+
+    std::cout << "Saving distance matrix to file..." << std::endl;
+    std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
+    std::ofstream file(distance_matrix_path);
+    file << distance_matrix_v.format(CSVFormat);
+    file.close();
+    std::cout << "saved" << std::endl;
+
+    return 0;
+}
+
+
+/**
+ * @brief Check if a given point is inside our polygon border
+*/
+bool GeometryProcessing::check_point_in_polygon(
+    const Eigen::Vector2d& point,
+    bool is_original_mesh
+){
+    Point_2 cgal_point(point[0], point[1]);
+
+    if (is_original_mesh) {
+        auto result = CGAL::bounded_side_2(polygon.vertices_begin(), polygon.vertices_end(), cgal_point, Kernel());
+        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
+    } else {
+        auto result = CGAL::bounded_side_2(polygon_virtual.vertices_begin(), polygon_virtual.vertices_end(), cgal_point, Kernel());
+        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
+    }
+}
+
+
+/**
+ * @brief Create the UV surface
+*/
+std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::create_uv_surface(
+    std::string mesh_path,
+    int32_t start_node_int
+){
+    _3D::vertex_descriptor start_node(start_node_int);
+    Eigen::MatrixXd vertice_UV;
+    Eigen::MatrixXd vertices_3D;
+    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
+
+    std::string mesh_file_path = meshmeta.mesh_path;
+
+    extract_polygon_border_edges(mesh_file_path, true);
+    extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
+
+    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
+}
+
+
+
+// ========================================
+// ========= Private Functions ============
+// ========================================
+
+/**
+ * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
+*/
+std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
+    const std::string mesh_file_path,
+    _3D::vertex_descriptor start_node,
+    int uv_mesh_number,
+    Eigen::MatrixXd& vertice_UV,
+    Eigen::MatrixXd& vertices_3D
+){
+    // Set the border edges of the UV mesh
+    auto [virtual_border_edges, border_edges] = set_UV_border_edges(mesh_file_path, start_node);
+
+    _3D::Mesh sm, sm_for_virtual;
+    load3DMeshes(mesh_file_path, sm, sm_for_virtual);
+
+    // Canonical Halfedges Representing a Vertex
+    _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
+    _3D::UV_pmap uvmap_virtual = sm_for_virtual.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
+
+    // Create the seam mesh
+    UV::Mesh mesh = create_UV_mesh(sm, border_edges);
+    UV::Mesh mesh_virtual = create_UV_mesh(sm_for_virtual, virtual_border_edges);
+
+    // Choose a halfedge on the (possibly virtual) border
+    UV::halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
+    UV::halfedge_descriptor bhd_virtual = CGAL::Polygon_mesh_processing::longest_border(mesh_virtual).first;
+
+    // Perform parameterization
+    parameterize_UV_mesh(mesh, bhd, uvmap);
+    parameterize_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual);
+
+    // Save the uv mesh
+    save_UV_mesh(mesh, bhd, uvmap, mesh_file_path, 0);
+    save_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual, mesh_file_path, 1);
+
+    int number_of_virtual = size(vertices(mesh_virtual));
+    vertices_UV_virtual.resize(number_of_virtual, 3);
+    vertices_3D_virtual.resize(number_of_virtual, 3);
+
+    int i = 0;
+    for (UV::vertex_descriptor vd : vertices(mesh_virtual)) {
+        auto [point_3D, uv, target_vertice] = getMeshData(vd, mesh_virtual, sm_for_virtual, uvmap_virtual);
+
+        h_v_mapping_vector_virtual.push_back(target_vertice);
+
+        // Get the points
+        vertices_3D_virtual(i, 0) = point_3D.x();
+        vertices_3D_virtual(i, 1) = point_3D.y();
+        vertices_3D_virtual(i, 2) = point_3D.z();
+
+        // Get the uv points
+        vertices_UV_virtual(i, 0) = uv.x();
+        vertices_UV_virtual(i, 1) = uv.y();
+        vertices_UV_virtual(i, 2) = 0;
+        i++;
+    }
+
+    std::vector<int64_t> h_v_mapping_vector;
+    int number_of_vertices = size(vertices(mesh));
+    vertices_3D.resize(number_of_vertices, 3);
+    vertice_UV.resize(number_of_vertices, 3);
+
+    i = 0;
+    for (UV::vertex_descriptor vd : vertices(mesh)) {
+        auto [point_3D, uv, target_vertice] = getMeshData(vd, mesh, sm, uvmap);
+
+        h_v_mapping_vector.push_back(target_vertice);
+
+        // Get the points
+        vertices_3D(i, 0) = point_3D.x();
+        vertices_3D(i, 1) = point_3D.y();
+        vertices_3D(i, 2) = point_3D.z();
+
+        // Get the uv points
+        vertice_UV(i, 0) = uv.x();
+        vertice_UV(i, 1) = uv.y();
+        vertice_UV(i, 2) = 0;
+        i++;
+    }
+
+    return h_v_mapping_vector;
+}
+
+
+void GeometryProcessing::load3DMeshes(
+    const std::string& path,
+    _3D::Mesh& sm,
+    _3D::Mesh& sm_virtual
+){
+    std::ifstream in(CGAL::data_file_path(path));
+    std::ifstream in_virtual(CGAL::data_file_path(path));
+    in >> sm;
+    in_virtual >> sm_virtual;
+}
+
+
+std::tuple<Point_3, Point_2, int64_t> GeometryProcessing::getMeshData(
+    const UV::vertex_descriptor& vd,
+    const UV::Mesh& mesh,
+    const _3D::Mesh& sm,
+    _3D::UV_pmap& _uvmap
+){
+    int64_t target_vertice = target(vd, sm);
+    Point_3 point_3D = sm.point(target(vd, sm));
+    Point_2 uv = get(_uvmap, halfedge(vd, mesh));
+    return {point_3D, uv, target_vertice};
 }
 
 
@@ -303,137 +456,30 @@ SMP::Error_code GeometryProcessing::parameterize_UV_mesh(
 }
 
 
-std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::get_virtual_mesh(){
-    return std::make_tuple(h_v_mapping_vector_virtual, vertices_UV_virtual, vertices_3D_virtual, meshmeta.mesh_path_virtual);
+/**
+ * @brief Create the UV mesh
+*/
+UV::Mesh GeometryProcessing::create_UV_mesh(
+    _3D::Mesh& mesh,
+    const std::vector<_3D::edge_descriptor> calc_edges
+){
+    // Create property maps to store seam edges and vertices
+    _3D::Seam_edge_pmap seam_edge_pm = mesh.add_property_map<_3D::edge_descriptor, bool>("e:on_seam", false).first;   // if not false -> we can't add seam edges
+    _3D::Seam_vertex_pmap seam_vertex_pm = mesh.add_property_map<_3D::vertex_descriptor, bool>("v:on_seam", false).first;  // if not false -> we can't run the parameterization part
+
+    UV::Mesh UV_mesh(mesh, seam_edge_pm, seam_vertex_pm);
+
+    for (_3D::edge_descriptor e : calc_edges) {
+        UV_mesh.add_seam(source(e, mesh), target(e, mesh));
+    }
+
+    return UV_mesh;
 }
+
 
 /**
- * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
-*/
-std::vector<int64_t> GeometryProcessing::calculate_uv_surface(
-    const std::string mesh_file_path,
-    _3D::vertex_descriptor start_node,
-    int uv_mesh_number,
-    Eigen::MatrixXd& vertice_UV,
-    Eigen::MatrixXd& vertices_3D
-){
-    // Set the border edges of the UV mesh
-    auto results_border = set_UV_border_edges(mesh_file_path, start_node);
-    auto virtual_border_edges = results_border.first;
-    auto border_edges = results_border.second;
-
-    // Load the 3D mesh
-    _3D::Mesh sm;
-    _3D::Mesh sm_for_virtual;
-    std::ifstream in(CGAL::data_file_path(mesh_file_path));
-    std::ifstream in_virtual(CGAL::data_file_path(mesh_file_path));
-    in >> sm;
-    in_virtual >> sm_for_virtual;
-
-    // Canonical Halfedges Representing a Vertex
-    _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
-    _3D::UV_pmap uvmap_virtual = sm_for_virtual.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
-
-    // Create the seam mesh
-    UV::Mesh mesh = create_UV_mesh(sm, border_edges);
-    UV::Mesh mesh_virtual = create_UV_mesh(sm_for_virtual, virtual_border_edges);
-
-    // Choose a halfedge on the (possibly virtual) border
-    UV::halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
-    UV::halfedge_descriptor bhd_virtual = CGAL::Polygon_mesh_processing::longest_border(mesh_virtual).first;
-
-    // Perform parameterization
-    parameterize_UV_mesh(mesh, bhd, uvmap);
-    parameterize_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual);
-
-    // Save the uv mesh
-    save_UV_mesh(mesh, bhd, uvmap, mesh_file_path, 0);
-    save_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual, mesh_file_path, 1);
-
-    int number_of_virtual = size(vertices(mesh_virtual));
-    vertices_UV_virtual.resize(number_of_virtual, 3);
-    vertices_3D_virtual.resize(number_of_virtual, 3);
-
-    int i = 0;
-    for (UV::vertex_descriptor vd : vertices(mesh_virtual)) {
-        int64_t target_vertice = target(vd, sm_for_virtual);
-        auto point_3D = sm_for_virtual.point(target(vd, sm_for_virtual));
-        auto uv = get(uvmap_virtual, halfedge(vd, mesh_virtual));
-
-        h_v_mapping_vector_virtual.push_back(target_vertice);
-
-        // Get the points
-        vertices_3D_virtual(i, 0) = point_3D.x();
-        vertices_3D_virtual(i, 1) = point_3D.y();
-        vertices_3D_virtual(i, 2) = point_3D.z();
-
-        // Get the uv points
-        vertices_UV_virtual(i, 0) = uv.x();
-        vertices_UV_virtual(i, 1) = uv.y();
-        vertices_UV_virtual(i, 2) = 0;
-        i++;
-    }
-
-    std::vector<Point_2> points_uv;
-    std::vector<Point_3> points;
-    std::vector<int64_t> h_v_mapping_vector;
-    for (UV::vertex_descriptor vd : vertices(mesh)) {
-        int64_t target_vertice = target(vd, sm);
-        auto point_3D = sm.point(target(vd, sm));
-        auto uv = get(uvmap, halfedge(vd, mesh));
-
-        h_v_mapping_vector.push_back(target_vertice);
-        points.push_back(point_3D);
-        points_uv.push_back(uv);
-    }
-
-    vertices_3D.resize(points.size(), 3);
-    vertice_UV.resize(points.size(), 3);
-    for (size_t i = 0; i < points.size(); ++i)
-    {
-        // Get the points
-        vertices_3D(i, 0) = points[i].x();
-        vertices_3D(i, 1) = points[i].y();
-        vertices_3D(i, 2) = points[i].z();
-
-        // Get the uv points
-        vertice_UV(i, 0) = points_uv[i].x();
-        vertice_UV(i, 1) = points_uv[i].y();
-        vertice_UV(i, 2) = 0;
-    }
-
-    return h_v_mapping_vector;
-}
-
-
-std::vector<double> GeometryProcessing::geo_distance(const std::string mesh_path, int32_t start_node){
-    std::ifstream filename(CGAL::data_file_path(mesh_path));
-    Triangle_mesh tm;
-    filename >> tm;
-
-    //property map for the distance values to the source set
-    Vertex_distance_map vertex_distance = tm.add_property_map<vertex_descriptor, double>("v:distance", 0).first;
-
-    //pass in the idt object and its vertex_distance_map
-    Heat_method hm_idt(tm);
-
-    //add the first vertex as the source set
-    vertex_descriptor source = *(vertices(tm).first + start_node);
-    hm_idt.add_source(source);
-    hm_idt.estimate_geodesic_distances(vertex_distance);
-
-    std::vector<double> distances_list;
-    for(vertex_descriptor vd : vertices(tm)){
-        distances_list.push_back(get(vertex_distance, vd));
-    }
-
-    return distances_list;
-}
-
-
-/*
-atomic variable to keep track of the current index of the vector of distances, and each thread processes a
-different index until all the distances have been added to the distance matrix.
+ * @brief Variable to keep track of the current index of the vector of distances, and each thread processes a
+ * different index until all the distances have been added to the distance matrix.
 */
 void GeometryProcessing::fill_distance_matrix(
     const std::string mesh_path,
@@ -448,56 +494,46 @@ void GeometryProcessing::fill_distance_matrix(
 }
 
 
-int GeometryProcessing::get_all_distances(std::string mesh_path){
+/**
+ * @brief Save the generated UV mesh to a file
+*/
+int GeometryProcessing::save_UV_mesh(
+    UV::Mesh _mesh,
+    UV::halfedge_descriptor _bhd,
+    _3D::UV_pmap _uvmap,
+    const std::string mesh_path,
+    int uv_mesh_number
+){
+    // Get the mesh name without the extension
+    auto mesh_3D_name = get_mesh_name(mesh_path);
 
-    std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
-    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
+    // Create the output file path based on uv_mesh_number
+    fs::path output_file_path;
+    std::string output_file_path_str;
 
-    std::ifstream filename(CGAL::data_file_path(mesh_path));
-    Triangle_mesh tm;
-    filename >> tm;
-
-    Eigen::MatrixXd distance_matrix_v(num_vertices(tm), num_vertices(tm));
-    // ! dieser Schritt ist der Bottleneck der Simulation!
-    // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
-    // loop over all vertices and fill the distance matrix
-    for (auto vi = vertices(tm).first; vi != vertices(tm).second; ++vi) {
-        fill_distance_matrix(mesh_path, distance_matrix_v, *vi);
+    if (uv_mesh_number == 0) {
+        output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv.off");
+        output_file_path_str = output_file_path.string();
+        meshmeta.mesh_path = output_file_path_str;
+    } else {
+        output_file_path = MESH_FOLDER / (mesh_3D_name + "_uv_" + std::to_string(uv_mesh_number) + ".off");
+        output_file_path_str = output_file_path.string();
+        meshmeta.mesh_path_virtual = output_file_path_str;
     }
 
-    // save the distance matrix to a csv file using comma as delimiter
-    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-
-    const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
-
-    std::cout << "Saving distance matrix to file..." << std::endl;
-    std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
-    std::ofstream file(distance_matrix_path);
-    file << distance_matrix_v.format(CSVFormat);
-    file.close();
-    std::cout << "saved" << std::endl;
+    // Create the output file stream
+    std::ofstream out(output_file_path_str);
+    // Write the UV map to the output file
+    SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
 
     return 0;
 }
 
 
-/**
- * @brief Check if a given point is inside our polygon border
-*/
-bool GeometryProcessing::check_point_in_polygon(const Eigen::Vector2d& point, bool is_original_mesh) {
-    Point_2 cgal_point(point[0], point[1]);
-
-    if (is_original_mesh) {
-        auto result = CGAL::bounded_side_2(polygon.vertices_begin(), polygon.vertices_end(), cgal_point, Kernel());
-        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
-    } else {
-        auto result = CGAL::bounded_side_2(polygon_virtual.vertices_begin(), polygon_virtual.vertices_end(), cgal_point, Kernel());
-        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
-    }
-}
-
-
-void GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_path, bool is_original_mesh) {
+void GeometryProcessing::extract_polygon_border_edges(
+    const std::string& mesh_path,
+    bool is_original_mesh
+){
     std::ifstream input(CGAL::data_file_path(mesh_path));
     _3D::Mesh mesh;
     input >> mesh;
@@ -512,14 +548,10 @@ void GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_pa
         source_to_halfedge[mesh.source(h)] = h;
     }
 
-    // Create the Eigen matrix to store the border coordinates
-    // Eigen::Matrix<double, Eigen::Dynamic, 2> border_coords(border_edges.size(), 3);
-
     // Extract the coordinates of the vertices in the correct order
     std::unordered_set<_3D::vertex_descriptor> visited;
     _3D::vertex_descriptor v = mesh.source(border_edges[0]);
-    for (std::size_t i = 0; i < border_edges.size(); ++i) {
-        // border_coords.row(i) = Eigen::Vector2d(mesh.point(v).x(), mesh.point(v).y());
+    for (std::size_t i = 0; i < border_edges.size(); i++) {
         if (is_original_mesh) {
             polygon.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
         } else {
@@ -536,33 +568,4 @@ void GeometryProcessing::extract_polygon_border_edges(const std::string& mesh_pa
             break;
         }
     }
-}
-
-
-/**
- * @brief Create the UV surface
-*/
-std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> GeometryProcessing::create_uv_surface(
-    std::string mesh_path,
-    int32_t start_node_int
-){
-    _3D::vertex_descriptor start_node(start_node_int);
-    Eigen::MatrixXd vertice_UV;
-    Eigen::MatrixXd vertices_3D;
-    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
-
-    std::string mesh_file_path = meshmeta.mesh_path;
-
-    extract_polygon_border_edges(mesh_file_path, true);
-    extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
-
-    Eigen::Vector2d testPoint(0.9, 0.99);
-
-    if (check_point_in_polygon(testPoint, true)) {
-        std::cout << "Point is inside the polygon.\n";
-    } else {
-        std::cout << "Point is outside the polygon.\n";
-    }
-
-    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
 }

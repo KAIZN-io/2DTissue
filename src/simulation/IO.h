@@ -18,15 +18,15 @@
 
 const boost::filesystem::path PROJECT_PATH_IO = PROJECT_SOURCE_DIR;
 
-void loadMeshVertices(std::string filepath, Eigen::MatrixXd& vertices);
+void loadMeshVertices(
+    std::string filepath,
+    Eigen::MatrixXd& vertices
+);
 
-void loadMeshFaces(std::string filepath, Eigen::MatrixXi& faces);
-
-// std::pair<Eigen::MatrixXd, std::vector<int64_t>> get_mesh_data(
-//     std::unordered_map<int, Mesh_UV_Struct> mesh_dict,
-//     int mesh_id
-// );
-
+void loadMeshFaces(
+    std::string filepath,
+    Eigen::MatrixXi& faces
+);
 
 // We need do define it in the header file or otherwise the template specialization will not be available at link time
 template<typename M>
@@ -47,9 +47,12 @@ M load_csv(const std::string &path) {
     return Eigen::Map<const Eigen::Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, Eigen::RowMajor>>(values.data(), rows, values.size()/rows);
 }
 
-
 template <typename MatrixType>
-void save_matrix_to_csv(const MatrixType& matrix, const std::string& file_name, int num_particles) {
+void save_matrix_to_csv(
+    const MatrixType& matrix,
+    const std::string& file_name,
+    int num_particles
+) {
     std::string path = PROJECT_PATH_IO.string() + "/data/" + file_name;
     std::ofstream file(path, std::ios::app); // Open the file in append mode
 

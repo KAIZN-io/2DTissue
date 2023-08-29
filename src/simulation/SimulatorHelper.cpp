@@ -39,6 +39,10 @@ SimulatorHelper::SimulatorHelper(
 }
 
 
+// ========================================
+// ========= Public Functions =============
+// ========================================
+
 void SimulatorHelper::set_new_particle_data(){
     // Initialize the vertex data
     for (int i = 0; i < particle_count; ++i) {
@@ -96,8 +100,7 @@ std::vector<int> SimulatorHelper::get_inside_UV_id() {
 
             if (is_inside_uv(first_two_columns)) {
                 inside_UV_id.push_back(particle_row_ID);
-            }
-            else {
+            } else {
                 outside_UV_id.push_back(particle_row_ID);
                 // std::cout << "Particle " << particle_row_ID << " is with " << first_two_columns << " outside the UV domain." << std::endl;
             }

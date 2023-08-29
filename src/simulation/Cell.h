@@ -5,52 +5,50 @@
 #include <cstdint>
 #include <Eigen/Dense>
 
-#include "IO.h"
+// Differential Equation Simulation
+#include <rr/rrRoadRunner.h>
+#include <rr/rrExecutableModel.h>
+
+#include <cvode/cvode.h>
+// #include <idas/idas.h>
+#include <nvector/nvector_serial.h>
+#include <sundials/sundials_types.h>
+#include <sundials/sundials_math.h>
+#include <sunmatrix/sunmatrix_dense.h>
+#include <sunlinsol/sunlinsol_dense.h>
+#include <sundials/sundials_types.h>
 
 class Cell {
 public:
-    Cell(
-        int particle_count,
-        Eigen::MatrixXd& halfedge_UV,
-        Eigen::MatrixXi& face_UV,
-        Eigen::MatrixXi& face_3D,
-        Eigen::MatrixXd& vertice_UV,
-        Eigen::MatrixXd& vertice_3D,
-        std::vector<int64_t>& h_v_mapping,
-        Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
-        Eigen::MatrixXd& r_3D,
-        Eigen::VectorXi& n
-    );
+    Cell();
 
-    void init_particle_position();
-    std::pair<Eigen::MatrixXd, std::vector<int>> get_r3d();
-    Eigen::Matrix<double, Eigen::Dynamic, 2> get_r2d();
+    double update(realtype tout);
+    void perform_sbml_simulation();
+    void free_memory();
 
 private:
-    int particle_count;
-    Eigen::MatrixXd& halfedge_UV;
-    Eigen::MatrixXi& face_UV;
-    Eigen::MatrixXi& face_3D;
-    Eigen::MatrixXd& vertice_UV;
-    Eigen::MatrixXd& vertice_3D;
-    std::vector<int64_t>& h_v_mapping;
-    Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
-    Eigen::MatrixXd& r_3D;
-    Eigen::VectorXi& n;
+    std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
 
-    std::pair<Eigen::Vector3d, int> calculate_barycentric_3D_coord(int interator);
-    Eigen::Vector3d calculate_barycentric_2D_coord(int iterator);
-    Eigen::Vector2d get_face_gravity_center_coord(
-        const Eigen::Vector3i r_face
+    // Differential Equation Simulation
+    realtype reltol, abstol; // Tolerances
+    realtype t; // Time
+    realtype tout = 0.001; // Time for next output
+    void* cvode_mem; // CVODE memory
+    N_Vector y; // Variables
+    SUNMatrix A; // Dense SUNMatrix
+    SUNLinearSolver LS; // Dense SUNLinearSolver object
+
+    // SBML simulation
+    rr::RoadRunner* rr;
+    std::string sbmlModelFilePath;
+    double startTime;
+    double endTime;
+    int numberOfPoints;
+
+    static int simulate_sine(
+        realtype t,
+        N_Vector y,
+        N_Vector ydot,
+        void *user_data
     );
-    double pointTriangleDistance(
-        const Eigen::Vector3d p,
-        const Eigen::Vector3d a,
-        const Eigen::Vector3d b,
-        const Eigen::Vector3d c
-    );
-    int closestRow(const Eigen::Vector2d& halfedge_coord);
 };
-
-
-
