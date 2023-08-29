@@ -30,7 +30,10 @@ const aiScene* loadScene(const std::string& filepath) {
 }
 
 
-void loadMeshVertices(const std::string filepath, Eigen::MatrixXd& vertices) {
+void loadMeshVertices(
+    const std::string filepath,
+    Eigen::MatrixXd& vertices
+) {
     const aiScene* scene = loadScene(filepath);
 
     if (scene == nullptr) {
@@ -53,7 +56,10 @@ void loadMeshVertices(const std::string filepath, Eigen::MatrixXd& vertices) {
 }
 
 
-void loadMeshFaces(const std::string filepath, Eigen::MatrixXi& faces) {
+void loadMeshFaces(
+    const std::string filepath,
+    Eigen::MatrixXi& faces
+) {
     const aiScene* scene = loadScene(filepath);
 
     if (scene == nullptr) {

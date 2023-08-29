@@ -47,10 +47,10 @@ Simulator::Simulator(
       linear_algebra_ptr(std::move(linear_algebra_ptr)) {
 }
 
-void Simulator::resize_F_track() {
-    F_track.resize(r_UV.rows(), 2);
-}
-    // linear_algebra_ptr(std::make_unique<LinearAlgebra>())
+
+// ========================================
+// ========= Public Functions =============
+// ========================================
 
 void Simulator::simulate_flight() {
     resize_F_track();
@@ -78,6 +78,79 @@ void Simulator::simulate_flight() {
 
     // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
     calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
+}
+
+
+/**
+ * @brief Calculate the distance between each pair of particles
+*/
+void Simulator::get_distances_between_particles(
+    Eigen::MatrixXd& dist_length,
+    Eigen::MatrixXd distance_matrix,
+    std::vector<int> vertice_3D_id
+){
+    int num_part = vertice_3D_id.size();
+
+    // Use the #pragma omp parallel for directive to parallelize the outer loop
+    // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them
+    for (int i = 0; i < num_part; i++) {
+        for (int j = 0; j < num_part; j++) {
+            dist_length(i, j) = distance_matrix(vertice_3D_id[i], vertice_3D_id[j]);
+        }
+    }
+    dist_length.diagonal().array() = 0.0;
+    transform_into_symmetric_matrix(dist_length);
+}
+
+/**
+ * @brief Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
+*/
+void Simulator::opposite_seam_edges_square_border(){
+    r_UV.col(0) = r_UV.col(0).array() - r_UV.col(0).array().floor();  // Wrap x values
+    r_UV.col(1) = r_UV.col(1).array() - r_UV.col(1).array().floor();  // Wrap y values
+}
+
+
+/**
+ * @brief By using the '&' we pass the reference of the variable to the function, so we can change the value of the variable inside the function
+*/
+void Simulator::diagonal_seam_edges_square_border(){
+    bool valid;
+    do {
+        valid = true;
+        for (int i = 0; i < r_UV_old.rows(); ++i) {
+            Eigen::Vector2d pointA = r_UV_old.row(i).head<2>(); // only takes the first two columns for the ith row
+            Eigen::Vector2d point_outside = r_UV.row(i).head<2>(); // only takes the first two columns for the ith row
+            double n_double = n(i);
+
+            auto results = processPoints(pointA, point_outside, n_double);
+            auto new_point = std::get<0>(results);
+            n(i) = std::get<1>(results);
+            auto entry_point = std::get<2>(results);
+
+            // ! TODO: this logic can be improved
+            // As soon as one of the conditions is not met (i.e., a value is outside the [0,1] interval), it breaks the for loop and starts another iteration of the while loop.
+            if (new_point[0] < 0 || new_point[0] > 1 || new_point[1] < 0 || new_point[1] > 1) {
+                r_UV_old.row(i).head<2>() = entry_point;
+                r_UV.row(i).head<2>().noalias() = new_point;
+                valid = false;
+                break;
+            }
+            else {
+                r_UV.row(i).head<2>().noalias() = new_point;
+            }
+        }
+    } while (!valid);
+}
+
+
+
+// ========================================
+// ========= Private Functions ============
+// ========================================
+
+void Simulator::resize_F_track() {
+    F_track.resize(r_UV.rows(), 2);
 }
 
 
@@ -110,7 +183,7 @@ double Simulator::mean_unit_circle_vector_angle_degrees(std::vector<double> angl
     Eigen::Vector2d mean_vector(0.0, 0.0);
 
     for (const auto& angle_degrees : angles) {
-        double angle_radians = angle_degrees * M_PI / 180.0;
+        double angle_radians = angle_degrees * DEG_TO_RAD;
 
         // Convert the angle to a 2D unit vector
         Eigen::Vector2d vec(cos(angle_radians), sin(angle_radians));
@@ -122,11 +195,11 @@ double Simulator::mean_unit_circle_vector_angle_degrees(std::vector<double> angl
 
     // Calculate the angle in radians using atan2 and convert it to degrees
     double angle_radians = std::atan2(mean_vector.y(), mean_vector.x());
-    double angle_degrees = angle_radians * 180.0 / M_PI;
+    double angle_degrees = angle_radians * RAD_TO_DEG;
 
     // Make sure the angle is in the range [0, 360)
     if (angle_degrees < 0) {
-        angle_degrees += 360;
+        angle_degrees += FULL_CIRCLE;
     }
 
     return angle_degrees;
@@ -228,28 +301,6 @@ std::vector<Eigen::MatrixXd> Simulator::get_dist_vect(const Eigen::Matrix<double
     dist_vect.push_back(diff_y);
 
     return dist_vect;
-}
-
-
-/**
- * @brief Calculate the distance between each pair of particles
-*/
-void Simulator::get_distances_between_particles(
-    Eigen::MatrixXd& dist_length,
-    Eigen::MatrixXd distance_matrix,
-    std::vector<int> vertice_3D_id
-){
-    int num_part = vertice_3D_id.size();
-
-    // Use the #pragma omp parallel for directive to parallelize the outer loop
-    // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them
-    for (int i = 0; i < num_part; i++) {
-        for (int j = 0; j < num_part; j++) {
-            dist_length(i, j) = distance_matrix(vertice_3D_id[i], vertice_3D_id[j]);
-        }
-    }
-    dist_length.diagonal().array() = 0.0;
-    transform_into_symmetric_matrix(dist_length);
 }
 
 
@@ -367,7 +418,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
                 entry_angle.row(0) *= steepness_switch;  // has to be variable
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point - rotated_displacement;
-                n -= 90;
+                n -= QUARTER_CIRCLE;
             }
             // obere Grenze passiert
             else {
@@ -383,7 +434,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
 
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point - rotated_displacement;
-                n += 90;
+                n += QUARTER_CIRCLE;
             }
         }
         // unten oder rechts
@@ -403,7 +454,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
                 entry_angle.row(0) *= steepness_switch;
                 Eigen::Vector2d rotated_displacement = displacement.array()  * entry_angle.array();
                 new_point = entry_point - rotated_displacement;
-                n -= 90;
+                n -= QUARTER_CIRCLE;
             }
             // unten Grenze passiert
             else {
@@ -420,7 +471,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
 
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point + rotated_displacement;
-                n += 90;
+                n += QUARTER_CIRCLE;
             }
         }
         // oben oder links
@@ -439,7 +490,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
                 entry_angle.row(0) *= steepness_switch;
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point + rotated_displacement;
-                n -= 90;
+                n -= QUARTER_CIRCLE;
             }
             // obere Grenze passiert
             else {
@@ -455,7 +506,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
                 entry_angle.row(1) *= steepness_switch;
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point - rotated_displacement;
-                n += 90;
+                n += QUARTER_CIRCLE;
             }
         }
         // unten oder links
@@ -476,7 +527,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
 
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point + rotated_displacement;
-                n -= 90;
+                n -= QUARTER_CIRCLE;
             }
             // unten Grenze passiert
             else {
@@ -492,7 +543,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
                 entry_angle.row(1) *= steepness_switch;
                 Eigen::Vector2d rotated_displacement = displacement.array() * entry_angle.array();
                 new_point = entry_point + rotated_displacement;
-                n += 90;
+                n += QUARTER_CIRCLE;
             }
         }
     }
@@ -500,46 +551,4 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> Simulator::processPoints(co
         new_point = point_outside;
     }
     return std::tuple(new_point, n, entry_point);
-}
-
-
-/**
- * @brief Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
-*/
-void Simulator::opposite_seam_edges_square_border(){
-    r_UV.col(0) = r_UV.col(0).array() - r_UV.col(0).array().floor();  // Wrap x values
-    r_UV.col(1) = r_UV.col(1).array() - r_UV.col(1).array().floor();  // Wrap y values
-}
-
-
-/**
- * @brief By using the '&' we pass the reference of the variable to the function, so we can change the value of the variable inside the function
-*/
-void Simulator::diagonal_seam_edges_square_border(){
-    bool valid;
-    do {
-        valid = true;
-        for (int i = 0; i < r_UV_old.rows(); ++i) {
-            Eigen::Vector2d pointA = r_UV_old.row(i).head<2>(); // only takes the first two columns for the ith row
-            Eigen::Vector2d point_outside = r_UV.row(i).head<2>(); // only takes the first two columns for the ith row
-            double n_double = n(i);
-
-            auto results = processPoints(pointA, point_outside, n_double);
-            auto new_point = std::get<0>(results);
-            n(i) = std::get<1>(results);
-            auto entry_point = std::get<2>(results);
-
-            // ! TODO: this logic can be improved
-            // As soon as one of the conditions is not met (i.e., a value is outside the [0,1] interval), it breaks the for loop and starts another iteration of the while loop.
-            if (new_point[0] < 0 || new_point[0] > 1 || new_point[1] < 0 || new_point[1] > 1) {
-                r_UV_old.row(i).head<2>() = entry_point;
-                r_UV.row(i).head<2>().noalias() = new_point;
-                valid = false;
-                break;
-            }
-            else {
-                r_UV.row(i).head<2>().noalias() = new_point;
-            }
-        }
-    } while (!valid);
 }

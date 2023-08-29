@@ -30,12 +30,12 @@ public:
         double step_size,
         std::unique_ptr<LinearAlgebra> linear_algebra_ptr
     );
+    void simulate_flight();
     static void get_distances_between_particles(
         Eigen::MatrixXd& dist_length,
         Eigen::MatrixXd distance_matrix,
         std::vector<int> vertice_3D_id
     );
-    void simulate_flight();
     void opposite_seam_edges_square_border();
     void diagonal_seam_edges_square_border();
 
@@ -76,6 +76,11 @@ private:
     int calculateSteepnessSwitch(double steepness);
     std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n);
     void map_between_arbitrary_seam_edges();
+
+    static constexpr double DEG_TO_RAD = M_PI / 180.0;
+    static constexpr double RAD_TO_DEG = 180.0 / M_PI;
+    static constexpr double FULL_CIRCLE = 360.0;
+    static constexpr double QUARTER_CIRCLE = 90.0;
 
 FRIEND_TEST(SimulatorTest, ThrowsWhenInputIsEmpty);
 FRIEND_TEST(SimulatorTest, CorrectlyCalculatesMeanAngle);

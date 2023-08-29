@@ -9,6 +9,11 @@
 
 #include <LinearAlgebra.h>
 
+
+// ========================================
+// ========= Public Functions =============
+// ========================================
+
 /**
  * @brief Convert the angle degree to 2D unit vectors
  *
