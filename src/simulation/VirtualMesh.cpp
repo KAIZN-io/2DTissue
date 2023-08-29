@@ -92,11 +92,18 @@ void VirtualMesh::prepare_virtual_mesh(int mesh_id) {
 }
 
 
-Eigen::VectorXi VirtualMesh::get_n_orientation(Eigen::Matrix<double, Eigen::Dynamic, 2> position_, Eigen::Vector2d pole_coordinate, Eigen::VectorXi n_pole_) {
+Eigen::VectorXi VirtualMesh::get_n_orientation(
+    Eigen::Matrix<double, Eigen::Dynamic, 2> position_,
+    Eigen::Vector2d pole_coordinate,
+    Eigen::VectorXi n_pole_
+) {
     return compass.assign_n(position_, pole_coordinate, n_pole_);
 }
 
-void VirtualMesh::assign_particle_orientation(Eigen::Vector2d pole_coordinate, Eigen::VectorXi n_pole_){
+void VirtualMesh::assign_particle_orientation(
+    Eigen::Vector2d pole_coordinate,
+    Eigen::VectorXi n_pole_
+) {
     n = compass.assign_n(r_UV, pole_coordinate, n_pole_);
 }
 
@@ -104,7 +111,7 @@ Eigen::VectorXi VirtualMesh::get_relative_orientation(){
     return compass.calculate_n_pole(r_UV, n);
 }
 
-void VirtualMesh::change_UV_map(int mesh_id){
+void VirtualMesh::change_UV_map(int mesh_id) {
     auto it = vertices_2DTissue_map.find(mesh_id);
     if (it != vertices_2DTissue_map.end()) {
         // Load the mesh
