@@ -107,15 +107,25 @@ public:
         _3D::vertex_descriptor start_node
     );
 
-    std::string get_mesh_name(const std::string mesh_file_path);
+    std::string get_mesh_name(
+        const std::string mesh_file_path
+    );
 
-    std::vector<double> geo_distance(const std::string mesh_path, int32_t start_node = 0);
+    std::vector<double> geo_distance(
+        const std::string mesh_path,
+        int32_t start_node = 0
+    );
 
-    int get_all_distances(std::string mesh_file_path);
+    int get_all_distances(
+        std::string mesh_file_path
+    );
 
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
 
-    bool check_point_in_polygon(const Eigen::Vector2d& point, bool is_original_mesh);
+    bool check_point_in_polygon(
+        const Eigen::Vector2d& point,
+        bool is_original_mesh
+    );
 
 private:
     Polygon_2 polygon;
@@ -171,5 +181,8 @@ private:
         int uv_mesh_number
     );
 
-    void extract_polygon_border_edges(const std::string& mesh_path, bool is_original_mesh);
+    void extract_polygon_border_edges(
+        const std::string& mesh_path,
+        bool is_original_mesh
+    );
 };

@@ -29,7 +29,7 @@ GeometryProcessing::GeometryProcessing(bool& free_boundary)
 
 
 // ========================================
-// ========= Public Functions ============
+// ========= Public Functions =============
 // ========================================
 
 /**
@@ -88,7 +88,7 @@ _3D::vertex_descriptor GeometryProcessing::find_farthest_vertex(
     int max_distances = 0;
     _3D::vertex_descriptor target_node;
 
-    for(_3D::vertex_descriptor vd : vertices(mesh)) {
+    for (_3D::vertex_descriptor vd : vertices(mesh)) {
         if (vd != boost::graph_traits<_3D::Mesh>::null_vertex()) {
             if (distance[vd] > max_distances) {
                 max_distances = distance[vd];
@@ -222,7 +222,7 @@ std::vector<double> GeometryProcessing::geo_distance(
     hm_idt.estimate_geodesic_distances(vertex_distance);
 
     std::vector<double> distances_list;
-    for(vertex_descriptor vd : vertices(tm)) {
+    for (vertex_descriptor vd : vertices(tm)) {
         distances_list.push_back(get(vertex_distance, vd));
     }
 
@@ -469,7 +469,7 @@ UV::Mesh GeometryProcessing::create_UV_mesh(
 
     UV::Mesh UV_mesh(mesh, seam_edge_pm, seam_vertex_pm);
 
-    for(_3D::edge_descriptor e : calc_edges) {
+    for (_3D::edge_descriptor e : calc_edges) {
         UV_mesh.add_seam(source(e, mesh), target(e, mesh));
     }
 
