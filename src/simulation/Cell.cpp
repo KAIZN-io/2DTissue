@@ -49,14 +49,13 @@ Cell::Cell(
 // ========================================
 
 void Cell::init_particle_position() {
-    int face_length = face_UV.rows();
-    std::vector<int> face_list(face_length);
-    std::iota(face_list.begin(), face_list.end(), 1);
+    std::vector<int> face_list(face_UV.rows());
+    std::iota(face_list.begin(), face_list.end(), 0);
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(-1.0, 1.0);
-    std::uniform_int_distribution<> dis_face(0, face_length - 1);
+    std::uniform_int_distribution<> dis_face(0, face_list.size() - 1);
     std::uniform_int_distribution<> dis_angle(0, 359);
 
     for (int i = 0; i < particle_count; ++i) {
@@ -85,15 +84,14 @@ std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(){
         nearest_vertices_ids[i] = nearest_vertex_id;
     }
 
-    return std::make_pair(new_3D_points, nearest_vertices_ids);
+    return {new_3D_points, nearest_vertices_ids};
 }
 
 
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
 Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
-    std::string mesh_3D_file_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
-
+    const std::string mesh_3D_file_path = (PROJECT_PATH / "meshes/ellipsoid_x4.off").string();
     Eigen::MatrixXi face_3D;
     loadMeshFaces(mesh_3D_file_path, face_3D);
 
@@ -102,9 +100,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
 
     for (int i = 0; i < num_r; ++i) {
         Eigen::Vector3d uv_coord_test = calculate_barycentric_2D_coord(i);
-        Eigen::Vector2d uv_coord(uv_coord_test[0], uv_coord_test[1]);
-
-        new_2D_points.row(i) = uv_coord;
+        new_2D_points.row(i) = uv_coord_test.head<2>();
     }
 
     return new_2D_points;
@@ -116,7 +112,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
 // ========= Private Functions ============
 // ========================================
 
-std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int interator){
+std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int iterator){
     std::vector<std::pair<double, int>> distances(face_UV.rows());
 
     for (int j = 0; j < face_UV.rows(); ++j) {
@@ -124,7 +120,7 @@ std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int interat
         Eigen::Vector3d uv_b = halfedge_UV.row(face_UV(j, 1));
         Eigen::Vector3d uv_c = halfedge_UV.row(face_UV(j, 2));
 
-        distances[j] = {pointTriangleDistance(r_UV.row(interator).head(2), uv_a, uv_b, uv_c), j};
+        distances[j] = {pointTriangleDistance(r_UV.row(iterator).head(2), uv_a, uv_b, uv_c), j};
     }
 
     std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
@@ -148,15 +144,12 @@ std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int interat
     Eigen::Vector3d c = vertice_3D.row(closest_c);
 
     // Compute the weights (distances in UV space)
-    double w_a = (r_UV.row(interator).head(2).transpose() - halfedge_a_coord).norm();
-    double w_b = (r_UV.row(interator).head(2).transpose() - halfedge_b_coord).norm();
-    double w_c = (r_UV.row(interator).head(2).transpose() - halfedge_c_coord).norm();
+    double w_a = (r_UV.row(iterator).head(2).transpose() - halfedge_a_coord).norm();
+    double w_b = (r_UV.row(iterator).head(2).transpose() - halfedge_b_coord).norm();
+    double w_c = (r_UV.row(iterator).head(2).transpose() - halfedge_c_coord).norm();
 
-    // Compute the barycentric coordinates
-    double sum_weights = w_a + w_b + w_c;
-    w_a /= sum_weights;
-    w_b /= sum_weights;
-    w_c /= sum_weights;
+    // Normalize the weights
+    normalize_weights(w_a, w_b, w_c);
 
     // Compute the new 3D point using the barycentric coordinates
     Eigen::Vector3d newPoint = w_a * a + w_b * b + w_c * c;
@@ -223,16 +216,36 @@ Eigen::Vector3d Cell::calculate_barycentric_2D_coord(int iterator){
     double w_b = (r_3D.row(iterator).head(2).transpose() - b).norm();
     double w_c = (r_3D.row(iterator).head(2).transpose() - c).norm();
 
-    // Compute the barycentric coordinates
-    double sum_weights = w_a + w_b + w_c;
-    w_a /= sum_weights;
-    w_b /= sum_weights;
-    w_c /= sum_weights;
+    // Normalize the weights
+    normalize_weights(w_a, w_b, w_c);
 
     // Compute the new 3D point using the barycentric coordinates
     Eigen::Vector3d newPoint = w_a * uv_a + w_b * uv_b + w_c * uv_c;
 
     return newPoint;
+}
+
+
+// Todo: fix this function
+bool Cell::isPointInsideTriangle(
+    const Eigen::Vector3d& p,
+    const Eigen::Vector3d& a,
+    const Eigen::Vector3d& b,
+    const Eigen::Vector3d& c
+) {
+    Eigen::Vector3d v0 = b - a, v1 = c - a, v2 = p - a;
+    double d00 = v0.dot(v0);
+    double d01 = v0.dot(v1);
+    double d11 = v1.dot(v1);
+    double d20 = v2.dot(v0);
+    double d21 = v2.dot(v1);
+    double denom = d00 * d11 - d01 * d01;
+    
+    double beta = (d11 * d20 - d01 * d21) / denom;
+    double gamma = (d00 * d21 - d01 * d20) / denom;
+    double alpha = 1.0 - beta - gamma;
+
+    return alpha >= 0 && alpha <= 1 && beta >= 0 && beta <= 1 && gamma >= 0 && gamma <= 1;
 }
 
 
@@ -251,65 +264,78 @@ Eigen::Vector2d Cell::get_face_gravity_center_coord(
 
 
 double Cell::pointTriangleDistance(
-    const Eigen::Vector3d p,
-    const Eigen::Vector3d a,
-    const Eigen::Vector3d b,
-    const Eigen::Vector3d c
+    const Eigen::Vector3d& p,
+    const Eigen::Vector3d& a,
+    const Eigen::Vector3d& b,
+    const Eigen::Vector3d& c
 ) {
+    // Edges of the triangle
     Eigen::Vector3d ab = b - a;
     Eigen::Vector3d ac = c - a;
+    // Line segments connecting the vertices with the point
     Eigen::Vector3d ap = p - a;
+    Eigen::Vector3d bp = p - b;
+    Eigen::Vector3d cp = p - c;
 
-    double d1 = ab.dot(ap);
-    double d2 = ac.dot(ap);
+    double d_ab_ap = ab.dot(ap);
+    double d_ac_ap = ac.dot(ap);
+    double d_ab_bp = ab.dot(bp);
+    double d_ac_bp = ac.dot(bp);
+    double d_ab_cp = ab.dot(cp);
+    double d_ac_cp = ac.dot(cp);
 
-    if (d1 <= 0.0 && d2 <= 0.0)
+    // Vertex region outside A
+    if (d_ab_ap <= 0.0 && d_ac_ap <= 0.0)
         return ap.norm();
 
-    Eigen::Vector3d bp = p - b;
-    double d3 = ab.dot(bp);
-    double d4 = ac.dot(bp);
-
-    if (d3 >= 0.0 && d4 <= d3)
+    // Vertex region outside B
+    if (d_ab_bp >= 0.0 && d_ac_bp <= d_ab_bp)
         return bp.norm();
 
-    double vc = d1*d4 - d3*d2;
-
-    if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
-        double v = d1 / (d1 - d3);
-        return (a + v * ab - p).norm();
-    }
-
-    Eigen::Vector3d cp = p - c;
-    double d5 = ab.dot(cp);
-    double d6 = ac.dot(cp);
-
-    if (d6 >= 0.0 && d5 <= d6)
+    // Vertex region outside C
+    if (d_ac_cp >= 0.0 && d_ab_cp <= d_ac_cp)
         return cp.norm();
 
-    double vb = d5*d2 - d1*d6;
+    // Edge region of AB, and the projection of P onto AB.
+    double vc = d_ab_ap * d_ac_bp - d_ab_bp * d_ac_ap;
+    if (vc <= 0.0 && d_ab_ap >= 0.0 && d_ab_bp <= 0.0)
+        return pointSegmentDistance(p, a, b);
 
-    if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
-        double w = d2 / (d2 - d6);
-        return (a + w * ac - p).norm();
-    }
+    // Edge region of AC, and the projection of P onto AC.
+    double vb = d_ab_cp * d_ac_ap - d_ab_ap * d_ac_cp;
+    if (vb <= 0.0 && d_ac_ap >= 0.0 && d_ac_cp <= 0.0)
+        return pointSegmentDistance(p, a, c);
 
-    double va = d3*d6 - d5*d4;
+    // Edge region of BC, and the projection of P onto BC.
+    double va = d_ab_bp * d_ac_cp - d_ab_cp * d_ac_bp;
+    if (va <= 0.0 && (d_ac_bp - d_ab_bp) >= 0.0 && (d_ab_cp - d_ac_cp) >= 0.0)
+        return pointSegmentDistance(p, b, c);
 
-    if (va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0) {
-        double w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-        return (b + w * (c - b) - p).norm();
-    }
-
+    // Calculate the point's barycentric coordinates
     double denom = 1.0 / (va + vb + vc);
     double v = vb * denom;
     double w = vc * denom;
 
+    // The projection of P onto the triangle's plane
     return (a + ab * v + ac * w - p).norm();
 }
 
 
-int Cell::closestRow(const Eigen::Vector2d& halfedge_coord) {
+double Cell::pointSegmentDistance(
+    const Eigen::Vector3d& p,
+    const Eigen::Vector3d& a,
+    const Eigen::Vector3d& b
+) {
+    Eigen::Vector3d ab = b - a;
+    double t = ab.dot(p - a) / ab.dot(ab);
+    t = std::clamp(t, 0.0, 1.0);  // ensure t stays between 0 and 1
+    return (a + ab * t - p).norm();
+}
+
+
+int Cell::closestRow(
+    const Eigen::Vector2d& halfedge_coord
+) {
     Eigen::VectorXd dists(vertice_UV.rows());
     for (int i = 0; i < vertice_UV.rows(); ++i) {
         dists[i] = (vertice_UV.row(i) - halfedge_coord.transpose()).squaredNorm();
@@ -319,4 +345,16 @@ int Cell::closestRow(const Eigen::Vector2d& halfedge_coord) {
     dists.minCoeff(&minRow);
 
     return minRow;
+}
+
+
+void Cell::normalize_weights(
+    double& a,
+    double& b,
+    double& c
+) {
+    double sum_weights = a + b + c;
+    a /= sum_weights;
+    b /= sum_weights;
+    c /= sum_weights;
 }

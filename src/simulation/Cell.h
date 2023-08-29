@@ -44,13 +44,28 @@ private:
         const Eigen::Vector3i r_face
     );
     double pointTriangleDistance(
-        const Eigen::Vector3d p,
-        const Eigen::Vector3d a,
-        const Eigen::Vector3d b,
-        const Eigen::Vector3d c
+        const Eigen::Vector3d& p,
+        const Eigen::Vector3d& a,
+        const Eigen::Vector3d& b,
+        const Eigen::Vector3d& c
     );
-    int closestRow(const Eigen::Vector2d& halfedge_coord);
+    bool isPointInsideTriangle(
+        const Eigen::Vector3d& p,
+        const Eigen::Vector3d& a,
+        const Eigen::Vector3d& b,
+        const Eigen::Vector3d& c
+    );
+    static double pointSegmentDistance(
+        const Eigen::Vector3d& p,
+        const Eigen::Vector3d& a,
+        const Eigen::Vector3d& b
+    );
+    int closestRow(
+        const Eigen::Vector2d& halfedge_coord
+    );
+    void normalize_weights(
+        double& a,
+        double& b,
+        double& c
+    );
 };
-
-
-
