@@ -13,7 +13,7 @@
 
 #include <GeometryProcessing.h>
 #include <IO.h>
-#include <Cell.h>
+#include <CellHelper.h>
 #include <Struct.h>
 #include <Compass.h>
 
@@ -68,6 +68,6 @@ private:
     Eigen::Vector2d northPole;
     Eigen::Vector2d northPole_virtual;
     Eigen::MatrixXd halfedge_UV_virtual;
-    Cell cell;
+    CellHelper cell_helper;
     Compass compass;
 };

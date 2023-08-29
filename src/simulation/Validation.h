@@ -22,7 +22,10 @@ public:
         int num_part
     );
     bool are_all_valid(std::vector<VertexData> particle_change);
-    std::vector<int> find_inside_uv_vertices_id(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
+    std::vector<int> find_inside_uv_vertices_id(
+        const Eigen::Matrix<double,
+        Eigen::Dynamic, 2>& r
+    );
 
 private:
     GeometryProcessing& geometry_processing;

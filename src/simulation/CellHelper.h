@@ -1,4 +1,4 @@
-// Cell.h
+// CellHelper.h
 #pragma once
 
 #include <vector>
@@ -7,9 +7,9 @@
 
 #include "IO.h"
 
-class Cell {
+class CellHelper {
 public:
-    Cell(
+    CellHelper(
         int particle_count,
         Eigen::MatrixXd& halfedge_UV,
         Eigen::MatrixXi& face_UV,

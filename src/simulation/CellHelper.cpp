@@ -13,11 +13,11 @@
 #include <unordered_set>
 #include <boost/filesystem.hpp>
 
-#include <Cell.h>
+#include <CellHelper.h>
 
 const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
-Cell::Cell(
+CellHelper::CellHelper(
     int particle_count,
     Eigen::MatrixXd& halfedge_UV,
     Eigen::MatrixXi& face_UV,
@@ -48,7 +48,7 @@ Cell::Cell(
 // ========= Public Functions =============
 // ========================================
 
-void Cell::init_particle_position() {
+void CellHelper::init_particle_position() {
     std::vector<int> face_list(face_UV.rows());
     std::iota(face_list.begin(), face_list.end(), 0);
 
@@ -73,7 +73,7 @@ void Cell::init_particle_position() {
 
 
 // (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
-std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(){
+std::pair<Eigen::MatrixXd, std::vector<int>> CellHelper::get_r3d(){
     int num_r = r_UV.rows();
     Eigen::MatrixXd new_3D_points(num_r, 3);
     std::vector<int> nearest_vertices_ids(num_r);
@@ -89,7 +89,7 @@ std::pair<Eigen::MatrixXd, std::vector<int>> Cell::get_r3d(){
 
 
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
-Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
+Eigen::Matrix<double, Eigen::Dynamic, 2> CellHelper::get_r2d(){
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     const std::string mesh_3D_file_path = (PROJECT_PATH / "meshes/ellipsoid_x4.off").string();
     Eigen::MatrixXi face_3D;
@@ -112,7 +112,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> Cell::get_r2d(){
 // ========= Private Functions ============
 // ========================================
 
-std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int iterator){
+std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int iterator){
     std::vector<std::pair<double, int>> distances(face_UV.rows());
 
     for (int j = 0; j < face_UV.rows(); ++j) {
@@ -174,7 +174,7 @@ std::pair<Eigen::Vector3d, int> Cell::calculate_barycentric_3D_coord(int iterato
 }
 
 
-Eigen::Vector3d Cell::calculate_barycentric_2D_coord(int iterator){
+Eigen::Vector3d CellHelper::calculate_barycentric_2D_coord(int iterator){
     std::vector<std::pair<double, int>> distances(face_3D.rows());
 
     for (int j = 0; j < face_3D.rows(); ++j) {
@@ -227,7 +227,7 @@ Eigen::Vector3d Cell::calculate_barycentric_2D_coord(int iterator){
 
 
 // Todo: fix this function
-bool Cell::isPointInsideTriangle(
+bool CellHelper::isPointInsideTriangle(
     const Eigen::Vector3d& p,
     const Eigen::Vector3d& a,
     const Eigen::Vector3d& b,
@@ -249,7 +249,7 @@ bool Cell::isPointInsideTriangle(
 }
 
 
-Eigen::Vector2d Cell::get_face_gravity_center_coord(
+Eigen::Vector2d CellHelper::get_face_gravity_center_coord(
     const Eigen::Vector3i r_face
 ) {
     Eigen::Vector3d center_face_test(0, 0, 0);
@@ -263,7 +263,7 @@ Eigen::Vector2d Cell::get_face_gravity_center_coord(
 }
 
 
-double Cell::pointTriangleDistance(
+double CellHelper::pointTriangleDistance(
     const Eigen::Vector3d& p,
     const Eigen::Vector3d& a,
     const Eigen::Vector3d& b,
@@ -321,7 +321,7 @@ double Cell::pointTriangleDistance(
 }
 
 
-double Cell::pointSegmentDistance(
+double CellHelper::pointSegmentDistance(
     const Eigen::Vector3d& p,
     const Eigen::Vector3d& a,
     const Eigen::Vector3d& b
@@ -333,7 +333,7 @@ double Cell::pointSegmentDistance(
 }
 
 
-int Cell::closestRow(
+int CellHelper::closestRow(
     const Eigen::Vector2d& halfedge_coord
 ) {
     Eigen::VectorXd dists(vertice_UV.rows());
@@ -348,7 +348,7 @@ int Cell::closestRow(
 }
 
 
-void Cell::normalize_weights(
+void CellHelper::normalize_weights(
     double& a,
     double& b,
     double& c

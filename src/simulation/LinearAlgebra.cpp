@@ -29,7 +29,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> LinearAlgebra::angles_to_unit_vectors(c
 
     for (int i = 0; i < avg_n.rows(); ++i) {
         double angle_degrees = avg_n(i);
-        double angle_radians = angle_degrees * M_PI / 180.0;
+        double angle_radians = angle_degrees * DEG_TO_RAD;
 
         // Convert the angle to a 2D unit vector
         Eigen::Vector2d vec(cos(angle_radians), sin(angle_radians));
