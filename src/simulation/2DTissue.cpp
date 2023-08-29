@@ -25,8 +25,6 @@
 
 #include <2DTissue.h>
 
-#define NEQ   2                /* number of equations */
-
 
 _2DTissue::_2DTissue(
     bool save_data,
@@ -69,6 +67,7 @@ _2DTissue::_2DTissue(
     geometry_processing(free_boundary),
     simulator(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, geometry_processing, original_mesh),
+    cell(),
     cell_helper(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
     validation(geometry_processing, original_mesh),
     virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map),
@@ -127,51 +126,8 @@ _2DTissue::_2DTissue(
     mark_outside = false;
     original_mesh = true;
 
-    /*
-    Initialize the ODE Simulation
-    */
-    // Initialize new member variables for simulating a sine wave
-    reltol = 1e-4;
-    abstol = 1e-4;
-    t = 0.0;
-    tout = 0.001;
-
-    // Initialize y
-    y = N_VNew_Serial(NEQ);
-    NV_Ith_S(y, 0) = 0.0; // y(0) = 0
-    NV_Ith_S(y, 1) = 1.0; // y'(0) = 1
-
-    /*
-    For more information on the following functions, visit
-    https://sundials.readthedocs.io/en/latest/cvode/Usage/index.html#user-callable-functions#
-    */
-    // Call CVodeCreate to create the solver memory and specify the
-    // The function CVodeCreate() instantiates a CVODE solver object and specifies the solution method.
-    // CV_BDF for stiff problems.
-    // CV_ADAMS for nonstiff problems
-    cvode_mem = CVodeCreate(CV_BDF);
-
-    // Initialize the integrator memory and specify the user's right hand
-    // side function in y'=f(t,y), the inital time T0, and the initial
-    // dependent variable vector y.
-    CVodeInit(cvode_mem, simulate_sine, t, y);
-
-    // Set the scalar relative tolerance and scalar absolute tolerance
-    // cvode_mem – pointer to the CVODE memory block returned by CVodeCreate()
-    CVodeSStolerances(cvode_mem, reltol, abstol);
-
-    A = SUNDenseMatrix(NEQ, NEQ);
-    LS = SUNLinSol_Dense(y, A);
-    CVodeSetLinearSolver(cvode_mem, LS, A);
-
-    // Initialize SBML model simulation parameters.
-    sbmlModelFilePath = PROJECT_PATH + "/sbml-model/BIOMD0000000613_url.xml";
-    startTime = 0.0;
-    endTime = 10.0;
-    numberOfPoints = 101;
-
     // Perform SBML model simulation.
-    // perform_sbml_simulation();
+    // cell.perform_sbml_simulation();
 }
 
 
@@ -260,11 +216,7 @@ bool _2DTissue::is_finished() {
 }
 
 Eigen::VectorXd _2DTissue::get_order_parameter() {
-    // Free memory
-    CVodeFree(&cvode_mem);
-    SUNLinSolFree(LS); /* Free the linear solver memory */
-    SUNMatDestroy(A); /* Free the matrix memory */
-    N_VDestroy(y);
+    cell.free_memory();
 
     return v_order;
 }
@@ -339,57 +291,13 @@ void _2DTissue::perform_particle_simulation(){
 
     if (particle_innenleben) {
         // Simulate the sine wave
-        tout = (current_step / 10.0) + 0.01;
-        CVode(cvode_mem, tout, y, &t, CV_NORMAL);
+        realtype tout = (current_step / 10.0) + 0.01;
+        v0 = cell.update(tout);
+        std::cout << "    v0: " << v0 << "\n";
 
-        // Update v0 by the tenth of the sine wave which oscillates between 0 and 1
-        v0 = 0.1 * (0.5 * (1 + NV_Ith_S(y, 0)));
     }
     std::cout << "\n";
 }
-
-
-void _2DTissue::perform_sbml_simulation() {
-    rr = new rr::RoadRunner();
-
-    // Load the SBML model.
-    rr->load(sbmlModelFilePath);
-
-    // Set up the integrator.
-    rr->getIntegrator()->setValue("relative_tolerance", 1e-6);
-    rr->getIntegrator()->setValue("absolute_tolerance", 1e-6);
-
-    // Simulate the model.
-    rr::SimulateOptions options;
-    options.start = startTime;
-    options.duration = endTime - startTime;
-    options.steps = numberOfPoints - 1;
-
-    // Print the result of the simulation.
-    std::cout << *rr->simulate(&options) << std::endl;
-
-    // Don't forget to free the memory.
-    delete rr;
-}
-
-
-// The ODE system
-int _2DTissue::simulate_sine(
-    realtype t,
-    N_Vector y,
-    N_Vector ydot,
-    void *user_data
-) {
-    realtype sine = NV_Ith_S(y, 0);
-    realtype cose = NV_Ith_S(y, 1);
-
-    // Store the data in the ydot vector
-    NV_Ith_S(ydot, 0) = cose;
-    NV_Ith_S(ydot, 1) = -sine;
-
-    return 0;
-}
-
 
 // ! NOTE: This function should be inside a CartographyHelper class
 void _2DTissue::count_particle_neighbors() {

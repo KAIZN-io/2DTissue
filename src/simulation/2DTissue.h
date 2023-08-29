@@ -7,23 +7,10 @@
 #include <map>
 #include <memory>
 
-// Differential Equation Simulation
-#include <rr/rrRoadRunner.h>
-#include <rr/rrExecutableModel.h>
-
-#include <cvode/cvode.h>
-// #include <idas/idas.h>
-#include <nvector/nvector_serial.h>
-#include <sundials/sundials_types.h>
-#include <sundials/sundials_math.h>
-#include <sunmatrix/sunmatrix_dense.h>
-#include <sunlinsol/sunlinsol_dense.h>
-#include <sundials/sundials_types.h>
-
-
 #include "IO.h"
 #include "GeometryProcessing.h"
 #include "LinearAlgebra.h"
+#include "Cell.h"
 #include "CellHelper.h"
 #include "Simulator.h"
 #include "SimulatorHelper.h"
@@ -86,6 +73,7 @@ private:
     bool finished;
     std::vector<VertexData> particle_change;
     
+    Cell cell;
     std::unique_ptr<CellHelper> cell_helper_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
     std::unique_ptr<Validation> validation_ptr;
@@ -125,34 +113,13 @@ private:
     Compass compass;
     GeometryProcessing geometry_processing;
     Validation validation;
-
-    // Differential Equation Simulation
-    realtype reltol, abstol; // Tolerances
-    realtype t; // Time
-    realtype tout = 0.001; // Time for next output
-    void* cvode_mem; // CVODE memory
-    N_Vector y; // Variables
-    SUNMatrix A; // Dense SUNMatrix
-    SUNLinearSolver LS; // Dense SUNLinearSolver object
-
-    // SBML simulation
-    rr::RoadRunner* rr;
-    std::string sbmlModelFilePath;
-    double startTime;
-    double endTime;
     int numberOfPoints;
     bool mark_outside;
 
     void perform_particle_simulation();
     void save_our_data();
     void count_particle_neighbors();
-    static int simulate_sine(
-        realtype t,
-        N_Vector y,
-        N_Vector ydot,
-        void *user_data
-    );
-    void perform_sbml_simulation();
+
     void set_new_particle_data();
     int actual_mesh_id;
     bool original_mesh;
