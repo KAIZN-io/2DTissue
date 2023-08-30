@@ -6,18 +6,6 @@
 #include <IO.h>
 #include <SurfaceParametrization.h>
 
-using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
-using vertex_descriptor = boost::graph_traits<Triangle_mesh>::vertex_descriptor;
-using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, double>;
-
-struct MeshMeta{
-    std::string mesh_path;
-    std::string mesh_path_virtual;
-};
-
-// Global Struct Object
-MeshMeta meshmeta;
-
 SurfaceParametrization::SurfaceParametrization(bool& free_boundary)
     : free_boundary(free_boundary){
 }
@@ -35,10 +23,7 @@ SurfaceParametrization::SurfaceParametrization(bool& free_boundary)
 std::string SurfaceParametrization::get_mesh_name(
    const std::string mesh_3D_path
 ){
-    // Create a filesystem path object from the input string
     fs::path path(mesh_3D_path);
-
-    // Use the stem() function to get the mesh name without the extension
     return path.stem().string();
 }
 
@@ -213,7 +198,6 @@ bool SurfaceParametrization::check_point_in_polygon(
 }
 
 
-
 /**
  * @brief Create the UV surface
 */
@@ -222,15 +206,15 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     int32_t start_node_int
 ){
     _3D::vertex_descriptor start_node(start_node_int);
+    mesh_3D_file_path = mesh_path;
+    auto h_v_mapping_vector = calculate_uv_surface(start_node, start_node_int);
 
-    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int);
+    std::string mesh_uv_file_path = meshmeta.mesh_path;
 
-    std::string mesh_file_path = meshmeta.mesh_path;
-
-    extract_polygon_border_edges(mesh_file_path, true);
+    extract_polygon_border_edges(mesh_uv_file_path, true);
     extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
-    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertice_3D, mesh_file_path);
+    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertice_3D, mesh_uv_file_path);
 }
 
 
@@ -277,15 +261,14 @@ void SurfaceParametrization::create_kachelmuster(){
  * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
 */
 std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
-    const std::string mesh_file_path,
     _3D::vertex_descriptor start_node,
     int uv_mesh_number
 ){
     // Set the border edges of the UV mesh
-    auto [virtual_border_edges, border_edges] = set_UV_border_edges(mesh_file_path, start_node);
+    auto [virtual_border_edges, border_edges] = set_UV_border_edges(mesh_3D_file_path, start_node);
 
     _3D::Mesh sm, sm_for_virtual;
-    load3DMeshes(mesh_file_path, sm, sm_for_virtual);
+    load3DMeshes(mesh_3D_file_path, sm, sm_for_virtual);
 
     // Canonical Halfedges Representing a Vertex
     _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
@@ -304,8 +287,8 @@ std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
     parameterize_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual);
 
     // Save the uv mesh
-    save_UV_mesh(mesh, bhd, uvmap, mesh_file_path, 0);
-    save_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual, mesh_file_path, 1);
+    save_UV_mesh(mesh, bhd, uvmap, mesh_3D_file_path, 0);
+    save_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual, mesh_3D_file_path, 1);
 
     int number_of_virtual = size(vertices(mesh_virtual));
     vertices_UV_virtual.resize(number_of_virtual, 3);

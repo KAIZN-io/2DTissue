@@ -50,6 +50,9 @@ using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
 using Point_3 = Kernel::Point_3;
 using Polygon_2 = CGAL::Polygon_2<Kernel>;
+using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
+using vertex_descriptor = boost::graph_traits<Triangle_mesh>::vertex_descriptor;
+using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, double>;
 const fs::path PROJECT_PATH_ = PROJECT_SOURCE_DIR;
 const fs::path MESH_FOLDER = PROJECT_PATH_  / "meshes";
 const unsigned int PARAMETERIZATION_ITERATIONS = 9;
@@ -74,6 +77,11 @@ namespace UV {
 
 class SurfaceParametrization {
 public:
+    struct MeshMeta{
+        std::string mesh_path;
+        std::string mesh_path_virtual;
+    };
+
     explicit SurfaceParametrization(bool& free_boundary);
 
     void calculate_distances(
@@ -121,6 +129,8 @@ public:
     void create_kachelmuster();
 
 private:
+    MeshMeta meshmeta;
+
     Polygon_2 polygon;
     bool& free_boundary;
     Polygon_2 polygon_virtual;
@@ -129,6 +139,7 @@ private:
     Eigen::MatrixXd vertice_UV;
     Eigen::MatrixXd vertice_3D;
     std::vector<int64_t> h_v_mapping_vector_virtual;
+    std::string mesh_3D_file_path;
 
     SMP::Error_code parameterize_UV_mesh(
         UV::Mesh mesh,
@@ -155,7 +166,6 @@ private:
     );
 
     std::vector<int64_t> calculate_uv_surface(
-        const std::string mesh_file_path,
         _3D::vertex_descriptor start_node,
         int uv_mesh_number
     );
