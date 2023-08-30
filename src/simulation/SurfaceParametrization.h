@@ -34,7 +34,7 @@ namespace fs = boost::filesystem;
 #include <CGAL/boost/graph/breadth_first_search.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
-#include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
+#include <CGAL/Aff_transformation_2.h>
 #include <CGAL/Surface_mesh_parameterization/IO/File_off.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
@@ -117,6 +117,8 @@ public:
         const Eigen::Vector2d& point,
         bool is_original_mesh
     );
+
+    void create_kachelmuster();
 
 private:
     Polygon_2 polygon;

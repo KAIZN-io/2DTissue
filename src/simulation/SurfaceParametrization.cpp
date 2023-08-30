@@ -133,7 +133,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
     size_t size = path_list.size();
     size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
     size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
-    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + half_length_mod_two);
+    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
 
     // for(const auto& edge : longest_mod_two) {
     //     std::cout << mesh.point(source(edge, mesh)) << std::endl;
@@ -234,6 +234,40 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
     return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
+}
+
+
+void SurfaceParametrization::create_kachelmuster(){
+    std::string mesh_uv_path = meshmeta.mesh_path;
+    auto mesh_3D_name = get_mesh_name(mesh_uv_path);
+
+    // Load the mesh from the file
+    _3D::Mesh mesh;
+    std::ifstream in(CGAL::data_file_path(mesh_uv_path));
+    in >> mesh;
+
+    // Define a rotation transformation
+    CGAL::Aff_transformation_2<Kernel> rotation(CGAL::ROTATION, std::sin(CGAL_PI / 2), std::cos(CGAL_PI / 2));
+
+    // Convert 3D vertices to 2D, apply the rotation, and then convert them back to 3D
+    for(auto v : mesh.vertices()){
+        Point_3 pt_3d = mesh.point(v);
+
+        // Convert to 2D point (ignoring z-axis)
+        Point_2 pt_2d(pt_3d.x(), pt_3d.y());
+
+        // Apply the rotation
+        Point_2 transformed_2d = pt_2d.transform(rotation);
+
+        // Convert back to 3D, with z = 0
+        Point_3 transformed_3d(transformed_2d.x(), transformed_2d.y(), 0.0);
+
+        mesh.point(v) = transformed_3d;
+    }
+
+    std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_uv_90.off")).string();
+    std::ofstream out(output_path);
+    out << mesh;
 }
 
 
