@@ -206,14 +206,12 @@ bool SurfaceParametrization::check_point_in_polygon(
 ){
     Point_2 cgal_point(point[0], point[1]);
 
-    if (is_original_mesh) {
-        auto result = CGAL::bounded_side_2(polygon.vertices_begin(), polygon.vertices_end(), cgal_point, Kernel());
-        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
-    } else {
-        auto result = CGAL::bounded_side_2(polygon_virtual.vertices_begin(), polygon_virtual.vertices_end(), cgal_point, Kernel());
-        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
-    }
+    auto polygon_iter = is_original_mesh ? polygon : polygon_virtual;
+    auto result = CGAL::bounded_side_2(polygon_iter.vertices_begin(), polygon_iter.vertices_end(), cgal_point, Kernel());
+
+    return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
 }
+
 
 
 /**
