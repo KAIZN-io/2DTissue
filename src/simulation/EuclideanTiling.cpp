@@ -7,12 +7,12 @@
 #include "EuclideanTiling.h"
 
 EuclideanTiling::EuclideanTiling(
-    GeometryProcessing& geometry_processing,
+    SurfaceParametrization& surface_parametrization,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
     Eigen::VectorXi& n
 )
-    : geometry_processing(geometry_processing),
+    : surface_parametrization(surface_parametrization),
       r_UV(r_UV),
       r_UV_old(r_UV_old),
       n(n),
@@ -53,7 +53,7 @@ void EuclideanTiling::diagonal_seam_edges_square_border(){
             auto entry_point = std::get<2>(results);
 
             // Check, wether the new point is inside the boundaries
-            if (geometry_processing.check_point_in_polygon(new_point, original_mesh)) {
+            if (surface_parametrization.check_point_in_polygon(new_point, original_mesh)) {
                 r_UV.row(i).head<2>().noalias() = new_point;
             } else {
                 r_UV_old.row(i).head<2>() = entry_point;

@@ -8,7 +8,8 @@
 #include <memory>
 
 #include "IO.h"
-#include "GeometryProcessing.h"
+#include "SurfaceParametrization.h"
+#include "GeodesicDistance.h"
 #include "LinearAlgebra.h"
 #include "Cell.h"
 #include "CellHelper.h"
@@ -114,7 +115,8 @@ private:
     VirtualMesh virtual_mesh;
     EuclideanTiling euclidean_tiling;
     Compass compass;
-    GeometryProcessing geometry_processing;
+    SurfaceParametrization surface_parametrization;
+    GeodesicDistance geodesic_distance;
     Validation validation;
 
     int numberOfPoints;

@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <Struct.h>
-#include <GeometryProcessing.h>
+#include <SurfaceParametrization.h>
 
 class SimulatorHelper {
 public:
@@ -22,7 +22,7 @@ public:
         Eigen::VectorXi& n,
         Eigen::VectorXi& n_pole,
         Eigen::VectorXi& n_pole_old,
-        GeometryProcessing& geometry_processing,
+        SurfaceParametrization& surface_parametrization,
         bool& original_mesh
     );
 
@@ -32,7 +32,7 @@ public:
     std::vector<int> get_outside_UV_id();
 
 private:
-    GeometryProcessing& geometry_processing;
+    SurfaceParametrization& surface_parametrization;
 
     std::vector<VertexData>& particle_change;
     std::vector<bool>& simulated_particles;
@@ -51,6 +51,6 @@ private:
 
     // Check if the given point r is inside the UV parametrization bounds
     bool is_inside_uv(const Eigen::Vector2d r_UV_row) {
-        return geometry_processing.check_point_in_polygon(r_UV_row, original_mesh);
+        return surface_parametrization.check_point_in_polygon(r_UV_row, original_mesh);
     };
 };

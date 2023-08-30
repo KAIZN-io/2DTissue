@@ -11,7 +11,7 @@
 #include <Eigen/Dense>
 #include <cstdint>
 
-#include <GeometryProcessing.h>
+#include <SurfaceParametrization.h>
 #include <IO.h>
 #include <CellHelper.h>
 #include <Struct.h>
@@ -69,7 +69,7 @@ private:
     std::string mesh_path;
     int map_cache_count;
     std::unordered_map<int, Mesh_UV_Struct>& vertices_2DTissue_map;
-    std::unique_ptr<GeometryProcessing> geometry_ptr;
+    std::unique_ptr<SurfaceParametrization> geometry_ptr;
 
     Eigen::MatrixXd northPole_3D;
     Eigen::Vector2d northPole;

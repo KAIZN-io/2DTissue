@@ -1,4 +1,4 @@
-// 2D_surface.h
+// SurfaceParametrization.h
 
 #pragma once
 
@@ -72,9 +72,9 @@ namespace UV {
     using halfedge_descriptor = boost::graph_traits<Mesh>::halfedge_descriptor;
 }
 
-class GeometryProcessing {
+class SurfaceParametrization {
 public:
-    explicit GeometryProcessing(bool& free_boundary);
+    explicit SurfaceParametrization(bool& free_boundary);
 
     void calculate_distances(
         _3D::Mesh mesh,
@@ -111,15 +111,6 @@ public:
         const std::string mesh_file_path
     );
 
-    std::vector<double> geo_distance(
-        const std::string mesh_path,
-        int32_t start_node = 0
-    );
-
-    int get_all_distances(
-        std::string mesh_file_path
-    );
-
     std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> get_virtual_mesh();
 
     bool check_point_in_polygon(
@@ -134,12 +125,6 @@ private:
     Eigen::MatrixXd vertices_UV_virtual;
     Eigen::MatrixXd vertices_3D_virtual;
     std::vector<int64_t> h_v_mapping_vector_virtual;
-
-    void fill_distance_matrix(
-        const std::string mesh_path,
-        Eigen::MatrixXd &distance_matrix,
-        int closest_vertice
-    );
 
     SMP::Error_code parameterize_UV_mesh(
         UV::Mesh mesh,

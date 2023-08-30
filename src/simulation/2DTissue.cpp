@@ -17,7 +17,6 @@
 #include <Eigen/Sparse>
 
 #include <IO.h>
-#include <GeometryProcessing.h>
 #include <LinearAlgebra.h>
 #include <CellHelper.h>
 #include <Locomotion.h>
@@ -64,14 +63,15 @@ _2DTissue::_2DTissue(
     current_step(0),
     map_cache_count(map_cache_count),
     finished(false),
-    geometry_processing(free_boundary),
+    surface_parametrization(free_boundary),
+    geodesic_distance(),
     locomotion(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
-    simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, geometry_processing, original_mesh),
+    simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, surface_parametrization, original_mesh),
     cell(),
     cell_helper(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
-    validation(geometry_processing, original_mesh),
+    validation(surface_parametrization, original_mesh),
     virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map),
-    euclidean_tiling(geometry_processing, r_UV, r_UV_old, n),
+    euclidean_tiling(surface_parametrization, r_UV, r_UV_old, n),
     compass(original_pole)
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
@@ -89,17 +89,17 @@ _2DTissue::_2DTissue(
 
         // ! Access the functions using the pointer
         // Calculate the distance matrix of the static 3D mesh
-        geometry_processing.get_all_distances(mesh_path);
+        geodesic_distance.get_all_distances(mesh_path);
     }
     distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = geometry_processing.create_uv_surface(mesh_path, 0);
-    mesh_UV_name = geometry_processing.get_mesh_name(mesh_UV_path);
+    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = surface_parametrization.create_uv_surface(mesh_path, 0);
+    mesh_UV_name = surface_parametrization.get_mesh_name(mesh_UV_path);
 
     // Load the virtual mesh
-    auto results = geometry_processing.get_virtual_mesh();
+    auto results = surface_parametrization.get_virtual_mesh();
     auto h_v_mapping_virtual = std::get<0>(results);
     auto vertice_UV_virtual = std::get<1>(results);
     auto vertice_3D_virtual = std::get<2>(results);
