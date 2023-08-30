@@ -5,9 +5,12 @@
 #include <tuple>
 #include <Eigen/Dense>
 
+#include "GeometryProcessing.h"
+
 class EuclideanTiling {
 public:
     EuclideanTiling(
+        GeometryProcessing& geometry_processing,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
         Eigen::VectorXi& n
@@ -17,15 +20,20 @@ public:
     void diagonal_seam_edges_square_border();
 
 private:
+    GeometryProcessing& geometry_processing;
+
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old;
     Eigen::VectorXi& n;
+
+    const bool original_mesh;
 
     std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(
         const Eigen::Vector2d& pointA,
         const Eigen::Vector2d& point_outside,
         double n
     );
+
     int calculateSteepnessSwitch(double steepness);
     double interpolateX(
         const Eigen::Vector2d& pointA,
@@ -38,8 +46,6 @@ private:
         double x
     );
 
-    static constexpr double DEG_TO_RAD = M_PI / 180.0;
-    static constexpr double RAD_TO_DEG = 180.0 / M_PI;
-    static constexpr double FULL_CIRCLE = 360.0;
+    static constexpr double EPSILON = 0.0001;
     static constexpr double QUARTER_CIRCLE = 90.0;
 };

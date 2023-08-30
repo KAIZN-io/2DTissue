@@ -7,13 +7,16 @@
 #include "EuclideanTiling.h"
 
 EuclideanTiling::EuclideanTiling(
+    GeometryProcessing& geometry_processing,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
     Eigen::VectorXi& n
 )
-    : r_UV(r_UV),
+    : geometry_processing(geometry_processing),
+      r_UV(r_UV),
       r_UV_old(r_UV_old),
-      n(n)
+      n(n),
+      original_mesh(true)
 {
 
 }
@@ -45,20 +48,18 @@ void EuclideanTiling::diagonal_seam_edges_square_border(){
             double n_double = n(i);
 
             auto results = processPoints(pointA, point_outside, n_double);
-            auto new_point = std::get<0>(results);
+            Eigen::Vector2d new_point = std::get<0>(results);
             n(i) = std::get<1>(results);
             auto entry_point = std::get<2>(results);
 
-            // ! TODO: this logic can be improved
-            // As soon as one of the conditions is not met (i.e., a value is outside the [0,1] interval), it breaks the for loop and starts another iteration of the while loop.
-            if (new_point[0] < 0 || new_point[0] > 1 || new_point[1] < 0 || new_point[1] > 1) {
+            // Check, wether the new point is inside the boundaries
+            if (geometry_processing.check_point_in_polygon(new_point, original_mesh)) {
+                r_UV.row(i).head<2>().noalias() = new_point;
+            } else {
                 r_UV_old.row(i).head<2>() = entry_point;
                 r_UV.row(i).head<2>().noalias() = new_point;
                 valid = false;
                 break;
-            }
-            else {
-                r_UV.row(i).head<2>().noalias() = new_point;
             }
         }
     } while (!valid);
@@ -252,10 +253,10 @@ double EuclideanTiling::interpolateX(
     double x = pointA[0] + ((y - pointA[1]) * (pointB[0] - pointA[0])) / (pointB[1] - pointA[1]);
     // For the case that the point is on the edge
     if (x == 1) {
-        x -= 0.0001;
+        x -= EPSILON;
     }
     else if (x == 0) {
-        x += 0.0001;
+        x += EPSILON;
     }
     return x;
 }
@@ -270,10 +271,10 @@ double EuclideanTiling::interpolateY(
     double y = pointA[1] + ((x - pointA[0]) * (pointB[1] - pointA[1])) / (pointB[0] - pointA[0]);
     // For the case that the point is on the edge
     if (y == 1) {
-        y -= 0.0001;
+        y -= EPSILON;
     }
     else if (y == 0) {
-        y += 0.0001;
+        y += EPSILON;
     }
     return y;
 }
