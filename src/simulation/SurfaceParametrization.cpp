@@ -224,16 +224,15 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     int32_t start_node_int
 ){
     _3D::vertex_descriptor start_node(start_node_int);
-    Eigen::MatrixXd vertice_UV;
-    Eigen::MatrixXd vertices_3D;
-    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
+
+    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int);
 
     std::string mesh_file_path = meshmeta.mesh_path;
 
     extract_polygon_border_edges(mesh_file_path, true);
     extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
-    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
+    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertice_3D, mesh_file_path);
 }
 
 
@@ -265,7 +264,7 @@ void SurfaceParametrization::create_kachelmuster(){
         mesh.point(v) = transformed_3d;
     }
 
-    std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_uv_90.off")).string();
+    std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_90.off")).string();
     std::ofstream out(output_path);
     out << mesh;
 }
@@ -282,9 +281,7 @@ void SurfaceParametrization::create_kachelmuster(){
 std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
     const std::string mesh_file_path,
     _3D::vertex_descriptor start_node,
-    int uv_mesh_number,
-    Eigen::MatrixXd& vertice_UV,
-    Eigen::MatrixXd& vertices_3D
+    int uv_mesh_number
 ){
     // Set the border edges of the UV mesh
     auto [virtual_border_edges, border_edges] = set_UV_border_edges(mesh_file_path, start_node);
@@ -336,7 +333,7 @@ std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
 
     std::vector<int64_t> h_v_mapping_vector;
     int number_of_vertices = size(vertices(mesh));
-    vertices_3D.resize(number_of_vertices, 3);
+    vertice_3D.resize(number_of_vertices, 3);
     vertice_UV.resize(number_of_vertices, 3);
 
     i = 0;
@@ -346,9 +343,9 @@ std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
         h_v_mapping_vector.push_back(target_vertice);
 
         // Get the points
-        vertices_3D(i, 0) = point_3D.x();
-        vertices_3D(i, 1) = point_3D.y();
-        vertices_3D(i, 2) = point_3D.z();
+        vertice_3D(i, 0) = point_3D.x();
+        vertice_3D(i, 1) = point_3D.y();
+        vertice_3D(i, 2) = point_3D.z();
 
         // Get the uv points
         vertice_UV(i, 0) = uv.x();

@@ -126,6 +126,8 @@ private:
     Polygon_2 polygon_virtual;
     Eigen::MatrixXd vertices_UV_virtual;
     Eigen::MatrixXd vertices_3D_virtual;
+    Eigen::MatrixXd vertice_UV;
+    Eigen::MatrixXd vertice_3D;
     std::vector<int64_t> h_v_mapping_vector_virtual;
 
     SMP::Error_code parameterize_UV_mesh(
@@ -155,9 +157,7 @@ private:
     std::vector<int64_t> calculate_uv_surface(
         const std::string mesh_file_path,
         _3D::vertex_descriptor start_node,
-        int uv_mesh_number,
-        Eigen::MatrixXd& vertice_UV,
-        Eigen::MatrixXd& vertices_3D
+        int uv_mesh_number
     );
 
     int save_UV_mesh(
