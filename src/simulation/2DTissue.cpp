@@ -71,6 +71,7 @@ _2DTissue::_2DTissue(
     cell_helper(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
     validation(geometry_processing, original_mesh),
     virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map),
+    euclidean_tiling(geometry_processing, r_UV, r_UV_old, n),
     compass(original_pole)
 {
     // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
@@ -234,10 +235,10 @@ void _2DTissue::perform_particle_simulation(){
     // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     if (!bool_exact_simulation){
         if (mesh_UV_name == "sphere_uv"){
-            locomotion.opposite_seam_edges_square_border();
+            euclidean_tiling.opposite_seam_edges_square_border();
         }
         else {
-            locomotion.diagonal_seam_edges_square_border();
+            euclidean_tiling.diagonal_seam_edges_square_border();
         }
     }
 

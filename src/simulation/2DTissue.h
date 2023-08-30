@@ -16,6 +16,7 @@
 #include "SimulatorHelper.h"
 #include "Validation.h"
 #include "VirtualMesh.h"
+#include "EuclideanTiling.h"
 #include "Struct.h"
 #include "Compass.h"
 
@@ -72,8 +73,7 @@ private:
     int map_cache_count;
     bool finished;
     std::vector<VertexData> particle_change;
-    
-    Cell cell;
+
     std::unique_ptr<CellHelper> cell_helper_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
     std::unique_ptr<Validation> validation_ptr;
@@ -104,15 +104,19 @@ private:
     std::unordered_map<int, Mesh_UV_Struct> vertices_2DTissue_map;
     std::string mesh_file_path;
     double dt;
+
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Locomotion locomotion;
     SimulatorHelper simulator_helper;
+    Cell cell;
     CellHelper cell_helper;
     VirtualMesh virtual_mesh;
+    EuclideanTiling euclidean_tiling;
     Compass compass;
     GeometryProcessing geometry_processing;
     Validation validation;
+
     int numberOfPoints;
     bool mark_outside;
 

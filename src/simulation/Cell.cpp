@@ -6,21 +6,19 @@
 #include <iostream>
 #include <Cell.h>
 
-#define NEQ   2                /* number of equations */
-
 Cell::Cell()
+    : reltol(1e-4),
+      abstol(1e-4),
+      t(0.0),
+      tout(0.001),
+      y(N_VNew_Serial(NEQ)),
+      cvode_mem(CVodeCreate(CV_BDF)),  // CVODE solver: CV_BDF for stiff problems; CV_ADAMS for nonstiff problems
+      A(SUNDenseMatrix(NEQ, NEQ)),
+      startTime(0.0),
+      endTime(10.0),
+      numberOfPoints(101)
 {
-    /*
-    Initialize the ODE Simulation
-    */
-    // Initialize new member variables for simulating a sine wave
-    reltol = 1e-4;
-    abstol = 1e-4;
-    t = 0.0;
-    tout = 0.001;
-
     // Initialize y
-    y = N_VNew_Serial(NEQ);
     NV_Ith_S(y, 0) = 0.0; // y(0) = 0
     NV_Ith_S(y, 1) = 1.0; // y'(0) = 1
 
@@ -28,11 +26,6 @@ Cell::Cell()
     For more information on the following functions, visit
     https://sundials.readthedocs.io/en/latest/cvode/Usage/index.html#user-callable-functions#
     */
-    // Call CVodeCreate to create the solver memory and specify the
-    // The function CVodeCreate() instantiates a CVODE solver object and specifies the solution method.
-    // CV_BDF for stiff problems.
-    // CV_ADAMS for nonstiff problems
-    cvode_mem = CVodeCreate(CV_BDF);
 
     // Initialize the integrator memory and specify the user's right hand
     // side function in y'=f(t,y), the inital time T0, and the initial
@@ -43,15 +36,15 @@ Cell::Cell()
     // cvode_mem – pointer to the CVODE memory block returned by CVodeCreate()
     CVodeSStolerances(cvode_mem, reltol, abstol);
 
-    A = SUNDenseMatrix(NEQ, NEQ);
     LS = SUNLinSol_Dense(y, A);
     CVodeSetLinearSolver(cvode_mem, LS, A);
 
     // Initialize SBML model simulation parameters.
     sbmlModelFilePath = PROJECT_PATH + "/sbml-model/BIOMD0000000613_url.xml";
-    startTime = 0.0;
-    endTime = 10.0;
-    numberOfPoints = 101;
+}
+
+Cell::~Cell() {
+    free_memory();
 }
 
 
