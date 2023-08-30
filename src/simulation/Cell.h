@@ -1,9 +1,9 @@
 // Cell.h
 #pragma once
 
+#include <string>
 #include <vector>
 #include <cstdint>
-#include <Eigen/Dense>
 
 // Differential Equation Simulation
 #include <rr/rrRoadRunner.h>
@@ -21,13 +21,15 @@
 class Cell {
 public:
     Cell();
+    ~Cell(); // Destructor to manage memory cleanup
 
     double update(realtype tout);
     void perform_sbml_simulation();
     void free_memory();
 
 private:
-    std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
+    static constexpr int NEQ = 2; // Number of equations
+    const std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
 
     // Differential Equation Simulation
     realtype reltol, abstol; // Tolerances
