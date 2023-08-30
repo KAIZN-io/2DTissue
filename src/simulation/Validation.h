@@ -6,12 +6,12 @@
 #include <vector>
 #include <cstdint>
 #include <Struct.h>
-#include <GeometryProcessing.h>
+#include <SurfaceParametrization.h>
 
 class Validation {
 public:
     Validation(
-        GeometryProcessing& geometry_processing,
+        SurfaceParametrization& surface_parametrization,
         bool& original_mesh
     );
     bool checkForInvalidValues(const Eigen::Matrix<double, Eigen::Dynamic, 2> matrix);
@@ -28,7 +28,7 @@ public:
     );
 
 private:
-    GeometryProcessing& geometry_processing;
+    SurfaceParametrization& surface_parametrization;
     bool& original_mesh;
 
     bool is_inside_uv(const Eigen::Vector2d& r);

@@ -5,12 +5,12 @@
 #include <tuple>
 #include <Eigen/Dense>
 
-#include "GeometryProcessing.h"
+#include "SurfaceParametrization.h"
 
 class EuclideanTiling {
 public:
     EuclideanTiling(
-        GeometryProcessing& geometry_processing,
+        SurfaceParametrization& surface_parametrization,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
         Eigen::VectorXi& n
@@ -20,7 +20,7 @@ public:
     void diagonal_seam_edges_square_border();
 
 private:
-    GeometryProcessing& geometry_processing;
+    SurfaceParametrization& surface_parametrization;
 
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old;

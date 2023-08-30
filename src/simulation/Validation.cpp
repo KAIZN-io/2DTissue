@@ -11,10 +11,10 @@
 
 
 Validation::Validation(
-    GeometryProcessing& geometry_processing,
+    SurfaceParametrization& surface_parametrization,
     bool& original_mesh
 )
-    : geometry_processing(geometry_processing),
+    : surface_parametrization(surface_parametrization),
         original_mesh(original_mesh)
 {
 
@@ -95,5 +95,5 @@ void Validation::error_lost_particles(
 // ========================================
 
 bool Validation::is_inside_uv(const Eigen::Vector2d& r) {
-    return geometry_processing.check_point_in_polygon(r, original_mesh);
+    return surface_parametrization.check_point_in_polygon(r, original_mesh);
 }

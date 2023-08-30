@@ -18,7 +18,7 @@ SimulatorHelper::SimulatorHelper(
     Eigen::VectorXi& n,
     Eigen::VectorXi& n_pole,
     Eigen::VectorXi& n_pole_old,
-    GeometryProcessing& geometry_processing,
+    SurfaceParametrization& surface_parametrization,
     bool& original_mesh
 )
     : particle_change(particle_change),
@@ -32,7 +32,7 @@ SimulatorHelper::SimulatorHelper(
     n(n),
     n_pole(n_pole),
     n_pole_old(n_pole_old),
-    geometry_processing(geometry_processing),
+    surface_parametrization(surface_parametrization),
     original_mesh(original_mesh)
 {
     outside_UV_id.resize(particle_count);
