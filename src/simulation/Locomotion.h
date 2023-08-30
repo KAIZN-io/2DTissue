@@ -36,8 +36,6 @@ public:
         Eigen::MatrixXd distance_matrix,
         std::vector<int> vertice_3D_id
     );
-    void opposite_seam_edges_square_border();
-    void diagonal_seam_edges_square_border();
 
 private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
@@ -71,11 +69,6 @@ private:
     );
     void calculate_forces_between_particles(const std::vector<Eigen::MatrixXd> dist_vect);
     static double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
-    double interpolateX(const Eigen::Vector2d& pointA, const Eigen::Vector2d& pointB, double y);
-    double interpolateY(const Eigen::Vector2d& pointA, const Eigen::Vector2d& pointB, double x);
-    int calculateSteepnessSwitch(double steepness);
-    std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> processPoints(const Eigen::Vector2d& pointA, const Eigen::Vector2d& point_outside, double n);
-    void map_between_arbitrary_seam_edges();
 
     static constexpr double DEG_TO_RAD = M_PI / 180.0;
     static constexpr double RAD_TO_DEG = 180.0 / M_PI;
