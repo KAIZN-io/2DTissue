@@ -116,7 +116,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
     size_t size = path_list.size();
     size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
     size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
-    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
+    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + half_length_mod_two);
 
     // for(const auto& edge : longest_mod_two) {
     //     std::cout << mesh.point(source(edge, mesh)) << std::endl;
