@@ -218,6 +218,9 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
 
 /**
  * @brief Create the Kachelmuster
+ *
+ * ! Important: Die Meshe überlappen sich bisher nur an den Rändern des Kachelmuster und sind nicht miteinander verbunden. Vlt. ist das eine künftige Fehlerquelle
+ * Wenn ja, dann nehme alle polygon_v vertices und ersetzt die Rotierten durch mod(Anzahl Grundvertices) -> nur eine Idee, noch nicht entgültig
 */
 void SurfaceParametrization::create_kachelmuster() {
     std::string mesh_uv_path = meshmeta.mesh_path;
