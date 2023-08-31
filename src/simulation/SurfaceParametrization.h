@@ -126,12 +126,18 @@ public:
         bool is_original_mesh
     );
 
+    void rotate_mesh(
+        _3D::Mesh& mesh,
+        double angle_degrees
+    );
+
     void create_kachelmuster();
 
 private:
     MeshMeta meshmeta;
 
     Polygon_2 polygon;
+    std::vector<_3D::vertex_descriptor> polygon_v;
     bool& free_boundary;
     Polygon_2 polygon_virtual;
     Eigen::MatrixXd vertices_UV_virtual;

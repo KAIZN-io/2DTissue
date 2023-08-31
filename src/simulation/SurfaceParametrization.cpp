@@ -284,6 +284,26 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
 //     out << new_mesh;
 // }
 
+
+
+void SurfaceParametrization::rotate_mesh(
+    _3D::Mesh& mesh,
+    double angle_degrees
+) {
+    double angle_radians = CGAL_PI * angle_degrees / 180.0; // Convert angle to radians
+    CGAL::Aff_transformation_2<Kernel> rotation(CGAL::ROTATION, std::sin(angle_radians), std::cos(angle_radians));
+
+    // Rotate and shift the mesh
+    for (auto v : mesh.vertices()){
+        Point_3 pt_3d = mesh.point(v);
+        Point_2 pt_2d(pt_3d.x(), pt_3d.y());
+        Point_2 transformed_2d = pt_2d.transform(rotation);
+        Point_3 transformed_3d(transformed_2d.x(), transformed_2d.y(), 0.0);
+        mesh.point(v) = Point_3(transformed_3d.x(), transformed_3d.y(), transformed_3d.z());
+    }
+}
+
+
 void SurfaceParametrization::create_kachelmuster(){
     std::string mesh_uv_path = meshmeta.mesh_path;
     auto mesh_3D_name = get_mesh_name(mesh_uv_path);
@@ -296,16 +316,8 @@ void SurfaceParametrization::create_kachelmuster(){
     in_original >> mesh_original;
 
     // Define a rotation transformation
-    CGAL::Aff_transformation_2<Kernel> rotation(CGAL::ROTATION, std::sin(CGAL_PI / 2), std::cos(CGAL_PI / 2));
-
-    // Rotate and shift the mesh
-    for (auto v : mesh.vertices()){
-        Point_3 pt_3d = mesh.point(v);
-        Point_2 pt_2d(pt_3d.x(), pt_3d.y());
-        Point_2 transformed_2d = pt_2d.transform(rotation);
-        Point_3 transformed_3d(transformed_2d.x(), transformed_2d.y(), 0.0);
-        mesh.point(v) = Point_3(transformed_3d.x(), transformed_3d.y(), transformed_3d.z());
-    }
+    double rotation_angle = 90.0; // Example value
+    rotate_mesh(mesh, rotation_angle);
 
     std::size_t shift_value = size(vertices(mesh_original));
 
@@ -326,7 +338,6 @@ void SurfaceParametrization::create_kachelmuster(){
         }
         mesh_original.add_face(face_vertices);
     }
-
 
     std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_90.off")).string();
     std::ofstream out(output_path);
