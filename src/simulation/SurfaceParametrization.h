@@ -126,18 +126,6 @@ public:
         bool is_original_mesh
     );
 
-    void rotate_and_shift_mesh(
-        _3D::Mesh& mesh,
-        double angle_degrees,
-        int shift_coordinates,
-        int shift_y_coordinates
-    );
-
-    void add_mesh(
-        _3D::Mesh& mesh,
-        _3D::Mesh& mesh_original
-    );
-
     void create_kachelmuster();
 
 private:
@@ -194,5 +182,25 @@ private:
     void extract_polygon_border_edges(
         const std::string& mesh_uv_path,
         bool is_original_mesh
+    );
+
+    void rotate_and_shift_mesh(
+        _3D::Mesh& mesh,
+        double angle_degrees,
+        int shift_coordinates,
+        int shift_y_coordinates
+    );
+
+    void add_mesh(
+        _3D::Mesh& mesh,
+        _3D::Mesh& mesh_original
+    );
+
+    void process_mesh(
+        const std::string& mesh_path,
+        _3D::Mesh& mesh_original,
+        double rotation_angle,
+        int shift_x,
+        int shift_y
     );
 };
