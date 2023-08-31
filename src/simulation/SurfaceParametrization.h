@@ -3,38 +3,38 @@
 #pragma once
 
 // Standard libraries
-#include <string>
-#include <vector>
-#include <utility>
-#include <unordered_map>
-#include <unordered_set>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 // Eigen
 #include <Eigen/Dense>
 
 // Boost libraries
+#include <boost/filesystem.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/property_map/property_map.hpp>
-#include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
 // CGAL libraries
+#include <CGAL/Aff_transformation_2.h>
 #include <CGAL/IO/read_off_points.h>
+#include <CGAL/Polygon_2.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
 #include <CGAL/Polygon_mesh_processing/border.h>
-#include <CGAL/Polygon_2.h>
 #include <CGAL/boost/graph/breadth_first_search.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
-#include <CGAL/Aff_transformation_2.h>
 #include <CGAL/Surface_mesh_parameterization/IO/File_off.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
@@ -170,7 +170,7 @@ private:
         int uv_mesh_number
     );
 
-    int save_UV_mesh(
+    void save_UV_mesh(
         UV::Mesh _mesh,
         UV::halfedge_descriptor _bhd,
         _3D::UV_pmap _uvmap,
@@ -179,7 +179,7 @@ private:
     );
 
     void extract_polygon_border_edges(
-        const std::string& mesh_path,
+        const std::string& mesh_uv_path,
         bool is_original_mesh
     );
 };

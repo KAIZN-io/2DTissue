@@ -40,10 +40,8 @@ void SurfaceParametrization::calculate_distances(
     std::vector<int>& distance
 ){
     auto indexmap = get(boost::vertex_index, mesh);
-
     auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
 
-    // BFS with visitors for recording distances and predecessors
     auto vis = boost::make_bfs_visitor(
         std::make_pair(
             boost::record_distances(dist_pmap, boost::on_tree_edge{}),
@@ -103,13 +101,13 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
     while (current != start_node) {
         _3D::vertex_descriptor predecessor = predecessor_pmap[current];
         std::pair<_3D::edge_descriptor, bool> edge_pair = edge(predecessor, current, mesh);
-        _3D::edge_descriptor edge = edge_pair.first;
-        path_list.push_back(edge);
+        path_list.push_back(edge_pair.first);
         current = predecessor;
     }
 
     _3D::vertex_descriptor virtual_mesh_start = target(path_list[path_list.size() - 2], mesh);
 
+    // Temp: We reverse the ordering for the virtual mesh
     if (bool_reverse) {
         std::reverse(path_list.begin(), path_list.end());
     }
@@ -124,7 +122,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
     //     std::cout << mesh.point(source(edge, mesh)) << std::endl;
     // }
 
-    return std::make_pair(longest_mod_two, virtual_mesh_start);
+    return {longest_mod_two, virtual_mesh_start};
 }
 
 
@@ -134,12 +132,12 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
 * @info: Unittested
 */
 std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> SurfaceParametrization::set_UV_border_edges(
-    const std::string mesh_file_path,
+    const std::string mesh_3D_file_path,
     _3D::vertex_descriptor start_node
 ){
     // Load the mesh from the file
     _3D::Mesh mesh;
-    std::ifstream in(CGAL::data_file_path(mesh_file_path));
+    std::ifstream in(CGAL::data_file_path(mesh_3D_file_path));
     in >> mesh;
 
     int north_pole_int = 1;
@@ -173,12 +171,12 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
     auto results_virtual = get_cut_line(mesh, virtual_mesh_start, virtual_target_node, predecessor_pmap, false);
     auto virtual_path_mod = results_virtual.first;
 
-    return std::make_pair(virtual_path_mod, path_list);
+    return {virtual_path_mod, path_list};
 }
 
 
 std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> SurfaceParametrization::get_virtual_mesh(){
-    return std::make_tuple(h_v_mapping_vector_virtual, vertices_UV_virtual, vertices_3D_virtual, meshmeta.mesh_path_virtual);
+    return {h_v_mapping_vector_virtual, vertices_UV_virtual, vertices_3D_virtual, meshmeta.mesh_path_virtual};
 }
 
 
@@ -214,7 +212,7 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     extract_polygon_border_edges(mesh_uv_file_path, true);
     extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
-    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertice_3D, mesh_uv_file_path);
+    return {h_v_mapping_vector, vertice_UV, vertice_3D, mesh_uv_file_path};
 }
 
 
@@ -390,8 +388,7 @@ SMP::Error_code SurfaceParametrization::parameterize_UV_mesh(
         Parameterizer parameterizer(border_parameterizer, Parameterizer::Solver_traits(), lambda, iterations, tolerance);
 
         return SMP::parameterize(mesh, parameterizer, bhd, uvmap);
-    }
-    else {
+    } else {
         // Minimize Angle Distortion: Discrete Conformal Map Parameterization
         // from https://doi.org/10.1145/218380.218440
         using Parameterizer = SMP::Discrete_conformal_map_parameterizer_3<UV::Mesh, Border_parameterizer>;
@@ -425,7 +422,7 @@ UV::Mesh SurfaceParametrization::create_UV_mesh(
 /**
  * @brief Save the generated UV mesh to a file
 */
-int SurfaceParametrization::save_UV_mesh(
+void SurfaceParametrization::save_UV_mesh(
     UV::Mesh _mesh,
     UV::halfedge_descriptor _bhd,
     _3D::UV_pmap _uvmap,
@@ -449,20 +446,16 @@ int SurfaceParametrization::save_UV_mesh(
         meshmeta.mesh_path_virtual = output_file_path_str;
     }
 
-    // Create the output file stream
     std::ofstream out(output_file_path_str);
-    // Write the UV map to the output file
     SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
-
-    return 0;
 }
 
 
 void SurfaceParametrization::extract_polygon_border_edges(
-    const std::string& mesh_path,
+    const std::string& mesh_uv_path,
     bool is_original_mesh
 ){
-    std::ifstream input(CGAL::data_file_path(mesh_path));
+    std::ifstream input(CGAL::data_file_path(mesh_uv_path));
     _3D::Mesh mesh;
     input >> mesh;
 
