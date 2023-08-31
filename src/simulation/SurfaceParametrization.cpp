@@ -6,18 +6,6 @@
 #include <IO.h>
 #include <SurfaceParametrization.h>
 
-using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
-using vertex_descriptor = boost::graph_traits<Triangle_mesh>::vertex_descriptor;
-using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, double>;
-
-struct MeshMeta{
-    std::string mesh_path;
-    std::string mesh_path_virtual;
-};
-
-// Global Struct Object
-MeshMeta meshmeta;
-
 SurfaceParametrization::SurfaceParametrization(bool& free_boundary)
     : free_boundary(free_boundary){
 }
@@ -35,10 +23,7 @@ SurfaceParametrization::SurfaceParametrization(bool& free_boundary)
 std::string SurfaceParametrization::get_mesh_name(
    const std::string mesh_3D_path
 ){
-    // Create a filesystem path object from the input string
     fs::path path(mesh_3D_path);
-
-    // Use the stem() function to get the mesh name without the extension
     return path.stem().string();
 }
 
@@ -55,10 +40,8 @@ void SurfaceParametrization::calculate_distances(
     std::vector<int>& distance
 ){
     auto indexmap = get(boost::vertex_index, mesh);
-
     auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
 
-    // BFS with visitors for recording distances and predecessors
     auto vis = boost::make_bfs_visitor(
         std::make_pair(
             boost::record_distances(dist_pmap, boost::on_tree_edge{}),
@@ -118,13 +101,13 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
     while (current != start_node) {
         _3D::vertex_descriptor predecessor = predecessor_pmap[current];
         std::pair<_3D::edge_descriptor, bool> edge_pair = edge(predecessor, current, mesh);
-        _3D::edge_descriptor edge = edge_pair.first;
-        path_list.push_back(edge);
+        path_list.push_back(edge_pair.first);
         current = predecessor;
     }
 
     _3D::vertex_descriptor virtual_mesh_start = target(path_list[path_list.size() - 2], mesh);
 
+    // Temp: We reverse the ordering for the virtual mesh
     if (bool_reverse) {
         std::reverse(path_list.begin(), path_list.end());
     }
@@ -139,7 +122,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
     //     std::cout << mesh.point(source(edge, mesh)) << std::endl;
     // }
 
-    return std::make_pair(longest_mod_two, virtual_mesh_start);
+    return {longest_mod_two, virtual_mesh_start};
 }
 
 
@@ -149,12 +132,12 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
 * @info: Unittested
 */
 std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> SurfaceParametrization::set_UV_border_edges(
-    const std::string mesh_file_path,
+    const std::string mesh_3D_file_path,
     _3D::vertex_descriptor start_node
 ){
     // Load the mesh from the file
     _3D::Mesh mesh;
-    std::ifstream in(CGAL::data_file_path(mesh_file_path));
+    std::ifstream in(CGAL::data_file_path(mesh_3D_file_path));
     in >> mesh;
 
     int north_pole_int = 1;
@@ -188,12 +171,12 @@ std::pair<std::vector<_3D::edge_descriptor>, std::vector<_3D::edge_descriptor>> 
     auto results_virtual = get_cut_line(mesh, virtual_mesh_start, virtual_target_node, predecessor_pmap, false);
     auto virtual_path_mod = results_virtual.first;
 
-    return std::make_pair(virtual_path_mod, path_list);
+    return {virtual_path_mod, path_list};
 }
 
 
 std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> SurfaceParametrization::get_virtual_mesh(){
-    return std::make_tuple(h_v_mapping_vector_virtual, vertices_UV_virtual, vertices_3D_virtual, meshmeta.mesh_path_virtual);
+    return {h_v_mapping_vector_virtual, vertices_UV_virtual, vertices_3D_virtual, meshmeta.mesh_path_virtual};
 }
 
 
@@ -206,13 +189,10 @@ bool SurfaceParametrization::check_point_in_polygon(
 ){
     Point_2 cgal_point(point[0], point[1]);
 
-    if (is_original_mesh) {
-        auto result = CGAL::bounded_side_2(polygon.vertices_begin(), polygon.vertices_end(), cgal_point, Kernel());
-        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
-    } else {
-        auto result = CGAL::bounded_side_2(polygon_virtual.vertices_begin(), polygon_virtual.vertices_end(), cgal_point, Kernel());
-        return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
-    }
+    auto polygon_iter = is_original_mesh ? polygon : polygon_virtual;
+    auto result = CGAL::bounded_side_2(polygon_iter.vertices_begin(), polygon_iter.vertices_end(), cgal_point, Kernel());
+
+    return result == CGAL::ON_BOUNDED_SIDE || result == CGAL::ON_BOUNDARY;
 }
 
 
@@ -224,16 +204,43 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     int32_t start_node_int
 ){
     _3D::vertex_descriptor start_node(start_node_int);
-    Eigen::MatrixXd vertice_UV;
-    Eigen::MatrixXd vertices_3D;
-    auto h_v_mapping_vector = calculate_uv_surface(mesh_path, start_node, start_node_int, vertice_UV, vertices_3D);
+    mesh_3D_file_path = mesh_path;
+    auto h_v_mapping_vector = calculate_uv_surface(start_node, start_node_int);
 
-    std::string mesh_file_path = meshmeta.mesh_path;
+    std::string mesh_uv_file_path = meshmeta.mesh_path;
 
-    extract_polygon_border_edges(mesh_file_path, true);
+    extract_polygon_border_edges(mesh_uv_file_path, true);
     extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
-    return std::make_tuple(h_v_mapping_vector, vertice_UV, vertices_3D, mesh_file_path);
+    return {h_v_mapping_vector, vertice_UV, vertice_3D, mesh_uv_file_path};
+}
+
+
+/**
+ * @brief Create the Kachelmuster
+ *
+ * ! Important: Die Meshe überlappen sich bisher nur an den Rändern des Kachelmuster und sind nicht miteinander verbunden. Vlt. ist das eine künftige Fehlerquelle
+ * Wenn ja, dann nehme alle polygon_v vertices und ersetzt die Rotierten durch mod(Anzahl Grundvertices) -> nur eine Idee, noch nicht entgültig
+*/
+void SurfaceParametrization::create_kachelmuster() {
+    std::string mesh_uv_path = meshmeta.mesh_path;
+    auto mesh_3D_name = get_mesh_name(mesh_uv_path);
+
+    _3D::Mesh mesh_original;
+    std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
+    in_original >> mesh_original;
+
+    // NOTE: Comment the following two lines out to create the square Kachelmuster
+    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);
+    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 2);
+
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 0);
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 180.0, 0, 0);
+
+    std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_kachelmuster.off")).string();
+    std::ofstream out(output_path);
+    out << mesh_original;
 }
 
 
@@ -246,17 +253,14 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
  * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
 */
 std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
-    const std::string mesh_file_path,
     _3D::vertex_descriptor start_node,
-    int uv_mesh_number,
-    Eigen::MatrixXd& vertice_UV,
-    Eigen::MatrixXd& vertices_3D
+    int uv_mesh_number
 ){
     // Set the border edges of the UV mesh
-    auto [virtual_border_edges, border_edges] = set_UV_border_edges(mesh_file_path, start_node);
+    auto [virtual_border_edges, border_edges] = set_UV_border_edges(mesh_3D_file_path, start_node);
 
     _3D::Mesh sm, sm_for_virtual;
-    load3DMeshes(mesh_file_path, sm, sm_for_virtual);
+    load3DMeshes(mesh_3D_file_path, sm, sm_for_virtual);
 
     // Canonical Halfedges Representing a Vertex
     _3D::UV_pmap uvmap = sm.add_property_map<_3D::halfedge_descriptor, Point_2>("h:uv").first;
@@ -275,8 +279,8 @@ std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
     parameterize_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual);
 
     // Save the uv mesh
-    save_UV_mesh(mesh, bhd, uvmap, mesh_file_path, 0);
-    save_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual, mesh_file_path, 1);
+    save_UV_mesh(mesh, bhd, uvmap, mesh_3D_file_path, 0);
+    save_UV_mesh(mesh_virtual, bhd_virtual, uvmap_virtual, mesh_3D_file_path, 1);
 
     int number_of_virtual = size(vertices(mesh_virtual));
     vertices_UV_virtual.resize(number_of_virtual, 3);
@@ -302,7 +306,7 @@ std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
 
     std::vector<int64_t> h_v_mapping_vector;
     int number_of_vertices = size(vertices(mesh));
-    vertices_3D.resize(number_of_vertices, 3);
+    vertice_3D.resize(number_of_vertices, 3);
     vertice_UV.resize(number_of_vertices, 3);
 
     i = 0;
@@ -312,9 +316,9 @@ std::vector<int64_t> SurfaceParametrization::calculate_uv_surface(
         h_v_mapping_vector.push_back(target_vertice);
 
         // Get the points
-        vertices_3D(i, 0) = point_3D.x();
-        vertices_3D(i, 1) = point_3D.y();
-        vertices_3D(i, 2) = point_3D.z();
+        vertice_3D(i, 0) = point_3D.x();
+        vertice_3D(i, 1) = point_3D.y();
+        vertice_3D(i, 2) = point_3D.z();
 
         // Get the uv points
         vertice_UV(i, 0) = uv.x();
@@ -378,8 +382,7 @@ SMP::Error_code SurfaceParametrization::parameterize_UV_mesh(
         Parameterizer parameterizer(border_parameterizer, Parameterizer::Solver_traits(), lambda, iterations, tolerance);
 
         return SMP::parameterize(mesh, parameterizer, bhd, uvmap);
-    }
-    else {
+    } else {
         // Minimize Angle Distortion: Discrete Conformal Map Parameterization
         // from https://doi.org/10.1145/218380.218440
         using Parameterizer = SMP::Discrete_conformal_map_parameterizer_3<UV::Mesh, Border_parameterizer>;
@@ -413,7 +416,7 @@ UV::Mesh SurfaceParametrization::create_UV_mesh(
 /**
  * @brief Save the generated UV mesh to a file
 */
-int SurfaceParametrization::save_UV_mesh(
+void SurfaceParametrization::save_UV_mesh(
     UV::Mesh _mesh,
     UV::halfedge_descriptor _bhd,
     _3D::UV_pmap _uvmap,
@@ -437,20 +440,16 @@ int SurfaceParametrization::save_UV_mesh(
         meshmeta.mesh_path_virtual = output_file_path_str;
     }
 
-    // Create the output file stream
     std::ofstream out(output_file_path_str);
-    // Write the UV map to the output file
     SMP::IO::output_uvmap_to_off(_mesh, _bhd, _uvmap, out);
-
-    return 0;
 }
 
 
 void SurfaceParametrization::extract_polygon_border_edges(
-    const std::string& mesh_path,
+    const std::string& mesh_uv_path,
     bool is_original_mesh
 ){
-    std::ifstream input(CGAL::data_file_path(mesh_path));
+    std::ifstream input(CGAL::data_file_path(mesh_uv_path));
     _3D::Mesh mesh;
     input >> mesh;
 
@@ -469,6 +468,7 @@ void SurfaceParametrization::extract_polygon_border_edges(
     _3D::vertex_descriptor v = mesh.source(border_edges[0]);
     for (std::size_t i = 0; i < border_edges.size(); i++) {
         if (is_original_mesh) {
+            polygon_v.push_back(v);
             polygon.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
         } else {
             polygon_virtual.push_back(Point_2(mesh.point(v).x(), mesh.point(v).y()));
@@ -484,4 +484,66 @@ void SurfaceParametrization::extract_polygon_border_edges(
             break;
         }
     }
+}
+
+
+void SurfaceParametrization::rotate_and_shift_mesh(
+    _3D::Mesh& mesh,
+    double angle_degrees,
+    int shift_x_coordinates,
+    int shift_y_coordinates
+) {
+    double angle_radians = CGAL_PI * angle_degrees / 180.0; // Convert angle to radians
+    CGAL::Aff_transformation_2<Kernel> rotation(CGAL::ROTATION, std::sin(angle_radians), std::cos(angle_radians));
+
+    // Rotate and shift the mesh
+    for (auto v : mesh.vertices()){
+        Point_3 pt_3d = mesh.point(v);
+        Point_2 pt_2d(pt_3d.x(), pt_3d.y());
+        Point_2 transformed_2d = pt_2d.transform(rotation);
+        Point_3 transformed_3d(transformed_2d.x(), transformed_2d.y(), 0.0);
+        mesh.point(v) = Point_3(transformed_3d.x() + shift_x_coordinates, transformed_3d.y() + shift_y_coordinates, transformed_3d.z());
+    }
+}
+
+
+void SurfaceParametrization::add_mesh(
+    _3D::Mesh& mesh,
+    _3D::Mesh& mesh_original
+) {
+    std::size_t shift_value = size(vertices(mesh_original));
+
+    // A map to relate old vertex descriptors in mesh to new ones in mesh_original
+    std::map<_3D::vertex_descriptor, _3D::vertex_descriptor> reindexed_vertices;
+
+    // Add vertices from the rotated mesh to the original mesh
+    for (auto v : mesh.vertices()) {
+        _3D::vertex_descriptor new_v = mesh_original.add_vertex(mesh.point(v));
+        reindexed_vertices[v] = new_v; // Store the mapping
+    }
+
+    // Add faces from the rotated mesh to the original mesh
+    for (auto f : mesh.faces()) {
+        std::vector<_3D::vertex_descriptor> face_vertices;
+        for (auto v : vertices_around_face(mesh.halfedge(f), mesh)) {
+            face_vertices.push_back(reindexed_vertices[v]); // Use the mapping
+        }
+        mesh_original.add_face(face_vertices);
+    }
+}
+
+
+void SurfaceParametrization::process_mesh(
+    const std::string& mesh_path,
+    _3D::Mesh& mesh_original,
+    double rotation_angle,
+    int shift_x,
+    int shift_y
+) {
+    _3D::Mesh mesh;
+    std::ifstream in(mesh_path);
+    in >> mesh;
+
+    rotate_and_shift_mesh(mesh, rotation_angle, shift_x, shift_y);
+    add_mesh(mesh, mesh_original);
 }

@@ -3,38 +3,38 @@
 #pragma once
 
 // Standard libraries
-#include <string>
-#include <vector>
-#include <utility>
-#include <unordered_map>
-#include <unordered_set>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 // Eigen
 #include <Eigen/Dense>
 
 // Boost libraries
+#include <boost/filesystem.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/property_map/property_map.hpp>
-#include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
 // CGAL libraries
+#include <CGAL/Aff_transformation_2.h>
 #include <CGAL/IO/read_off_points.h>
+#include <CGAL/Polygon_2.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/boost/graph/graph_traits_Surface_mesh.h>
 #include <CGAL/boost/graph/Seam_mesh.h>
 #include <CGAL/Polygon_mesh_processing/border.h>
-#include <CGAL/Polygon_2.h>
 #include <CGAL/boost/graph/breadth_first_search.h>
 #include <CGAL/Polygon_mesh_processing/connected_components.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
-#include <CGAL/Heat_method_3/Surface_mesh_geodesic_distances_3.h>
 #include <CGAL/Surface_mesh_parameterization/IO/File_off.h>
 #include <CGAL/Surface_mesh_parameterization/Square_border_parameterizer_3.h>
 #include <CGAL/Surface_mesh_parameterization/Discrete_conformal_map_parameterizer_3.h>
@@ -50,6 +50,9 @@ using Kernel = CGAL::Simple_cartesian<double>;
 using Point_2 = Kernel::Point_2;
 using Point_3 = Kernel::Point_3;
 using Polygon_2 = CGAL::Polygon_2<Kernel>;
+using Triangle_mesh = CGAL::Surface_mesh<Point_3>;
+using vertex_descriptor = boost::graph_traits<Triangle_mesh>::vertex_descriptor;
+using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, double>;
 const fs::path PROJECT_PATH_ = PROJECT_SOURCE_DIR;
 const fs::path MESH_FOLDER = PROJECT_PATH_  / "meshes";
 const unsigned int PARAMETERIZATION_ITERATIONS = 9;
@@ -74,6 +77,11 @@ namespace UV {
 
 class SurfaceParametrization {
 public:
+    struct MeshMeta{
+        std::string mesh_path;
+        std::string mesh_path_virtual;
+    };
+
     explicit SurfaceParametrization(bool& free_boundary);
 
     void calculate_distances(
@@ -118,13 +126,21 @@ public:
         bool is_original_mesh
     );
 
+    void create_kachelmuster();
+
 private:
+    MeshMeta meshmeta;
+
     Polygon_2 polygon;
+    std::vector<_3D::vertex_descriptor> polygon_v;
     bool& free_boundary;
     Polygon_2 polygon_virtual;
     Eigen::MatrixXd vertices_UV_virtual;
     Eigen::MatrixXd vertices_3D_virtual;
+    Eigen::MatrixXd vertice_UV;
+    Eigen::MatrixXd vertice_3D;
     std::vector<int64_t> h_v_mapping_vector_virtual;
+    std::string mesh_3D_file_path;
 
     SMP::Error_code parameterize_UV_mesh(
         UV::Mesh mesh,
@@ -151,14 +167,11 @@ private:
     );
 
     std::vector<int64_t> calculate_uv_surface(
-        const std::string mesh_file_path,
         _3D::vertex_descriptor start_node,
-        int uv_mesh_number,
-        Eigen::MatrixXd& vertice_UV,
-        Eigen::MatrixXd& vertices_3D
+        int uv_mesh_number
     );
 
-    int save_UV_mesh(
+    void save_UV_mesh(
         UV::Mesh _mesh,
         UV::halfedge_descriptor _bhd,
         _3D::UV_pmap _uvmap,
@@ -167,7 +180,27 @@ private:
     );
 
     void extract_polygon_border_edges(
-        const std::string& mesh_path,
+        const std::string& mesh_uv_path,
         bool is_original_mesh
+    );
+
+    void rotate_and_shift_mesh(
+        _3D::Mesh& mesh,
+        double angle_degrees,
+        int shift_coordinates,
+        int shift_y_coordinates
+    );
+
+    void add_mesh(
+        _3D::Mesh& mesh,
+        _3D::Mesh& mesh_original
+    );
+
+    void process_mesh(
+        const std::string& mesh_path,
+        _3D::Mesh& mesh_original,
+        double rotation_angle,
+        int shift_x,
+        int shift_y
     );
 };

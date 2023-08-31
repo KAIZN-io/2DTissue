@@ -98,6 +98,9 @@ _2DTissue::_2DTissue(
     std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = surface_parametrization.create_uv_surface(mesh_path, 0);
     mesh_UV_name = surface_parametrization.get_mesh_name(mesh_UV_path);
 
+    // Create the tessellation mesh
+    surface_parametrization.create_kachelmuster();
+
     // Load the virtual mesh
     auto results = surface_parametrization.get_virtual_mesh();
     auto h_v_mapping_virtual = std::get<0>(results);
