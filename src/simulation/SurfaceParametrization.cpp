@@ -286,9 +286,11 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
 
 
 
-void SurfaceParametrization::rotate_mesh(
+void SurfaceParametrization::rotate_and_shift_mesh(
     _3D::Mesh& mesh,
-    double angle_degrees
+    double angle_degrees,
+    int shift_x_coordinates,
+    int shift_y_coordinates
 ) {
     double angle_radians = CGAL_PI * angle_degrees / 180.0; // Convert angle to radians
     CGAL::Aff_transformation_2<Kernel> rotation(CGAL::ROTATION, std::sin(angle_radians), std::cos(angle_radians));
@@ -299,26 +301,15 @@ void SurfaceParametrization::rotate_mesh(
         Point_2 pt_2d(pt_3d.x(), pt_3d.y());
         Point_2 transformed_2d = pt_2d.transform(rotation);
         Point_3 transformed_3d(transformed_2d.x(), transformed_2d.y(), 0.0);
-        mesh.point(v) = Point_3(transformed_3d.x(), transformed_3d.y(), transformed_3d.z());
+        mesh.point(v) = Point_3(transformed_3d.x() + shift_x_coordinates, transformed_3d.y() + shift_y_coordinates, transformed_3d.z());
     }
 }
 
 
-void SurfaceParametrization::create_kachelmuster(){
-    std::string mesh_uv_path = meshmeta.mesh_path;
-    auto mesh_3D_name = get_mesh_name(mesh_uv_path);
-
-    // Load the mesh from the file
-    _3D::Mesh mesh, mesh_original;
-    std::ifstream in(CGAL::data_file_path(mesh_uv_path));
-    std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
-    in >> mesh;
-    in_original >> mesh_original;
-
-    // Define a rotation transformation
-    double rotation_angle = 90.0; // Example value
-    rotate_mesh(mesh, rotation_angle);
-
+void SurfaceParametrization::add_mesh(
+    _3D::Mesh& mesh,
+    _3D::Mesh& mesh_original
+) {
     std::size_t shift_value = size(vertices(mesh_original));
 
     // A map to relate old vertex descriptors in mesh to new ones in mesh_original
@@ -338,8 +329,63 @@ void SurfaceParametrization::create_kachelmuster(){
         }
         mesh_original.add_face(face_vertices);
     }
+}
 
-    std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_90.off")).string();
+
+void SurfaceParametrization::create_kachelmuster(){
+    std::string mesh_uv_path = meshmeta.mesh_path;
+    auto mesh_3D_name = get_mesh_name(mesh_uv_path);
+
+    // Load the mesh from the file
+    _3D::Mesh mesh, mesh_original;
+    std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
+    std::ifstream in(CGAL::data_file_path(mesh_uv_path));
+    in_original >> mesh_original;
+    in >> mesh;
+
+    // Define a rotation transformation
+    double rotation_angle = 90.0; // Example value
+    int shift_x_coordinates = 0;
+    int shift_y_coordinates = 0;
+
+    // rotate_and_shift_mesh(mesh, rotation_angle, shift_x_coordinates, shift_y_coordinates);
+    // add_mesh(mesh, mesh_original);
+
+    shift_x_coordinates = 2;
+
+    _3D::Mesh mesh_2;
+    std::ifstream in_2(CGAL::data_file_path(mesh_uv_path));
+    in_2 >> mesh_2;
+    rotate_and_shift_mesh(mesh_2, rotation_angle, shift_x_coordinates, shift_y_coordinates);
+    add_mesh(mesh_2, mesh_original);
+
+    shift_x_coordinates = 0;
+    rotation_angle = 270.0;
+
+    // _3D::Mesh mesh_3;
+    // std::ifstream in_3(CGAL::data_file_path(mesh_uv_path));
+    // in_3 >> mesh_3;
+    // rotate_and_shift_mesh(mesh_3, rotation_angle, shift_x_coordinates, shift_y_coordinates);
+    // add_mesh(mesh_3, mesh_original);
+
+    shift_y_coordinates = 2;
+
+    _3D::Mesh mesh_4;
+    std::ifstream in_4(CGAL::data_file_path(mesh_uv_path));
+    in_4 >> mesh_4;
+    rotate_and_shift_mesh(mesh_4, rotation_angle, shift_x_coordinates, shift_y_coordinates);
+    add_mesh(mesh_4, mesh_original);
+
+    shift_x_coordinates = 2;
+    rotation_angle = 180.0;
+
+    _3D::Mesh mesh_5;
+    std::ifstream in_5(CGAL::data_file_path(mesh_uv_path));
+    in_5 >> mesh_5;
+    rotate_and_shift_mesh(mesh_5, rotation_angle, shift_x_coordinates, shift_y_coordinates);
+    add_mesh(mesh_5, mesh_original);
+
+    std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_kachelmuster.off")).string();
     std::ofstream out(output_path);
     out << mesh_original;
 }

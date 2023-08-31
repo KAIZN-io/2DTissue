@@ -126,9 +126,16 @@ public:
         bool is_original_mesh
     );
 
-    void rotate_mesh(
+    void rotate_and_shift_mesh(
         _3D::Mesh& mesh,
-        double angle_degrees
+        double angle_degrees,
+        int shift_coordinates,
+        int shift_y_coordinates
+    );
+
+    void add_mesh(
+        _3D::Mesh& mesh,
+        _3D::Mesh& mesh_original
     );
 
     void create_kachelmuster();
