@@ -227,11 +227,13 @@ void SurfaceParametrization::create_kachelmuster() {
     std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
     in_original >> mesh_original;
 
-    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 0);
+    // NOTE: Comment the following two lines out to create the square Kachelmuster
+    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);
     // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 2);
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 180.0, 2, 0);
+
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 0);
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 180.0, 0, 0);
 
     std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_kachelmuster.off")).string();
     std::ofstream out(output_path);
