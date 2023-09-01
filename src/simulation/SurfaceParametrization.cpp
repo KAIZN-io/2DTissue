@@ -116,7 +116,7 @@ std::pair<std::vector<_3D::edge_descriptor>, _3D::vertex_descriptor> SurfacePara
     size_t size = path_list.size();
     size_t max_length_mod_two = size % 2 == 0 ? size : size - 1;
     size_t half_length_mod_two = (max_length_mod_two / 2) % 2 == 0 ? max_length_mod_two / 2 : (max_length_mod_two / 2) - 1;
-    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + half_length_mod_two);
+    longest_mod_two = std::vector<_3D::edge_descriptor>(path_list.begin(), path_list.begin() + max_length_mod_two);
 
     // for(const auto& edge : longest_mod_two) {
     //     std::cout << mesh.point(source(edge, mesh)) << std::endl;
@@ -212,6 +212,26 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     extract_polygon_border_edges(mesh_uv_file_path, true);
     extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
+    // Check each vertex
+    for(std::size_t i = 0; i < polygon.size(); ++i) {
+        auto vertex = polygon.vertex(i);
+
+        if(CGAL::abs(vertex.x()) < 1e-9) { // left side
+            left.push_back(polygon_v[i]);
+        } else if(CGAL::abs(vertex.x() - 1) < 1e-9) { // right side
+            right.push_back(polygon_v[i]);
+        } else if(CGAL::abs(vertex.y()) < 1e-9) { // bottom side
+            down.push_back(polygon_v[i]);
+        } else if(CGAL::abs(vertex.y() - 1) < 1e-9) { // top side
+            up.push_back(polygon_v[i]);
+        }
+    }
+    // Reverse the order of the left, right, up and down vectors
+    // std::reverse(left.begin(), left.end());
+    // std::reverse(right.begin(), right.end());
+    // std::reverse(up.begin(), up.end());
+    // std::reverse(down.begin(), down.end());
+
     return {h_v_mapping_vector, vertice_UV, vertice_3D, mesh_uv_file_path};
 }
 
@@ -230,22 +250,69 @@ void SurfaceParametrization::create_kachelmuster() {
     std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
     in_original >> mesh_original;  // position 2 2
 
-    // NOTE: Comment the following two lines out to create the square Kachelmuster
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 2);  // position 1 2
+    shift_value_const = size(vertices(mesh_original));
+    std::cout << "shift_value_const: " << shift_value_const << std::endl;
 
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 0);  // position 3 2
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 180.0, 0, 0);  // position 3 3
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)  -> right
+    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1
 
-    // // NOTE: Only for presentation purpose
-    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 180.0, 2, 0);  // position 1 1
-    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 180.0, 2, 2);  // position 3 1
-    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 180.0, 0, 2);  // position 1 3
+    std::cout << "shift_value_const after mapping: " << size(vertices(mesh_original)) << std::endl;
+    // Create mapping
+    std::unordered_map<_3D::vertex_descriptor, _3D::vertex_descriptor> mapping;
+    std::reverse(down.begin(), down.end());
+    for(size_t i = 0; i < left.size(); ++i) {
+        int upValue = down[i] + shift_value_const;
+        _3D::vertex_descriptor vd = static_cast<_3D::vertex_descriptor>(upValue);
+
+        // The shifted value has to be the key
+        mapping[vd] = left[i];  // Creating the mapping
+    }
+    replaceMeshVerticesWithMapping(mesh_original, mapping);
 
     std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_kachelmuster.off")).string();
     std::ofstream out(output_path);
     out << mesh_original;
+}
+
+
+void SurfaceParametrization::replaceMeshVerticesWithMapping(_3D::Mesh& mesh, 
+    const std::unordered_map<_3D::vertex_descriptor, _3D::vertex_descriptor>& mapping) 
+{
+    _3D::Mesh newMesh;
+
+    // Copy all vertices to the new mesh (their positions)
+    std::unordered_map<_3D::vertex_descriptor, _3D::vertex_descriptor> oldToNewVertices;
+    for (auto v : vertices(mesh)) {
+        oldToNewVertices[v] = newMesh.add_vertex(mesh.point(v));
+    }
+
+    // Iterate through all the faces of the original mesh
+    for(auto face : faces(mesh)) {
+        std::vector<_3D::vertex_descriptor> faceVertices;
+
+        // Get vertices of the current face
+        for(auto vertex : CGAL::vertices_around_face(mesh.halfedge(face), mesh)) {
+            faceVertices.push_back(vertex);
+        }
+
+        // Map the vertices using the given mapping
+        for(size_t i = 0; i < faceVertices.size(); ++i) {
+            if(mapping.find(faceVertices[i]) != mapping.end()) {
+                faceVertices[i] = oldToNewVertices[mapping.at(faceVertices[i])];
+            } else {
+                faceVertices[i] = oldToNewVertices[faceVertices[i]];
+            }
+        }
+
+        // Add the face to the new mesh
+        newMesh.add_face(faceVertices);
+    }
+
+    // Swap the contents of the original mesh with the new mesh
+    // Instead of mesh.swap(newMesh);
+    _3D::Mesh tempMesh;
+    tempMesh = std::move(mesh);
+    mesh = std::move(newMesh);
 }
 
 

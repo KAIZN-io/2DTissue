@@ -127,12 +127,16 @@ public:
     );
 
     void create_kachelmuster();
-
+    void replaceMeshVerticesWithMapping(_3D::Mesh& mesh, 
+        const std::unordered_map<_3D::vertex_descriptor, _3D::vertex_descriptor>& mapping);
 private:
     MeshMeta meshmeta;
+    int combine_key;
+    std::size_t shift_value_const;
 
     Polygon_2 polygon;
     std::vector<_3D::vertex_descriptor> polygon_v;
+    std::vector<_3D::vertex_descriptor> left, right, up, down;
     bool& free_boundary;
     Polygon_2 polygon_virtual;
     Eigen::MatrixXd vertices_UV_virtual;
