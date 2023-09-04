@@ -309,27 +309,20 @@ void SurfaceParametrization::add_mesh(
         } else {
             pt_3d = mesh.point(v);
         }
-        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);   // Shifts already the vertex index
 
-        // _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(mesh.point(v));   // Shifts already the vertex index
+        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);   // Shifts already the vertex index
 
         // If v is inside "down" vector than take its shifted_v
         if (std::find(down.begin(), down.end(), v) != down.end()) {
 
-            std::cout << "added this point: " << shifted_v << " : " << pt_3d << std::endl;
+            // find pt_3d in polygon and get the index
+            Point_2 target(pt_3d.x(), pt_3d.y());
+            int index = find_vertex_index(target);
 
             // Switch the vertices, that will form the border of the mesh
-            // shifted_v = shift_index;
-
-            // find index of v in down
-            auto it = std::find(down.begin(), down.end(), v);
-            int index = std::distance(down.begin(), it);
-            shifted_v = left[index];
-            std::cout << "point to mesh: " << shifted_v << " : " << mesh_original.point(shifted_v) << std::endl;
-
-            // ! NOTE: die Punkte sind irgendwie paarweise kreuzvertauscht. Z.B. a,b <-> b,a statt a,a <-> b,b
+            shifted_v = polygon_v[index];
         }
-    
+
         reindexed_vertices[v] = shifted_v;
     }
 
@@ -341,6 +334,16 @@ void SurfaceParametrization::add_mesh(
         }
         mesh_original.add_face(face_vertices);
     }
+}
+
+
+int SurfaceParametrization::find_vertex_index(const Point_2& target) {
+    for (size_t i = 0; i < polygon.size(); ++i) {
+        if (polygon.vertex(i) == target) {
+            return i; // Found the target vertex, return its index.
+        }
+    }
+    return -1; // Not found
 }
 
 

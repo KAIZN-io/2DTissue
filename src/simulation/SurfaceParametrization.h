@@ -173,6 +173,8 @@ private:
         int uv_mesh_number
     );
 
+    int find_vertex_index(const Point_2& target);
+
     void save_UV_mesh(
         UV::Mesh _mesh,
         UV::halfedge_descriptor _bhd,
