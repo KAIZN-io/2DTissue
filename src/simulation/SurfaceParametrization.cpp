@@ -607,13 +607,13 @@ void SurfaceParametrization::Tessellation::add_mesh(
         }
         auto pt_3d = get_point_3d(mesh, v, border_list);
 
-        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);   // Shifts already the vertex index
+        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);
 
         // If v is inside "border_list" vector than take its shifted_v
         if (std::find(border_list.begin(), border_list.end(), v) != border_list.end()) {
             target_index = -1;
 
-            // find pt_3d in polygon and get the index
+            // Find pt_3d in polygon and get the index
             Point_2 target(pt_3d.x(), pt_3d.y());
 
             find_vertex_index(target);
@@ -637,7 +637,7 @@ void SurfaceParametrization::Tessellation::add_mesh(
 
 void SurfaceParametrization::Tessellation::find_vertex_index(const Point_2& target) {
     for (size_t i = 0; i < parent.polygon.size(); ++i) {
-        
+
         if (are_almost_equal(parent.polygon.vertex(i).x(), target.x()) && 
             are_almost_equal(parent.polygon.vertex(i).y(), target.y())) {
             target_index = i;
