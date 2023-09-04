@@ -225,25 +225,6 @@ void SurfaceParametrization::create_kachelmuster() {
 }
 
 
-void SurfaceParametrization::Tessellation::create_kachelmuster() {
-    analyseSides();
-
-    std::string mesh_uv_path = parent.meshmeta.mesh_path;
-    auto mesh_3D_name = parent.get_mesh_name(mesh_uv_path);
-
-    _3D::Mesh mesh_original;
-    std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
-    in_original >> mesh_original;  // position 2 2
-
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)  -> right
-    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1
-
-    std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_kachelmuster.off")).string();
-    std::ofstream out(output_path);
-    out << mesh_original;
-}
-
-
 
 // ========================================
 // ========= Private Functions ============
@@ -488,7 +469,33 @@ void SurfaceParametrization::extract_polygon_border_edges(
 
 
 
+// ======================================================
+// ========= Tessellation - Public Functions ============
+// ======================================================
 
+void SurfaceParametrization::Tessellation::create_kachelmuster() {
+    analyseSides();
+
+    std::string mesh_uv_path = parent.meshmeta.mesh_path;
+    auto mesh_3D_name = parent.get_mesh_name(mesh_uv_path);
+
+    _3D::Mesh mesh_original;
+    std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
+    in_original >> mesh_original;  // position 2 2
+
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)  -> right
+    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1
+
+    std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_kachelmuster.off")).string();
+    std::ofstream out(output_path);
+    out << mesh_original;
+}
+
+
+
+// ======================================================
+// ========= Tessellation - Private Functions ===========
+// ======================================================
 
 
 Point_2 SurfaceParametrization::Tessellation::customRotate(const Point_2& pt, double angle_radians) {
