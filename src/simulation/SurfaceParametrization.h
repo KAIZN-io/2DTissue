@@ -130,11 +130,30 @@ public:
 private:
     MeshMeta meshmeta;
     int combine_key;
-    std::size_t shift_value_const;
+
+    class Tessellation {
+        public:
+            Tessellation(SurfaceParametrization& sp) : parent(sp) {}
+
+            // The public function to tessellate the surface, if needed.
+            void analyseSides();
+            void create_kachelmuster();
+
+        private:
+            SurfaceParametrization& parent;
+
+            // Previously in SurfaceParametrization
+            Point_2 customRotate(const Point_2& pt, double angle_radians);
+            void process_mesh(const std::string& mesh_path, _3D::Mesh& mesh_original, double rotation_angle, int shift_x, int shift_y);
+            int find_vertex_index(const Point_2& target);
+            void rotate_and_shift_mesh(_3D::Mesh& mesh, double angle_degrees, int shift_x_coordinates, int shift_y_coordinates);
+            void add_mesh(_3D::Mesh& mesh, _3D::Mesh& mesh_original);
+
+            std::vector<_3D::vertex_descriptor> left, right, up, down;
+    };
 
     Polygon_2 polygon;
     std::vector<_3D::vertex_descriptor> polygon_v;
-    std::vector<_3D::vertex_descriptor> left, right, up, down;
     bool& free_boundary;
     Polygon_2 polygon_virtual;
     Eigen::MatrixXd vertices_UV_virtual;
@@ -173,8 +192,6 @@ private:
         int uv_mesh_number
     );
 
-    int find_vertex_index(const Point_2& target);
-
     void save_UV_mesh(
         UV::Mesh _mesh,
         UV::halfedge_descriptor _bhd,
@@ -186,30 +203,5 @@ private:
     void extract_polygon_border_edges(
         const std::string& mesh_uv_path,
         bool is_original_mesh
-    );
-
-    void rotate_and_shift_mesh(
-        _3D::Mesh& mesh,
-        double angle_degrees,
-        int shift_coordinates,
-        int shift_y_coordinates
-    );
-
-    void add_mesh(
-        _3D::Mesh& mesh,
-        _3D::Mesh& mesh_original
-    );
-
-    void process_mesh(
-        const std::string& mesh_path,
-        _3D::Mesh& mesh_original,
-        double rotation_angle,
-        int shift_x,
-        int shift_y
-    );
-
-    Point_2 customRotate(
-        const Point_2& pt,
-        double angle_radians
     );
 };

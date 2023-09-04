@@ -212,42 +212,28 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
     extract_polygon_border_edges(mesh_uv_file_path, true);
     extract_polygon_border_edges(meshmeta.mesh_path_virtual, false);
 
-    // Check each vertex
-    for(std::size_t i = 0; i < polygon.size(); ++i) {
-        auto vertex = polygon.vertex(i);
-
-        if(CGAL::abs(vertex.x()) < 1e-9) { // left side
-            left.push_back(polygon_v[i]);
-        } else if(CGAL::abs(vertex.x() - 1) < 1e-9) { // right side
-            right.push_back(polygon_v[i]);
-        } else if(CGAL::abs(vertex.y()) < 1e-9) { // bottom side
-            down.push_back(polygon_v[i]);
-        } else if(CGAL::abs(vertex.y() - 1) < 1e-9) { // top side
-            up.push_back(polygon_v[i]);
-        }
-    }
-
     return {h_v_mapping_vector, vertice_UV, vertice_3D, mesh_uv_file_path};
 }
 
 
 /**
  * @brief Create the Kachelmuster
- *
- * ! Important: Die Meshe überlappen sich bisher nur an den Rändern des Kachelmuster und sind nicht miteinander verbunden. Vlt. ist das eine künftige Fehlerquelle
- * Wenn ja, dann nehme alle polygon_v vertices und ersetzt die Rotierten durch mod(Anzahl Grundvertices) -> nur eine Idee, noch nicht entgültig
 */
 void SurfaceParametrization::create_kachelmuster() {
-    std::string mesh_uv_path = meshmeta.mesh_path;
-    auto mesh_3D_name = get_mesh_name(mesh_uv_path);
+    Tessellation tessellation(*this);  // Pass the current instance of SurfaceParametrization
+    tessellation.create_kachelmuster();
+}
+
+
+void SurfaceParametrization::Tessellation::create_kachelmuster() {
+    analyseSides();
+
+    std::string mesh_uv_path = parent.meshmeta.mesh_path;
+    auto mesh_3D_name = parent.get_mesh_name(mesh_uv_path);
 
     _3D::Mesh mesh_original;
     std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
     in_original >> mesh_original;  // position 2 2
-
-    shift_value_const = size(vertices(mesh_original));
-
-    // std::reverse(left.begin(), left.end());
 
     process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)  -> right
     // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1
@@ -262,90 +248,6 @@ void SurfaceParametrization::create_kachelmuster() {
 // ========================================
 // ========= Private Functions ============
 // ========================================
-
-void SurfaceParametrization::rotate_and_shift_mesh(
-    _3D::Mesh& mesh,
-    double angle_degrees,
-    int shift_x_coordinates,
-    int shift_y_coordinates
-) {
-    double angle_radians = CGAL_PI * angle_degrees / 180.0; // Convert angle to radians
-    double threshold = 1e-10; // or any other small value you consider appropriate
-
-    // Rotate and shift the mesh
-    for (auto v : mesh.vertices()){
-        Point_3 pt_3d = mesh.point(v);
-        Point_2 pt_2d(pt_3d.x(), pt_3d.y());
-        Point_2 transformed_2d = customRotate(pt_2d, angle_radians);
-
-        // Remove the memory errors by setting the coordinates to 0
-        if (std::abs(transformed_2d.x()) < threshold) {
-            transformed_2d = Point_2(0, transformed_2d.y());
-        }
-        if (std::abs(transformed_2d.y()) < threshold) {
-            transformed_2d = Point_2(transformed_2d.x(), 0);
-        }
-
-        Point_3 transformed_3d(transformed_2d.x() + shift_x_coordinates, transformed_2d.y() + shift_y_coordinates, 0.0);
-        mesh.point(v) = transformed_3d;
-    }
-}
-
-
-void SurfaceParametrization::add_mesh(
-    _3D::Mesh& mesh,
-    _3D::Mesh& mesh_original
-) {
-    // A map to relate old vertex descriptors in mesh to new ones in mesh_original
-    std::map<_3D::vertex_descriptor, _3D::vertex_descriptor> reindexed_vertices;
-    for (auto v : mesh.vertices()) {
-        _3D::vertex_descriptor shift_index;
-        Point_3 pt_3d;
-        if (std::find(down.begin(), down.end(), v) != down.end()) {
-            auto it = std::find(down.begin(), down.end(), v);
-            int index = std::distance(down.begin(), it);
-            shift_index = down[index];
-            pt_3d = mesh.point(shift_index);
-        } else {
-            pt_3d = mesh.point(v);
-        }
-
-        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);   // Shifts already the vertex index
-
-        // If v is inside "down" vector than take its shifted_v
-        if (std::find(down.begin(), down.end(), v) != down.end()) {
-
-            // find pt_3d in polygon and get the index
-            Point_2 target(pt_3d.x(), pt_3d.y());
-            int index = find_vertex_index(target);
-
-            // Switch the vertices, that will form the border of the mesh
-            shifted_v = polygon_v[index];
-        }
-
-        reindexed_vertices[v] = shifted_v;
-    }
-
-    // Add faces from the rotated mesh to the original mesh
-    for (auto f : mesh.faces()) {
-        std::vector<_3D::vertex_descriptor> face_vertices;
-        for (auto v : vertices_around_face(mesh.halfedge(f), mesh)) {
-            face_vertices.push_back(reindexed_vertices[v]);
-        }
-        mesh_original.add_face(face_vertices);
-    }
-}
-
-
-int SurfaceParametrization::find_vertex_index(const Point_2& target) {
-    for (size_t i = 0; i < polygon.size(); ++i) {
-        if (polygon.vertex(i) == target) {
-            return i; // Found the target vertex, return its index.
-        }
-    }
-    return -1; // Not found
-}
-
 
 /**
  * @brief Calculate the UV coordinates of the 3D mesh and also return their mapping to the 3D coordinates
@@ -585,7 +487,11 @@ void SurfaceParametrization::extract_polygon_border_edges(
 }
 
 
-Point_2 SurfaceParametrization::customRotate(const Point_2& pt, double angle_radians) {
+
+
+
+
+Point_2 SurfaceParametrization::Tessellation::customRotate(const Point_2& pt, double angle_radians) {
     double cos_theta = std::cos(angle_radians);
     double sin_theta = std::sin(angle_radians);
 
@@ -596,7 +502,7 @@ Point_2 SurfaceParametrization::customRotate(const Point_2& pt, double angle_rad
 }
 
 
-void SurfaceParametrization::process_mesh(
+void SurfaceParametrization::Tessellation::process_mesh(
     const std::string& mesh_path,
     _3D::Mesh& mesh_original,
     double rotation_angle,
@@ -609,4 +515,106 @@ void SurfaceParametrization::process_mesh(
 
     rotate_and_shift_mesh(mesh, rotation_angle, shift_x, shift_y);
     add_mesh(mesh, mesh_original);
+}
+
+
+void SurfaceParametrization::Tessellation::analyseSides(){
+    // Check each vertex
+    for(std::size_t i = 0; i < parent.polygon.size(); ++i) {
+        auto vertex = parent.polygon.vertex(i);
+
+        if(CGAL::abs(vertex.x()) < 1e-9) { // left side
+            left.push_back(parent.polygon_v[i]);
+        } else if(CGAL::abs(vertex.x() - 1) < 1e-9) { // right side
+            right.push_back(parent.polygon_v[i]);
+        } else if(CGAL::abs(vertex.y()) < 1e-9) { // bottom side
+            down.push_back(parent.polygon_v[i]);
+        } else if(CGAL::abs(vertex.y() - 1) < 1e-9) { // top side
+            up.push_back(parent.polygon_v[i]);
+        }
+    }
+}
+
+
+int SurfaceParametrization::Tessellation::find_vertex_index(const Point_2& target) {
+    for (size_t i = 0; i < parent.polygon.size(); ++i) {
+        if (parent.polygon.vertex(i) == target) {
+            return i; // Found the target vertex, return its index.
+        }
+    }
+    return -1; // Not found
+}
+
+
+void SurfaceParametrization::Tessellation::rotate_and_shift_mesh(
+    _3D::Mesh& mesh,
+    double angle_degrees,
+    int shift_x_coordinates,
+    int shift_y_coordinates
+) {
+    double angle_radians = CGAL_PI * angle_degrees / 180.0; // Convert angle to radians
+    double threshold = 1e-10; // or any other small value you consider appropriate
+
+    // Rotate and shift the mesh
+    for (auto v : mesh.vertices()){
+        Point_3 pt_3d = mesh.point(v);
+        Point_2 pt_2d(pt_3d.x(), pt_3d.y());
+        Point_2 transformed_2d = customRotate(pt_2d, angle_radians);
+
+        // Remove the memory errors by setting the coordinates to 0
+        if (std::abs(transformed_2d.x()) < threshold) {
+            transformed_2d = Point_2(0, transformed_2d.y());
+        }
+        if (std::abs(transformed_2d.y()) < threshold) {
+            transformed_2d = Point_2(transformed_2d.x(), 0);
+        }
+
+        Point_3 transformed_3d(transformed_2d.x() + shift_x_coordinates, transformed_2d.y() + shift_y_coordinates, 0.0);
+        mesh.point(v) = transformed_3d;
+    }
+}
+
+
+void SurfaceParametrization::Tessellation::add_mesh(
+    _3D::Mesh& mesh,
+    _3D::Mesh& mesh_original
+) {
+    // A map to relate old vertex descriptors in mesh to new ones in mesh_original
+    std::map<_3D::vertex_descriptor, _3D::vertex_descriptor> reindexed_vertices;
+    for (auto v : mesh.vertices()) {
+        _3D::vertex_descriptor shift_index;
+        Point_3 pt_3d;
+        if (std::find(down.begin(), down.end(), v) != down.end()) {
+            auto it = std::find(down.begin(), down.end(), v);
+            int index = std::distance(down.begin(), it);
+            shift_index = down[index];
+            pt_3d = mesh.point(shift_index);
+        } else {
+            pt_3d = mesh.point(v);
+        }
+
+        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);   // Shifts already the vertex index
+
+        // If v is inside "down" vector than take its shifted_v
+        if (std::find(down.begin(), down.end(), v) != down.end()) {
+
+            // find pt_3d in polygon and get the index
+            Point_2 target(pt_3d.x(), pt_3d.y());
+            int index = find_vertex_index(target);
+
+            // Switch the vertices, that will form the border of the mesh
+            shifted_v = parent.polygon_v[index];
+        }
+
+        reindexed_vertices[v] = shifted_v;
+    }
+
+    // Add faces from the rotated mesh to the original mesh
+    for (auto f : mesh.faces()) {
+        std::vector<_3D::vertex_descriptor> face_vertices;
+        for (auto v : vertices_around_face(mesh.halfedge(f), mesh)) {
+            face_vertices.push_back(reindexed_vertices[v]);
+        }
+        mesh_original.add_face(face_vertices);
+    }
 }
