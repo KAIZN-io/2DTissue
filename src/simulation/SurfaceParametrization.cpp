@@ -611,13 +611,14 @@ void SurfaceParametrization::Tessellation::add_mesh(
 
         // If v is inside "border_list" vector than take its shifted_v
         if (std::find(border_list.begin(), border_list.end(), v) != border_list.end()) {
+            target_index = -1;
 
             // find pt_3d in polygon and get the index
             Point_2 target(pt_3d.x(), pt_3d.y());
-            int index = find_vertex_index(target);
 
+            find_vertex_index(target);
             // Switch the vertices, that will form the border of the mesh
-            shifted_v = parent.polygon_v[index];
+            shifted_v = parent.polygon_v[target_index];
         }
 
         reindexed_vertices[v] = shifted_v;
@@ -634,13 +635,15 @@ void SurfaceParametrization::Tessellation::add_mesh(
 }
 
 
-int SurfaceParametrization::Tessellation::find_vertex_index(const Point_2& target) {
+void SurfaceParametrization::Tessellation::find_vertex_index(const Point_2& target) {
     for (size_t i = 0; i < parent.polygon.size(); ++i) {
-        if (parent.polygon.vertex(i) == target) {
-            return i; // Found the target vertex, return its index.
+        
+        if (are_almost_equal(parent.polygon.vertex(i).x(), target.x()) && 
+            are_almost_equal(parent.polygon.vertex(i).y(), target.y())) {
+            target_index = i;
+            break;
         }
     }
-    return -1; // Not found
 }
 
 
@@ -652,4 +655,9 @@ Point_2 SurfaceParametrization::Tessellation::customRotate(const Point_2& pt, do
     double y_prime = pt.x() * sin_theta + pt.y() * cos_theta;
 
     return Point_2(x_prime, y_prime);
+}
+
+
+bool SurfaceParametrization::Tessellation::are_almost_equal(float a, float b) {
+    return std::fabs(a - b) < EPSILON;
 }
