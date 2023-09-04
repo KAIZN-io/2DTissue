@@ -135,14 +135,12 @@ private:
         public:
             Tessellation(SurfaceParametrization& sp) : parent(sp) {}
 
-            // The public function to tessellate the surface, if needed.
             void analyseSides();
             void create_kachelmuster();
 
         private:
             SurfaceParametrization& parent;
 
-            // Previously in SurfaceParametrization
             Point_2 customRotate(const Point_2& pt, double angle_radians);
             void process_mesh(const std::string& mesh_path, _3D::Mesh& mesh_original, double rotation_angle, int shift_x, int shift_y);
             int find_vertex_index(const Point_2& target);
