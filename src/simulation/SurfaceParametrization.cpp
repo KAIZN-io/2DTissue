@@ -247,7 +247,7 @@ void SurfaceParametrization::create_kachelmuster() {
 
     shift_value_const = size(vertices(mesh_original));
 
-    std::reverse(left.begin(), left.end());
+    // std::reverse(left.begin(), left.end());
 
     process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)  -> right
     // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1
@@ -298,17 +298,38 @@ void SurfaceParametrization::add_mesh(
 ) {
     // A map to relate old vertex descriptors in mesh to new ones in mesh_original
     std::map<_3D::vertex_descriptor, _3D::vertex_descriptor> reindexed_vertices;
-    int i = 0;
     for (auto v : mesh.vertices()) {
-        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(mesh.point(v));   // Shifts already the vertex index
-
-        // if v is inside "down" vector than take its shifted_v
+        _3D::vertex_descriptor shift_index;
+        Point_3 pt_3d;
         if (std::find(down.begin(), down.end(), v) != down.end()) {
-            shifted_v = left[i];
-            // std::cout << mesh.point(v) << std::endl;
-            // std::cout << mesh_original.point(shifted_v) << std::endl;
-            i++;
+            auto it = std::find(down.begin(), down.end(), v);
+            int index = std::distance(down.begin(), it);
+            shift_index = down[index];
+            pt_3d = mesh.point(shift_index);
+        } else {
+            pt_3d = mesh.point(v);
         }
+        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);   // Shifts already the vertex index
+
+        // _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(mesh.point(v));   // Shifts already the vertex index
+
+        // If v is inside "down" vector than take its shifted_v
+        if (std::find(down.begin(), down.end(), v) != down.end()) {
+
+            std::cout << "added this point: " << shifted_v << " : " << pt_3d << std::endl;
+
+            // Switch the vertices, that will form the border of the mesh
+            // shifted_v = shift_index;
+
+            // find index of v in down
+            auto it = std::find(down.begin(), down.end(), v);
+            int index = std::distance(down.begin(), it);
+            shifted_v = left[index];
+            std::cout << "point to mesh: " << shifted_v << " : " << mesh_original.point(shifted_v) << std::endl;
+
+            // ! NOTE: die Punkte sind irgendwie paarweise kreuzvertauscht. Z.B. a,b <-> b,a statt a,a <-> b,b
+        }
+    
         reindexed_vertices[v] = shifted_v;
     }
 
