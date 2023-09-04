@@ -125,10 +125,8 @@ public:
         const Eigen::Vector2d& point,
         bool is_original_mesh
     );
-
     void create_kachelmuster();
-    void replaceMeshVerticesWithMapping(_3D::Mesh& mesh, 
-        const std::unordered_map<_3D::vertex_descriptor, _3D::vertex_descriptor>& mapping);
+
 private:
     MeshMeta meshmeta;
     int combine_key;
@@ -206,5 +204,10 @@ private:
         double rotation_angle,
         int shift_x,
         int shift_y
+    );
+
+    Point_2 customRotate(
+        const Point_2& pt,
+        double angle_radians
     );
 };

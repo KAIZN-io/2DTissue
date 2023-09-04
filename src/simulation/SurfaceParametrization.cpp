@@ -226,11 +226,6 @@ std::tuple<std::vector<int64_t>, Eigen::MatrixXd, Eigen::MatrixXd, std::string> 
             up.push_back(polygon_v[i]);
         }
     }
-    // Reverse the order of the left, right, up and down vectors
-    // std::reverse(left.begin(), left.end());
-    // std::reverse(right.begin(), right.end());
-    // std::reverse(up.begin(), up.end());
-    // std::reverse(down.begin(), down.end());
 
     return {h_v_mapping_vector, vertice_UV, vertice_3D, mesh_uv_file_path};
 }
@@ -251,13 +246,11 @@ void SurfaceParametrization::create_kachelmuster() {
     in_original >> mesh_original;  // position 2 2
 
     shift_value_const = size(vertices(mesh_original));
-    std::cout << "shift_value_const: " << shift_value_const << std::endl;
+
     std::reverse(left.begin(), left.end());
 
     process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)  -> right
     // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1
-
-    std::cout << "shift_value_const after mapping: " << size(vertices(mesh_original)) << std::endl;
 
     std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_kachelmuster.off")).string();
     std::ofstream out(output_path);
@@ -277,15 +270,24 @@ void SurfaceParametrization::rotate_and_shift_mesh(
     int shift_y_coordinates
 ) {
     double angle_radians = CGAL_PI * angle_degrees / 180.0; // Convert angle to radians
-    CGAL::Aff_transformation_2<Kernel> rotation(CGAL::ROTATION, std::sin(angle_radians), std::cos(angle_radians));
+    double threshold = 1e-10; // or any other small value you consider appropriate
 
     // Rotate and shift the mesh
     for (auto v : mesh.vertices()){
         Point_3 pt_3d = mesh.point(v);
         Point_2 pt_2d(pt_3d.x(), pt_3d.y());
-        Point_2 transformed_2d = pt_2d.transform(rotation);
-        Point_3 transformed_3d(transformed_2d.x(), transformed_2d.y(), 0.0);
-        mesh.point(v) = Point_3(transformed_3d.x() + shift_x_coordinates, transformed_3d.y() + shift_y_coordinates, transformed_3d.z());
+        Point_2 transformed_2d = customRotate(pt_2d, angle_radians);
+
+        // Remove the memory errors by setting the coordinates to 0
+        if (std::abs(transformed_2d.x()) < threshold) {
+            transformed_2d = Point_2(0, transformed_2d.y());
+        }
+        if (std::abs(transformed_2d.y()) < threshold) {
+            transformed_2d = Point_2(transformed_2d.x(), 0);
+        }
+
+        Point_3 transformed_3d(transformed_2d.x() + shift_x_coordinates, transformed_2d.y() + shift_y_coordinates, 0.0);
+        mesh.point(v) = transformed_3d;
     }
 }
 
@@ -294,34 +296,27 @@ void SurfaceParametrization::add_mesh(
     _3D::Mesh& mesh,
     _3D::Mesh& mesh_original
 ) {
-
-    int i = 0;
     // A map to relate old vertex descriptors in mesh to new ones in mesh_original
-    std::unordered_map<_3D::vertex_descriptor, _3D::vertex_descriptor> border_mapping;
     std::map<_3D::vertex_descriptor, _3D::vertex_descriptor> reindexed_vertices;
+    int i = 0;
     for (auto v : mesh.vertices()) {
-        _3D::vertex_descriptor new_v = mesh_original.add_vertex(mesh.point(v));   // Shifts already the vertex index
+        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(mesh.point(v));   // Shifts already the vertex index
 
-        // if v is inside "down" vector than print its new_v
+        // if v is inside "down" vector than take its shifted_v
         if (std::find(down.begin(), down.end(), v) != down.end()) {
-            border_mapping[new_v] = left[i];
+            shifted_v = left[i];
+            // std::cout << mesh.point(v) << std::endl;
+            // std::cout << mesh_original.point(shifted_v) << std::endl;
             i++;
         }
-
-        reindexed_vertices[v] = new_v; // Store the mapping
+        reindexed_vertices[v] = shifted_v;
     }
 
     // Add faces from the rotated mesh to the original mesh
     for (auto f : mesh.faces()) {
         std::vector<_3D::vertex_descriptor> face_vertices;
         for (auto v : vertices_around_face(mesh.halfedge(f), mesh)) {
-            face_vertices.push_back(reindexed_vertices[v]); // Use the mapping
-        }
-        // Replace vertices found in border_mapping
-        for (size_t i = 0; i < face_vertices.size(); ++i) {
-            if (border_mapping.find(face_vertices[i]) != border_mapping.end()) {
-                face_vertices[i] = border_mapping[face_vertices[i]];
-            }
+            face_vertices.push_back(reindexed_vertices[v]);
         }
         mesh_original.add_face(face_vertices);
     }
@@ -563,6 +558,17 @@ void SurfaceParametrization::extract_polygon_border_edges(
             break;
         }
     }
+}
+
+
+Point_2 SurfaceParametrization::customRotate(const Point_2& pt, double angle_radians) {
+    double cos_theta = std::cos(angle_radians);
+    double sin_theta = std::sin(angle_radians);
+
+    double x_prime = pt.x() * cos_theta - pt.y() * sin_theta;
+    double y_prime = pt.x() * sin_theta + pt.y() * cos_theta;
+
+    return Point_2(x_prime, y_prime);
 }
 
 
