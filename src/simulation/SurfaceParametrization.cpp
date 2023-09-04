@@ -483,8 +483,17 @@ void SurfaceParametrization::Tessellation::create_kachelmuster() {
     std::ifstream in_original(CGAL::data_file_path(mesh_uv_path));
     in_original >> mesh_original;  // position 2 2
 
-    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)  -> right
-    // process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1
+    docking_side = "left";
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 0, 0);   // position 2 (row) 3 (column)  -> left
+
+    docking_side = "right";
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 90.0, 2, 0);  // position 2 1  -> right
+
+    docking_side = "up";
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 2);  // position 1 2 -> up
+
+    docking_side = "down";
+    process_mesh(CGAL::data_file_path(mesh_uv_path), mesh_original, 270.0, 0, 0);  // position 3 2 -> down
 
     std::string output_path = (MESH_FOLDER / (mesh_3D_name + "_kachelmuster.off")).string();
     std::ofstream out(output_path);
@@ -496,34 +505,6 @@ void SurfaceParametrization::Tessellation::create_kachelmuster() {
 // ======================================================
 // ========= Tessellation - Private Functions ===========
 // ======================================================
-
-
-Point_2 SurfaceParametrization::Tessellation::customRotate(const Point_2& pt, double angle_radians) {
-    double cos_theta = std::cos(angle_radians);
-    double sin_theta = std::sin(angle_radians);
-
-    double x_prime = pt.x() * cos_theta - pt.y() * sin_theta;
-    double y_prime = pt.x() * sin_theta + pt.y() * cos_theta;
-
-    return Point_2(x_prime, y_prime);
-}
-
-
-void SurfaceParametrization::Tessellation::process_mesh(
-    const std::string& mesh_path,
-    _3D::Mesh& mesh_original,
-    double rotation_angle,
-    int shift_x,
-    int shift_y
-) {
-    _3D::Mesh mesh;
-    std::ifstream in(mesh_path);
-    in >> mesh;
-
-    rotate_and_shift_mesh(mesh, rotation_angle, shift_x, shift_y);
-    add_mesh(mesh, mesh_original);
-}
-
 
 void SurfaceParametrization::Tessellation::analyseSides(){
     // Check each vertex
@@ -543,13 +524,19 @@ void SurfaceParametrization::Tessellation::analyseSides(){
 }
 
 
-int SurfaceParametrization::Tessellation::find_vertex_index(const Point_2& target) {
-    for (size_t i = 0; i < parent.polygon.size(); ++i) {
-        if (parent.polygon.vertex(i) == target) {
-            return i; // Found the target vertex, return its index.
-        }
-    }
-    return -1; // Not found
+void SurfaceParametrization::Tessellation::process_mesh(
+    const std::string& mesh_path,
+    _3D::Mesh& mesh_original,
+    double rotation_angle,
+    int shift_x,
+    int shift_y
+) {
+    _3D::Mesh mesh;
+    std::ifstream in(mesh_path);
+    in >> mesh;
+
+    rotate_and_shift_mesh(mesh, rotation_angle, shift_x, shift_y);
+    add_mesh(mesh, mesh_original);
 }
 
 
@@ -582,6 +569,24 @@ void SurfaceParametrization::Tessellation::rotate_and_shift_mesh(
 }
 
 
+Point_3 SurfaceParametrization::Tessellation::get_point_3d(
+    _3D::Mesh& mesh,
+    _3D::vertex_descriptor& v,
+    std::vector<_3D::vertex_descriptor>& border_list
+) {
+    Point_3 pt_3d;
+    if (std::find(border_list.begin(), border_list.end(), v) != border_list.end()) {
+        auto it = std::find(border_list.begin(), border_list.end(), v);
+        int index = std::distance(border_list.begin(), it);
+        pt_3d = mesh.point(border_list[index]);
+    } else {
+        pt_3d = mesh.point(v);
+    }
+
+    return pt_3d;
+}
+
+
 void SurfaceParametrization::Tessellation::add_mesh(
     _3D::Mesh& mesh,
     _3D::Mesh& mesh_original
@@ -589,21 +594,23 @@ void SurfaceParametrization::Tessellation::add_mesh(
     // A map to relate old vertex descriptors in mesh to new ones in mesh_original
     std::map<_3D::vertex_descriptor, _3D::vertex_descriptor> reindexed_vertices;
     for (auto v : mesh.vertices()) {
-        _3D::vertex_descriptor shift_index;
-        Point_3 pt_3d;
-        if (std::find(down.begin(), down.end(), v) != down.end()) {
-            auto it = std::find(down.begin(), down.end(), v);
-            int index = std::distance(down.begin(), it);
-            shift_index = down[index];
-            pt_3d = mesh.point(shift_index);
-        } else {
-            pt_3d = mesh.point(v);
+
+        std::vector<_3D::vertex_descriptor> border_list;
+        if (docking_side == "left"){
+            border_list = down;
+        } else if (docking_side == "right"){
+            border_list = up;
+        } else if (docking_side == "up"){
+            border_list = right;
+        } else if (docking_side == "down"){
+            border_list = left;
         }
+        auto pt_3d = get_point_3d(mesh, v, border_list);
 
         _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);   // Shifts already the vertex index
 
-        // If v is inside "down" vector than take its shifted_v
-        if (std::find(down.begin(), down.end(), v) != down.end()) {
+        // If v is inside "border_list" vector than take its shifted_v
+        if (std::find(border_list.begin(), border_list.end(), v) != border_list.end()) {
 
             // find pt_3d in polygon and get the index
             Point_2 target(pt_3d.x(), pt_3d.y());
@@ -624,4 +631,25 @@ void SurfaceParametrization::Tessellation::add_mesh(
         }
         mesh_original.add_face(face_vertices);
     }
+}
+
+
+int SurfaceParametrization::Tessellation::find_vertex_index(const Point_2& target) {
+    for (size_t i = 0; i < parent.polygon.size(); ++i) {
+        if (parent.polygon.vertex(i) == target) {
+            return i; // Found the target vertex, return its index.
+        }
+    }
+    return -1; // Not found
+}
+
+
+Point_2 SurfaceParametrization::Tessellation::customRotate(const Point_2& pt, double angle_radians) {
+    double cos_theta = std::cos(angle_radians);
+    double sin_theta = std::sin(angle_radians);
+
+    double x_prime = pt.x() * cos_theta - pt.y() * sin_theta;
+    double y_prime = pt.x() * sin_theta + pt.y() * cos_theta;
+
+    return Point_2(x_prime, y_prime);
 }

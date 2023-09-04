@@ -140,7 +140,13 @@ private:
 
         private:
             SurfaceParametrization& parent;
+            std::string docking_side;
 
+            Point_3 get_point_3d(
+                _3D::Mesh& mesh,
+                _3D::vertex_descriptor& v,
+                std::vector<_3D::vertex_descriptor>& border_list
+            );
             Point_2 customRotate(const Point_2& pt, double angle_radians);
             void process_mesh(const std::string& mesh_path, _3D::Mesh& mesh_original, double rotation_angle, int shift_x, int shift_y);
             int find_vertex_index(const Point_2& target);
