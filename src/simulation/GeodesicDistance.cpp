@@ -13,10 +13,16 @@ using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, doubl
 using Heat_method_idt = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CGAL::Heat_method_3::Direct>;
 using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh>;
 
-GeodesicDistance::GeodesicDistance()
-: mesh_path(""),
-    mesh_name("")
-{}
+GeodesicDistance::GeodesicDistance(std::string mesh_path_input)
+: mesh_path(mesh_path_input)
+{
+    mesh_path_3D = mesh_path;
+    mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
+    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
+    mesh_name_3D = mesh_name;
+    mesh_name_UV = mesh_name + "_uv";
+    mesh_path_UV = PROJECT_PATH_GD.string() + "/meshes/" + mesh_name + "_uv.off";
+}
 
 
 // ========================================
@@ -26,22 +32,17 @@ GeodesicDistance::GeodesicDistance()
 /**
  * @brief Calculate the distance using the Heat Method
 */
-void GeodesicDistance::get_all_distances(
-    std::string mesh_path_input
-){
-    mesh_path = mesh_path_input;
-    mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
-    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
-
+void GeodesicDistance::get_all_distances(){
+    mesh_path = mesh_path_3D;
+    Triangle_mesh mesh;
     std::ifstream filename(CGAL::data_file_path(mesh_path));
-    Triangle_mesh tm;
-    filename >> tm;
+    filename >> mesh;
 
-    Eigen::MatrixXd distance_matrix_v(num_vertices(tm), num_vertices(tm));
+    Eigen::MatrixXd distance_matrix_v(num_vertices(mesh), num_vertices(mesh));
     // ! dieser Schritt ist der Bottleneck der Simulation!
     // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
     // loop over all vertices and fill the distance matrix
-    for (auto vi = vertices(tm).first; vi != vertices(tm).second; ++vi) {
+    for (auto vi = vertices(mesh).first; vi != vertices(mesh).second; ++vi) {
         fill_distance_matrix(distance_matrix_v, *vi);
     }
 
@@ -50,12 +51,9 @@ void GeodesicDistance::get_all_distances(
 
 
 void GeodesicDistance::calculate_tessellation_distance(){
-    fs::path PROJECT_PATH_LOCAL = PROJECT_SOURCE_DIR;
-    mesh_path = PROJECT_PATH_LOCAL.string() + "/meshes/ellipsoid_x4_uv.off";
-    mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
-    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
+    mesh_path = mesh_path_UV;
+    mesh_name = mesh_name_UV;
 
-    // Load the mesh from the file
     _3D::Mesh mesh;
     std::ifstream in(CGAL::data_file_path(mesh_path));
     in >> mesh;
@@ -70,7 +68,7 @@ void GeodesicDistance::calculate_tessellation_distance(){
         _3D::vertex_descriptor start_node(next_vertice);
 
         // Calculate the distances from the start node to all other vertices
-        calculate_distances(mesh, start_node, predecessor_pmap, distance);
+        calculate_edge_distances(mesh, start_node, predecessor_pmap, distance);
         distance_matrix_v.row(next_vertice) = Eigen::Map<Eigen::VectorXi>(distance.data(), distance.size());
     }
 
@@ -82,7 +80,7 @@ void GeodesicDistance::calculate_tessellation_distance(){
  * @brief Calculate the distances from a given start vertex to all other vertices
  * Breadth-First Search (BFS): for unweighted grid or mesh
 */
-void GeodesicDistance::calculate_distances(
+void GeodesicDistance::calculate_edge_distances(
     _3D::Mesh mesh,
     _3D::vertex_descriptor start_node,
     std::vector<_3D::vertex_descriptor>& predecessor_pmap,
@@ -126,8 +124,8 @@ void GeodesicDistance::fill_distance_matrix(
 std::vector<double> GeodesicDistance::geo_distance(
     int32_t start_node
 ){
-    std::ifstream filename(CGAL::data_file_path(mesh_path));
     Triangle_mesh tm;
+    std::ifstream filename(CGAL::data_file_path(mesh_path));
     filename >> tm;
 
     //property map for the distance values to the source set

@@ -15,6 +15,7 @@
 #include <boost/property_map/property_map.hpp>
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
+const fs::path PROJECT_PATH_GD = PROJECT_SOURCE_DIR;
 
 // Boost libraries
 #include <boost/filesystem.hpp>
@@ -52,13 +53,13 @@ namespace _3D {
 
 class GeodesicDistance {
 public:
-    GeodesicDistance();
-
-    void get_all_distances(
+    GeodesicDistance(
         std::string mesh_path_input
     );
+
+    void get_all_distances();
     void calculate_tessellation_distance();
-    void calculate_distances(
+    void calculate_edge_distances(
         _3D::Mesh mesh,
         _3D::vertex_descriptor start_node,
         std::vector<_3D::vertex_descriptor>& predecessor_pmap,
@@ -67,16 +68,19 @@ public:
 
 private:
     std::string mesh_path;
+    std::string mesh_path_3D;
+    std::string mesh_path_UV;
     std::string mesh_name;
+    std::string mesh_name_3D;
+    std::string mesh_name_UV;
 
     template<typename MatrixType>
     void save_distance_matrix(MatrixType& distance_matrix_v) {
 
         const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-        const fs::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
         std::cout << "Saving distance matrix to file..." << std::endl;
-        std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
+        std::string distance_matrix_path = PROJECT_PATH_GD.string() + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
         std::ofstream file(distance_matrix_path);
         file << distance_matrix_v.format(CSVFormat);
         file.close();
