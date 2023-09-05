@@ -54,8 +54,8 @@ class GeodesicDistance {
 public:
     GeodesicDistance();
 
-    int get_all_distances(
-        std::string mesh_file_path
+    void get_all_distances(
+        std::string mesh_path_input
     );
     void calculate_tessellation_distance();
     void calculate_distances(
@@ -66,14 +66,29 @@ public:
     );
 
 private:
+    std::string mesh_path;
+    std::string mesh_name;
+
+    template<typename MatrixType>
+    void save_distance_matrix(MatrixType& distance_matrix_v) {
+
+        const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+        const fs::path PROJECT_PATH = PROJECT_SOURCE_DIR;
+
+        std::cout << "Saving distance matrix to file..." << std::endl;
+        std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
+        std::ofstream file(distance_matrix_path);
+        file << distance_matrix_v.format(CSVFormat);
+        file.close();
+        std::cout << "saved" << std::endl;
+    };
+
     void fill_distance_matrix(
-        const std::string mesh_path,
-        Eigen::MatrixXd &distance_matrix,
+        Eigen::MatrixXd& distance_matrix,
         int closest_vertice
     );
 
     std::vector<double> geo_distance(
-        const std::string mesh_path,
         int32_t start_node = 0
     );
 };
