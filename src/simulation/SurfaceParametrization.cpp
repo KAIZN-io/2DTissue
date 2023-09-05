@@ -587,6 +587,20 @@ Point_3 SurfaceParametrization::Tessellation::get_point_3d(
 }
 
 
+// TODO: we only have to check on the border of the mesh
+_3D::vertex_descriptor SurfaceParametrization::Tessellation::find_vertex_by_coordinates(
+    const _3D::Mesh& m,
+    const Point_3& pt
+) {
+    for (auto v : m.vertices()) {
+        if (m.point(v) == pt) {
+            return v;
+        }
+    }
+    return _3D::Mesh::null_vertex();
+}
+
+
 void SurfaceParametrization::Tessellation::add_mesh(
     _3D::Mesh& mesh,
     _3D::Mesh& mesh_original
@@ -606,21 +620,30 @@ void SurfaceParametrization::Tessellation::add_mesh(
             border_list = left;
         }
         auto pt_3d = get_point_3d(mesh, v, border_list);
+    
+        _3D::vertex_descriptor shifted_v;
+        // Check if the vertex already exists in the mesh
+        _3D::vertex_descriptor existing_v = find_vertex_by_coordinates(mesh_original, pt_3d);
 
-        _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);
-
-        // If v is inside "border_list" vector than take its shifted_v
-        if (std::find(border_list.begin(), border_list.end(), v) != border_list.end()) {
-            target_index = -1;
-
-            // Find pt_3d in polygon and get the index
-            Point_2 target(pt_3d.x(), pt_3d.y());
-
-            find_vertex_index(target);
-            // Switch the vertices, that will form the border of the mesh
-            shifted_v = parent.polygon_v[target_index];
+        if (existing_v == _3D::Mesh::null_vertex()) {
+            shifted_v = mesh_original.add_vertex(pt_3d);
+        } else {
+            shifted_v = existing_v;
         }
+        // _3D::vertex_descriptor shifted_v = mesh_original.add_vertex(pt_3d);
 
+        // // If v is inside "border_list" vector than take its shifted_v
+        // if (std::find(border_list.begin(), border_list.end(), v) != border_list.end()) {
+        //     target_index = -1;
+
+        //     // Find pt_3d in polygon and get the index
+        //     Point_2 target(pt_3d.x(), pt_3d.y());
+
+        //     find_vertex_index(target);
+        //     // Switch the vertices, that will form the border of the mesh
+        //     shifted_v = parent.polygon_v[target_index];
+        // }
+        // TODO: remove duplicated vertice coordinates like on the border
         reindexed_vertices[v] = shifted_v;
     }
 

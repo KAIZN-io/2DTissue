@@ -13,44 +13,89 @@ using Vertex_distance_map = Triangle_mesh::Property_map<vertex_descriptor, doubl
 using Heat_method_idt = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh, CGAL::Heat_method_3::Direct>;
 using Heat_method = CGAL::Heat_method_3::Surface_mesh_geodesic_distances_3<Triangle_mesh>;
 
-GeodesicDistance::GeodesicDistance(){}
+GeodesicDistance::GeodesicDistance(std::string mesh_path_input)
+: mesh_path(mesh_path_input)
+{
+    mesh_path_3D = mesh_path;
+    mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
+    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
+    mesh_name_3D = mesh_name;
+    mesh_name_UV = mesh_name + "_uv";
+    mesh_path_UV = PROJECT_PATH_GD.string() + "/meshes/" + mesh_name + "_uv_kachelmuster.off";
+}
 
 
 // ========================================
 // ========= Public Functions =============
 // ========================================
 
-int GeodesicDistance::get_all_distances(
-    std::string mesh_path
-){
-    std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
-    mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
-
+/**
+ * @brief Calculate the distance using the Heat Method
+*/
+void GeodesicDistance::get_all_distances(){
+    mesh_path = mesh_path_3D;
+    Triangle_mesh mesh;
     std::ifstream filename(CGAL::data_file_path(mesh_path));
-    Triangle_mesh tm;
-    filename >> tm;
+    filename >> mesh;
 
-    Eigen::MatrixXd distance_matrix_v(num_vertices(tm), num_vertices(tm));
-    // ! dieser Schritt ist der Bottleneck der Simulation!
-    // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
+    Eigen::MatrixXd distance_matrix_v(num_vertices(mesh), num_vertices(mesh));
+
     // loop over all vertices and fill the distance matrix
-    for (auto vi = vertices(tm).first; vi != vertices(tm).second; ++vi) {
-        fill_distance_matrix(mesh_path, distance_matrix_v, *vi);
+    for (auto vi = vertices(mesh).first; vi != vertices(mesh).second; ++vi) {
+        fill_distance_matrix(distance_matrix_v, *vi);
     }
 
-    // save the distance matrix to a csv file using comma as delimiter
-    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+    save_distance_matrix(distance_matrix_v);
+}
 
-    const fs::path PROJECT_PATH = PROJECT_SOURCE_DIR;
 
-    std::cout << "Saving distance matrix to file..." << std::endl;
-    std::string distance_matrix_path = PROJECT_PATH.string() + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
-    std::ofstream file(distance_matrix_path);
-    file << distance_matrix_v.format(CSVFormat);
-    file.close();
-    std::cout << "saved" << std::endl;
+void GeodesicDistance::calculate_tessellation_distance(){
+    mesh_path = mesh_path_UV;
+    mesh_name = mesh_name_UV;
 
-    return 0;
+    _3D::Mesh mesh;
+    std::ifstream in(CGAL::data_file_path(mesh_path));
+    in >> mesh;
+
+    Eigen::MatrixXi distance_matrix_v(num_vertices(mesh), num_vertices(mesh));
+    for (auto vi = vertices(mesh).first; vi != vertices(mesh).second; ++vi) {
+        int next_vertice = *vi;
+
+        // Create vectors to store the predecessors (p) and the distances from the root (d)
+        std::vector<_3D::vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
+        std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
+        _3D::vertex_descriptor start_node(next_vertice);
+
+        // Calculate the distances from the start node to all other vertices
+        calculate_edge_distances(mesh, start_node, predecessor_pmap, distance);
+        distance_matrix_v.row(next_vertice) = Eigen::Map<Eigen::VectorXi>(distance.data(), distance.size());
+    }
+
+    save_distance_matrix(distance_matrix_v);
+}
+
+
+/**
+ * @brief Calculate the distances from a given start vertex to all other vertices
+ * Breadth-First Search (BFS): for unweighted grid or mesh
+*/
+void GeodesicDistance::calculate_edge_distances(
+    _3D::Mesh mesh,
+    _3D::vertex_descriptor start_node,
+    std::vector<_3D::vertex_descriptor>& predecessor_pmap,
+    std::vector<int>& distance
+){
+    auto indexmap = get(boost::vertex_index, mesh);
+    auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
+
+    auto vis = boost::make_bfs_visitor(
+        std::make_pair(
+            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
+            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
+        )
+    );
+
+    boost::breadth_first_search(mesh, start_node, visitor(vis));
 }
 
 
@@ -64,24 +109,22 @@ int GeodesicDistance::get_all_distances(
  * different index until all the distances have been added to the distance matrix.
 */
 void GeodesicDistance::fill_distance_matrix(
-    const std::string mesh_path,
-    Eigen::MatrixXd &distance_matrix,
+    Eigen::MatrixXd& distance_matrix,
     int closest_vertice
 ){
     if (distance_matrix.row(closest_vertice).head(2).isZero()) {
         // get the distance of all vertices to all other vertices
-        std::vector<double> vertices_3D_distance_map = geo_distance(mesh_path, closest_vertice);
+        std::vector<double> vertices_3D_distance_map = geo_distance(closest_vertice);
         distance_matrix.row(closest_vertice) = Eigen::Map<Eigen::VectorXd>(vertices_3D_distance_map.data(), vertices_3D_distance_map.size());
     }
 }
 
 
 std::vector<double> GeodesicDistance::geo_distance(
-    const std::string mesh_path,
     int32_t start_node
 ){
-    std::ifstream filename(CGAL::data_file_path(mesh_path));
     Triangle_mesh tm;
+    std::ifstream filename(CGAL::data_file_path(mesh_path));
     filename >> tm;
 
     //property map for the distance values to the source set

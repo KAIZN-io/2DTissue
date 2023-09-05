@@ -155,7 +155,10 @@ private:
             void rotate_and_shift_mesh(_3D::Mesh& mesh, double angle_degrees, int shift_x_coordinates, int shift_y_coordinates);
             void add_mesh(_3D::Mesh& mesh, _3D::Mesh& mesh_original);
             bool are_almost_equal(float a, float b);
-
+            _3D::vertex_descriptor find_vertex_by_coordinates(
+                const _3D::Mesh& m,
+                const Point_3& pt
+            );
             std::vector<_3D::vertex_descriptor> left, right, up, down;
 
             static constexpr double EPSILON = 1e-6;
