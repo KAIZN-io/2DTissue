@@ -64,7 +64,7 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false),
     surface_parametrization(free_boundary),
-    geodesic_distance(),
+    geodesic_distance(mesh_path),
     locomotion(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, surface_parametrization, original_mesh),
     cell(),
@@ -74,22 +74,18 @@ _2DTissue::_2DTissue(
     euclidean_tiling(surface_parametrization, r_UV, r_UV_old, n),
     compass(original_pole)
 {
-    // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
-    std::string mesh_3D_file_path = PROJECT_PATH + "/meshes/ellipsoid_x4.off";
-    loadMeshFaces(mesh_3D_file_path, face_3D);
+    loadMeshFaces(mesh_path, face_3D);
 
     // Get the mesh name from the path without the file extension
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
     mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
 
     // Initialize the simulation
-    // Check if the distance matrix of the static 3D mesh already exists
+    // 3D distance matrix: Check if the distance matrix of the static 3D mesh already exists
     std::string distance_matrix_path = PROJECT_PATH + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
     if (!boost::filesystem::exists(distance_matrix_path)) {
-
-        // ! Access the functions using the pointer
         // Calculate the distance matrix of the static 3D mesh
-        geodesic_distance.get_all_distances(mesh_path);
+        geodesic_distance.get_all_distances();
     }
     distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
 
@@ -100,6 +96,13 @@ _2DTissue::_2DTissue(
 
     // Create the tessellation mesh
     surface_parametrization.create_kachelmuster();
+
+    // UV distance matrix of the Tessellation Mesh
+    std::string distance_matrix_path_tessellation = PROJECT_PATH + "/meshes/data/" + mesh_name + "_uv_kachelmuster_distance_matrix_static.csv";
+    if (!boost::filesystem::exists(distance_matrix_path_tessellation)) {
+        // Calculate the distance matrix of the static UV mesh
+        geodesic_distance.calculate_tessellation_distance();
+    }
 
     // Load the virtual mesh
     auto results = surface_parametrization.get_virtual_mesh();
