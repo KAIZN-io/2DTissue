@@ -54,6 +54,59 @@ int GeodesicDistance::get_all_distances(
 }
 
 
+void GeodesicDistance::calculate_tessellation_distance(){
+    fs::path PROJECT_PATH_LOCAL = PROJECT_SOURCE_DIR;
+
+    std::string mesh_file_path_kachelmuster = PROJECT_PATH_LOCAL.string() + "/meshes/ellipsoid_x4_uv_kachelmuster.off";
+    // Load the mesh from the file
+    _3D::Mesh mesh;
+    std::ifstream in(CGAL::data_file_path(mesh_file_path_kachelmuster));
+    in >> mesh;
+
+    std::cout << "Number of vertices: " << num_vertices(mesh) << std::endl;
+
+    // Create vectors to store the predecessors (p) and the distances from the root (d)
+    std::vector<_3D::vertex_descriptor> predecessor_pmap(num_vertices(mesh));  // record the predecessor of each vertex
+    std::vector<int> distance(num_vertices(mesh));  // record the distance from the root
+
+    _3D::vertex_descriptor start_node(0);
+    // Calculate the distances from the start node to all other vertices
+    calculate_distances(mesh, start_node, predecessor_pmap, distance);
+
+    // print out all distances 
+    std::cout << "distances from start node " << start_node << ":\n";
+    for (auto vd : vertices(mesh)) {
+        std::cout << "distance(" << vd << ") = " << distance[vd] << ", ";
+    }
+
+// vs
+// Fast Marching Method or Heat Method
+}
+
+/**
+ * @brief Calculate the distances from a given start vertex to all other vertices
+ * Breadth-First Search (BFS): for unweighted grid or mesh
+*/
+void GeodesicDistance::calculate_distances(
+    _3D::Mesh mesh,
+    _3D::vertex_descriptor start_node,
+    std::vector<_3D::vertex_descriptor>& predecessor_pmap,
+    std::vector<int>& distance
+){
+    auto indexmap = get(boost::vertex_index, mesh);
+    auto dist_pmap = boost::make_iterator_property_map(distance.begin(), indexmap);
+
+    auto vis = boost::make_bfs_visitor(
+        std::make_pair(
+            boost::record_distances(dist_pmap, boost::on_tree_edge{}),
+            boost::record_predecessors(&predecessor_pmap[0], boost::on_tree_edge{})
+        )
+    );
+
+    boost::breadth_first_search(mesh, start_node, visitor(vis));
+}
+
+
 
 // ========================================
 // ========= Private Functions ============
