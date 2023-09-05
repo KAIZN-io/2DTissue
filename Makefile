@@ -18,7 +18,7 @@ else
 endif
 
 .PHONY: all
-all: check_dependencies build_cgal build_llvm_13 build_libroadrunner_deps build_libroadrunner build
+all: check_dependencies build_cgal build_libroadrunner_deps build_llvm_13 build_libroadrunner build 
 
 # Check if LLVM and Emscripten are installed, if not, install using apt-get
 .PHONY: check_dependencies
@@ -65,31 +65,12 @@ build_cgal:
 		fi; \
 	fi
 
-# Build and install libRoadRunner
-.PHONY: build_libroadrunner
-build_libroadrunner:
-	@echo "Installing libRoadRunner from source..."
-	if [ ! -d "$(EXTERNAL_DIR)/roadrunner" ]; then \
-		git clone -b 'v2.4.0' https://github.com/sys-bio/roadrunner.git $(EXTERNAL_DIR)/roadrunner; \
-	fi; \
-	cd $(EXTERNAL_DIR)/roadrunner; \
-	mkdir -p build-release; \
-	cd build-release; \
-	$(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="$(EXTERNAL_DIR)/roadrunner/install-release" \
-	    -DLLVM_INSTALL_PREFIX="$(EXTERNAL_DIR)/llvm-13.x/install-release" \
-	    -DRR_DEPENDENCIES_INSTALL_PREFIX="$(EXTERNAL_DIR)/libroadrunner-deps/install-release" \
-	    -DCMAKE_BUILD_TYPE="Release" \
-	    -DCMAKE_CXX_STANDARD=17 \
-		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
-	ninja; \
-	ninja install
-
 .PHONY: build_libroadrunner_deps
 build_libroadrunner_deps:
-	@echo "Installing libRoadRunner dependencies from source..."
-	if [ ! -d "$(EXTERNAL_DIR)/libroadrunner-deps" ]; then \
-		git clone -b 'v2.1' https://github.com/sys-bio/libroadrunner-deps.git --recurse-submodules $(EXTERNAL_DIR)/libroadrunner-deps; \
-	fi; \
+	@echo "Installing 2DTissue-deps from source..."
+	if [ ! -d "$(EXTERNAL_DIR)" ]; then \
+		git clone --recursive https://github.com/MorphoPhysics/2DTissue-deps.git .; \
+	fi;
 	cd $(EXTERNAL_DIR)/libroadrunner-deps; \
 	mkdir -p build; \
 	cd build; \
@@ -100,14 +81,10 @@ build_libroadrunner_deps:
 	ninja; \
 	ninja install
 
-
 .PHONY: build_llvm_13
 build_llvm_13:
 	@echo "Installing LLVM 13 from source..."; \
-	if [ ! -d "$(EXTERNAL_DIR)/llvm-13.x" ]; then \
-		git clone https://github.com/sys-bio/llvm-13.x.git $(EXTERNAL_DIR)/llvm-13.x; \
-	fi; \
-	cd $(EXTERNAL_DIR)/llvm-13.x; \
+	cd $(EXTERNAL_DIR)/libroadrunner-deps/third_party/llvm-13.x; \
 	mkdir -p build; \
 	cd build; \
 	$(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
@@ -116,6 +93,21 @@ build_llvm_13:
 		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ../llvm; \
 	ninja; \
 	ninja install
+
+# Build and install libRoadRunner
+.PHONY: build_libroadrunner
+build_libroadrunner:
+	cd $(EXTERNAL_DIR)/roadrunner; \
+    mkdir -p build-release; \
+    cd build-release; \
+    $(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="$(EXTERNAL_DIR)/roadrunner/install-release" \
+        -DLLVM_INSTALL_PREFIX="$(EXTERNAL_DIR)/libroadrunner-deps/third_party/llvm-13.x/install-release" \
+        -DRR_DEPENDENCIES_INSTALL_PREFIX="$(EXTERNAL_DIR)/libroadrunner-deps/install-release" \
+        -DCMAKE_BUILD_TYPE="Release" \
+        -DCMAKE_CXX_STANDARD=17 \
+        -DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
+    ninja; \
+    ninja install
 
 .PHONY: build
 build: $(DATA_DIR)
