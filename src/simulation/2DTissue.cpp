@@ -98,7 +98,7 @@ _2DTissue::_2DTissue(
     surface_parametrization.create_kachelmuster();
 
     // UV distance matrix of the Tessellation Mesh
-    std::string distance_matrix_path_tessellation = PROJECT_PATH + "/meshes/data/" + mesh_name + "_uv_distance_matrix_static.csv";
+    std::string distance_matrix_path_tessellation = PROJECT_PATH + "/meshes/data/" + mesh_name + "_uv_kachelmuster_distance_matrix_static.csv";
     if (!boost::filesystem::exists(distance_matrix_path_tessellation)) {
         // Calculate the distance matrix of the static UV mesh
         geodesic_distance.calculate_tessellation_distance();

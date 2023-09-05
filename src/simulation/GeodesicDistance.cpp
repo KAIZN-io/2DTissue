@@ -21,7 +21,7 @@ GeodesicDistance::GeodesicDistance(std::string mesh_path_input)
     mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
     mesh_name_3D = mesh_name;
     mesh_name_UV = mesh_name + "_uv";
-    mesh_path_UV = PROJECT_PATH_GD.string() + "/meshes/" + mesh_name + "_uv.off";
+    mesh_path_UV = PROJECT_PATH_GD.string() + "/meshes/" + mesh_name + "_uv_kachelmuster.off";
 }
 
 
@@ -39,8 +39,7 @@ void GeodesicDistance::get_all_distances(){
     filename >> mesh;
 
     Eigen::MatrixXd distance_matrix_v(num_vertices(mesh), num_vertices(mesh));
-    // ! dieser Schritt ist der Bottleneck der Simulation!
-    // ! wir müssen nämlich n mal die geo distance ausrechnen und die kostet jeweils min 25ms pro Start Vertex
+
     // loop over all vertices and fill the distance matrix
     for (auto vi = vertices(mesh).first; vi != vertices(mesh).second; ++vi) {
         fill_distance_matrix(distance_matrix_v, *vi);
