@@ -21,7 +21,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 # Find required packages
 find_package(assimp CONFIG REQUIRED)
-find_package(CGAL REQUIRED)
 find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(GTest REQUIRED)
@@ -54,7 +53,6 @@ endif()
 
 # Include directories for local header files
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/simulation")
-include(CGAL_Eigen3_support)
 
 # Collect all source files in the 'src/simulation' directory
 file(GLOB SIMULATION_SOURCES src/simulation/*.cpp)
@@ -64,13 +62,12 @@ add_subdirectory(MeshCartographyLib)
 
 # Add library with simulation sources
 add_library(simulation_lib STATIC ${SIMULATION_SOURCES})
-target_link_libraries(simulation_lib PRIVATE MeshCartographyLib CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
+target_link_libraries(simulation_lib PRIVATE MeshCartographyLib Boost::boost Boost::filesystem assimp::assimp)
 
 # Add C++ source files
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE
         MeshCartographyLib
-        CGAL::Eigen3_support
         simulation_lib
         roadrunner-static::roadrunner-static
 )
@@ -89,4 +86,4 @@ file(GLOB TEST_SOURCES tests/simulation/*.cpp)
 add_executable(all_tests ${TEST_SOURCES})
 
 # Link your libraries to the test executable
-target_link_libraries(all_tests PRIVATE CGAL::Eigen3_support simulation_lib ${GTEST_BOTH_LIBRARIES} pthread)
+target_link_libraries(all_tests PRIVATE simulation_lib MeshCartographyLib ${GTEST_BOTH_LIBRARIES} pthread)
