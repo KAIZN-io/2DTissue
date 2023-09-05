@@ -1,0 +1,3 @@
+[submodule "MeshCartographyLib"]
+	path = MeshCartographyLib
+	url = https://github.com/MorphoPhysics/MeshCartographyLib.git
