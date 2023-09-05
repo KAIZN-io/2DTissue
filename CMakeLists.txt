@@ -59,13 +59,17 @@ include(CGAL_Eigen3_support)
 # Collect all source files in the 'src/simulation' directory
 file(GLOB SIMULATION_SOURCES src/simulation/*.cpp)
 
+# Add subdirectories
+add_subdirectory(MeshCartographyLib)
+
 # Add library with simulation sources
 add_library(simulation_lib STATIC ${SIMULATION_SOURCES})
-target_link_libraries(simulation_lib PRIVATE CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
+target_link_libraries(simulation_lib PRIVATE MeshCartographyLib CGAL::Eigen3_support Boost::boost Boost::filesystem assimp::assimp)
 
 # Add C++ source files
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE
+        MeshCartographyLib
         CGAL::Eigen3_support
         simulation_lib
         roadrunner-static::roadrunner-static
