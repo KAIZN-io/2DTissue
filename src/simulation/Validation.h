@@ -1,10 +1,11 @@
 // Validation.h
-
 #pragma once
 
+#include <stdexcept>
 #include <Eigen/Dense>
 #include <vector>
 #include <cstdint>
+
 #include <Struct.h>
 #include <SurfaceParametrization.h>
 

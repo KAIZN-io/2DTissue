@@ -1,9 +1,16 @@
-// author: @Jan-Piotraschke
-// date: 2023-08-29
-// license: Apache License 2.0
-// version: 0.1.0
+/**
+ * @file        Cell.cpp
+ * @brief       Simulating the Eigenleben of a cell
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Aug-29
+ * @version     0.1.0
+ * @license     Apache License 2.0
+ *
+ * @bug         -
+ * @todo        -
+ */
 
-#include <iostream>
 #include <Cell.h>
 
 Cell::Cell()
@@ -49,7 +56,7 @@ Cell::~Cell() {
 
 
 // ========================================
-// ========= Public Functions =============
+// Public Functions
 // ========================================
 
 double Cell::update(realtype tout){
@@ -97,7 +104,7 @@ void Cell::free_memory() {
 
 
 // ========================================
-// ========= Private Functions ============
+// Private Functions
 // ========================================
 
 // The ODE system

@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <Eigen/Dense>
-
+#include <cmath>
 
 class LinearAlgebra {
 public:

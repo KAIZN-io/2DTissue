@@ -1,10 +1,10 @@
 // SimulatorHelper.h
-
 #pragma once
 
 #include <Eigen/Dense>
-
+#include <iostream>
 #include <vector>
+
 #include <Struct.h>
 #include <SurfaceParametrization.h>
 

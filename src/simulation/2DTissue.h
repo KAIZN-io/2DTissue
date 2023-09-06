@@ -1,25 +1,36 @@
 // 2DTissue.h
 #pragma once
 
-#include <vector>
-#include <boost/filesystem.hpp>
-#include <Eigen/Dense>
+// C++ standard library headers
+#include <cmath>
+#include <cstddef>
+#include <fstream>
+#include <iomanip>
+#include <limits>
 #include <map>
 #include <memory>
+#include <stdexcept>
+#include <vector>
 
-#include "IO.h"
-#include "SurfaceParametrization.h"
-#include "GeodesicDistance.h"
-#include "LinearAlgebra.h"
+// Third-party library headers
+#include <boost/filesystem.hpp>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <omp.h>
+
 #include "Cell.h"
 #include "CellHelper.h"
+#include "Compass.h"
+#include "EuclideanTiling.h"
+#include "GeodesicDistance.h"
+#include "IO.h"
+#include "LinearAlgebra.h"
 #include "Locomotion.h"
 #include "SimulatorHelper.h"
+#include "Struct.h"
+#include "SurfaceParametrization.h"
 #include "Validation.h"
 #include "VirtualMesh.h"
-#include "EuclideanTiling.h"
-#include "Struct.h"
-#include "Compass.h"
 
 class _2DTissue {
 public:

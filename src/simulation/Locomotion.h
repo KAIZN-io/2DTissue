@@ -1,8 +1,8 @@
 // Locomotion.h
-
 #pragma once
 
 #include <tuple>
+#include <iostream>
 #include <vector>
 #include <Eigen/Dense>
 #include <random>

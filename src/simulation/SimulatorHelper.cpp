@@ -1,9 +1,16 @@
-// author: @Jan-Piotraschke
-// date: 2023-08-15
-// license: Apache License 2.0
-// version: 0.1.0
+/**
+ * @file        SimulatorHelper.cpp
+ * @brief       Helper class for the Locomotion class: checking if particles are inside the UV domain
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Aug-15
+ * @version     0.1.0
+ * @license     Apache License 2.0
+ *
+ * @bug         -
+ * @todo        -
+ */
 
-#include <iostream>
 #include <SimulatorHelper.h>
 
 SimulatorHelper::SimulatorHelper(
@@ -40,7 +47,7 @@ SimulatorHelper::SimulatorHelper(
 
 
 // ========================================
-// ========= Public Functions =============
+// Public Functions
 // ========================================
 
 void SimulatorHelper::set_new_particle_data(){

@@ -1,20 +1,17 @@
-// author: @Jan-Piotraschke
-// date: 2023-07-18
-// license: Apache License 2.0
-// version: 0.2.0
-
-#include <iostream>
-#include <cstdint>
-#include <map>
-#include <string>
-#include <vector>
-#include <Eigen/Dense>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+/**
+ * @file        IO.cpp
+ * @brief       Loading the mesh model vertices and faces; saving and loading data to/from csv files
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Jul-18
+ * @version     0.2.0
+ * @license     Apache License 2.0
+ *
+ * @bug         -
+ * @todo        -
+ */
 
 #include <IO.h>
-
 
 const aiScene* loadScene(const std::string& filepath) {
     static Assimp::Importer importer; // static, as we don't want to destroy it prematurely

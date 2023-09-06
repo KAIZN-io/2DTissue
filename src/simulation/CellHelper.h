@@ -2,8 +2,14 @@
 #pragma once
 
 #include <vector>
-#include <cstdint>
 #include <Eigen/Dense>
+#include <iostream>
+#include <algorithm>
+#include <limits>
+#include <cstdint>
+#include <random>
+#include <unordered_set>
+#include <boost/filesystem.hpp>
 
 #include "IO.h"
 

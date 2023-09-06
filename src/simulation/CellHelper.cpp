@@ -1,17 +1,15 @@
-// author: @Jan-Piotraschke
-// date: 2023-07-18
-// license: Apache License 2.0
-// version: 0.1.0
-
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <limits>
-#include <cstdint>
-#include <random>
-#include <Eigen/Dense>
-#include <unordered_set>
-#include <boost/filesystem.hpp>
+/**
+ * @file        CellHelper.cpp
+ * @brief       Mapping 2D coordinates to 3D coordinates and vice versa; initializing the particle positions and orientations
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Jul-18
+ * @version     0.1.0
+ * @license     Apache License 2.0
+ *
+ * @bug         -
+ * @todo        mesh file path should be passed as an argument; fix the isPointInsideTriangle function
+ */
 
 #include <CellHelper.h>
 
@@ -45,7 +43,7 @@ CellHelper::CellHelper(
 
 
 // ========================================
-// ========= Public Functions =============
+// Public Functions
 // ========================================
 
 void CellHelper::init_particle_position() {
@@ -90,7 +88,6 @@ std::pair<Eigen::MatrixXd, std::vector<int>> CellHelper::get_r3d(){
 
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
 Eigen::Matrix<double, Eigen::Dynamic, 2> CellHelper::get_r2d(){
-    // ! TODO: This is a temporary solution. The mesh file path should be passed as an argument.
     const std::string mesh_3D_file_path = (PROJECT_PATH / "meshes/ellipsoid_x4.off").string();
     Eigen::MatrixXi face_3D;
     loadMeshFaces(mesh_3D_file_path, face_3D);
@@ -109,7 +106,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 2> CellHelper::get_r2d(){
 
 
 // ========================================
-// ========= Private Functions ============
+// Private Functions
 // ========================================
 
 std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int iterator){
@@ -226,7 +223,6 @@ Eigen::Vector3d CellHelper::calculate_barycentric_2D_coord(int iterator){
 }
 
 
-// Todo: fix this function
 bool CellHelper::isPointInsideTriangle(
     const Eigen::Vector3d& p,
     const Eigen::Vector3d& a,
@@ -240,7 +236,7 @@ bool CellHelper::isPointInsideTriangle(
     double d20 = v2.dot(v0);
     double d21 = v2.dot(v1);
     double denom = d00 * d11 - d01 * d01;
-    
+
     double beta = (d11 * d20 - d01 * d21) / denom;
     double gamma = (d00 * d21 - d01 * d20) / denom;
     double alpha = 1.0 - beta - gamma;
