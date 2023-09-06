@@ -7,7 +7,7 @@ PROJECT_DIR := $(shell pwd)
 EXTERNAL_DIR := $(PROJECT_DIR)/external
 DATA_DIR := $(PROJECT_DIR)/data
 ASSETS_DIR := $(PROJECT_DIR)/assets
-ARCHITECTURE := arm64
+ARCHITECTURE := $(shell uname -m)
 
 # Platform selection
 PLATFORM ?= executive
