@@ -79,7 +79,7 @@ endif
 build_libroadrunner_deps:
 	@echo "Installing 2DTissue-deps from source..."
 	if [ ! -d "$(EXTERNAL_DIR)" ]; then \
-		git clone --recursive https://github.com/MorphoPhysics/2DTissue-deps.git .; \
+		git clone --recursive https://github.com/MorphoPhysics/2DTissue-deps.git external; \
 	fi;
 	cd $(EXTERNAL_DIR)/libroadrunner-deps; \
 	mkdir -p build; \
