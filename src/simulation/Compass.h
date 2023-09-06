@@ -1,5 +1,4 @@
 // Compass.h
-
 #pragma once
 
 #include <map>

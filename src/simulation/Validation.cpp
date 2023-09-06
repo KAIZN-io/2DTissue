@@ -1,14 +1,17 @@
-// author: @Jan-Piotraschke
-// date: 2023-07-19
-// license: Apache License 2.0
-// version: 0.1.0
-
-#include <stdexcept>
-#include <vector>
-#include <Eigen/Dense>
+/**
+ * @file        Validation.cpp
+ * @brief       Error checking
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Jul-19
+ * @version     0.1.0
+ * @license     Apache License 2.0
+ *
+ * @bug         -
+ * @todo        -
+ */
 
 #include <Validation.h>
-
 
 Validation::Validation(
     SurfaceParametrization& surface_parametrization,
@@ -22,7 +25,7 @@ Validation::Validation(
 
 
 // ========================================
-// ========= Public Functions =============
+// Public Functions
 // ========================================
 
 bool Validation::checkForInvalidValues(
@@ -91,7 +94,7 @@ void Validation::error_lost_particles(
 
 
 // ========================================
-// ========= Private Functions ============
+// Private Functions
 // ========================================
 
 bool Validation::is_inside_uv(const Eigen::Vector2d& r) {

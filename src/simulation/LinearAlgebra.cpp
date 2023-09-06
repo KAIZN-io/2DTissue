@@ -1,17 +1,22 @@
-// author: @Jan-Piotraschke
-// date: 2023-07-19
-// license: Apache License 2.0
-// version: 0.1.0
+/**
+ * @file        LinearAlgebra.cpp
+ * @brief       Mathematical operations on vectors and matrices
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Jul-19
+ * @version     0.1.0
+ * @license     Apache License 2.0
+ *
+ * @bug         -
+ * @todo        -
+ */
 
-#include <vector>
-#include <cmath>
-#include <Eigen/Dense>
 
 #include <LinearAlgebra.h>
 
 
 // ========================================
-// ========= Public Functions =============
+// Public Functions
 // ========================================
 
 /**

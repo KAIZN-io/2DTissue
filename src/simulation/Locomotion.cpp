@@ -1,16 +1,16 @@
-// author: @Jan-Piotraschke
-// date: 2023-07-17
-// license: Apache License 2.0
-// version: 0.1.0
+/**
+ * @file        Locomotion.cpp
+ * @brief       Simulating the movement ("locomotion") of the particles on the surface
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Jul-17
+ * @version     0.1.0
+ * @license     Apache License 2.0
+ *
+ * @bug         -
+ * @todo        -
+ */
 
-#include <tuple>
-#include <vector>
-#include <iostream>
-#include <Eigen/Dense>
-#include <random>
-#include <cmath>
-
-#include <LinearAlgebra.h>
 #include <Locomotion.h>
 
 Locomotion::Locomotion(
@@ -49,7 +49,7 @@ Locomotion::Locomotion(
 
 
 // ========================================
-// ========= Public Functions =============
+// Public Functions
 // ========================================
 
 void Locomotion::simulate_flight() {
@@ -76,7 +76,7 @@ void Locomotion::simulate_flight() {
     // Calculate the new position of each particle
     r_UV += r_dot * step_size;
 
-    // Calculate the average for n for all particle pairs which are within dist < 2 * σ 
+    // Calculate the average for n for all particle pairs which are within dist < 2 * σ
     calculate_average_n_within_distance(dist_vect, dist_length, n, σ);
 }
 
@@ -105,7 +105,7 @@ void Locomotion::get_distances_between_particles(
 
 
 // ========================================
-// ========= Private Functions ============
+// Private Functions
 // ========================================
 
 void Locomotion::resize_F_track() {
@@ -220,7 +220,7 @@ void Locomotion::calculate_forces_between_particles(const std::vector<Eigen::Mat
             // Distance between particles A and B
             double dist = dist_length(i, j);
 
-            // No force if particles too far from each other 
+            // No force if particles too far from each other
             if (dist >= 2 * σ) continue;
 
             // Add a small value if the distance is zero or you get nan values due to 'Fij * (dist_v / dist)' (division by zero)

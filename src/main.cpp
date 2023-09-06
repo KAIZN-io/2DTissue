@@ -1,7 +1,15 @@
-// author: @Jan-Piotraschke
-// date: 2023-06-19
-// license: Apache License 2.0
-// version: 0.2.0
+/**
+ * @file        main.cpp
+ * @brief       Main file for the 2DTissue project: Initialize the 2DTissue object and run the simulation
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Jun-19
+ * @version     0.2.0
+ * @license     Apache License 2.0
+ *
+ * @bug         -
+ * @todo        -
+ */
 
 #include <iostream>
 #include <boost/filesystem.hpp>
@@ -23,7 +31,7 @@ int main()
     std::string mesh_path = PROJECT_PATH.string() + "/meshes/ellipsoid_x4.off";
 
     for (int particle_count = 200; particle_count <= 200; particle_count += 100) {
-        _2DTissue _2dtissue(save_data, particle_innenleben, bool_exact_simulation, free_boundary, mesh_path, particle_count, step_count, 0.01);  // Initialize the 2DTissue object
+        _2DTissue _2dtissue(save_data, particle_innenleben, bool_exact_simulation, free_boundary, mesh_path, particle_count, step_count, 0.01);
 
         _2dtissue.start();
 

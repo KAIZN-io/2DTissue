@@ -1,29 +1,17 @@
-// author: @Jan-Piotraschke
-// date: 2023-07-20
-// license: Apache License 2.0
-// version: 0.2.0
-
-#include <cmath>
-#include <cstddef>
-#include <fstream>
-#include <iomanip>
-#include <map>
-#include <stdexcept>
-#include <vector>
-#include <limits>
-#include <omp.h>
-#include <boost/filesystem.hpp>
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
-
-#include <IO.h>
-#include <LinearAlgebra.h>
-#include <CellHelper.h>
-#include <Locomotion.h>
-#include <Validation.h>
+/**
+ * @file        2DTissue.cpp
+ * @brief       Coordinating all the processes of the simulation
+ *
+ * @author      Jan-Piotraschke
+ * @date        2023-Jul-20
+ * @version     0.2.0
+ * @license     Apache License 2.0
+ *
+ * @bug         euclidean_tiling.opposite_seam_edges_square_border() vs euclidean_tiling.diagonal_seam_edges_square_border(): Mesh parametrization can result in different UV mapping logics
+ * @todo        move count_particle_neighbors() to another file
+ */
 
 #include <2DTissue.h>
-
 
 _2DTissue::_2DTissue(
     bool save_data,
@@ -98,7 +86,7 @@ _2DTissue::_2DTissue(
     surface_parametrization.create_kachelmuster();
 
     // UV distance matrix of the Tessellation Mesh
-    std::string distance_matrix_path_tessellation = PROJECT_PATH + "/meshes/data/" + mesh_name + "_uv_kachelmuster_distance_matrix_static.csv";
+    std::string distance_matrix_path_tessellation = PROJECT_PATH + "/meshes/data/" + mesh_name + "_uv_distance_matrix_static.csv";
     if (!boost::filesystem::exists(distance_matrix_path_tessellation)) {
         // Calculate the distance matrix of the static UV mesh
         geodesic_distance.calculate_tessellation_distance();
@@ -139,7 +127,7 @@ _2DTissue::_2DTissue(
 
 
 // ========================================
-// ========= Public Functions =============
+// Public Functions
 // ========================================
 
 void _2DTissue::start(){
@@ -231,14 +219,13 @@ Eigen::VectorXd _2DTissue::get_order_parameter() {
 
 
 // ========================================
-// ========= Private Functions ============
+// Private Functions
 // ========================================
 
 void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
     locomotion.simulate_flight();
 
-    // ! TODO: try to find out why the mesh parametrization can result in different UV mapping logics
     if (!bool_exact_simulation){
         if (mesh_UV_name == "sphere_uv"){
             euclidean_tiling.opposite_seam_edges_square_border();
@@ -306,7 +293,7 @@ void _2DTissue::perform_particle_simulation(){
     std::cout << "\n";
 }
 
-// ! NOTE: This function should be inside a CartographyHelper class
+
 void _2DTissue::count_particle_neighbors() {
     const int num_rows = dist_length.rows();
 
@@ -347,7 +334,7 @@ void _2DTissue::get_particles_near_outside_particles(
 void _2DTissue::filter_old_particles_data_for_resimulation(std::vector<int> particles_outside_UV){
     std::vector<int> particles_for_resimulation;
 
-    if (particles_outside_UV.size() != 0){ 
+    if (particles_outside_UV.size() != 0){
         get_particles_near_outside_particles(particles_outside_UV, particles_for_resimulation);
     }
 
@@ -415,7 +402,6 @@ void _2DTissue::get_all_data_without_r_UV(){
 }
 
 
-// ! BUGGY -> irgendwie mit Daten holen bzgl des Index
 void _2DTissue::map_marked_particles_to_original_mesh(){
     Eigen::MatrixXd r_3D_marked = Eigen::MatrixXd::Zero(particle_count, 3);
     Eigen::VectorXi trueRowIDs(particle_count); // To store original row indices
