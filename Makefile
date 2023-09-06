@@ -30,7 +30,7 @@ else ifeq ($(OS), Linux)
 endif
 
 .PHONY: all
-all: check_dependencies build_cgal build_libroadrunner_deps build_llvm_13 build_libroadrunner build
+all: check_dependencies check_submodule build_cgal build_libroadrunner_deps build_llvm_13 build_libroadrunner build
 
 # Check if LLVM and Emscripten are installed, if not, install using apt-get
 .PHONY: check_dependencies
@@ -62,6 +62,20 @@ else
 	@echo "Unsupported OS. Please install the packages manually."
 endif
 	@echo "Dependencies check complete."
+
+.PHONY: check_submodule
+check_submodule:
+	@if [ ! "$(shell git submodule status | grep MeshCartographyLib | cut -c 1)" = "-" ]; then \
+		echo "MeshCartographyLib submodule already initialized and updated."; \
+	else \
+		echo "MeshCartographyLib submodule is empty. Initializing and updating..."; \
+		git submodule update --init -- MeshCartographyLib; \
+	fi
+
+.PHONY: update_submodule
+update_submodule:
+	@echo "Updating MeshCartographyLib submodule..."; \
+	git submodule update --remote MeshCartographyLib; \
 
 # Build and install CGAL
 .PHONY: build_cgal
