@@ -24,8 +24,6 @@ find_package(assimp CONFIG REQUIRED)
 find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(GTest REQUIRED)
-# find_package(Sundials REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
 
 set(ROADRUNNER_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external/roadrunner/install-release")
 set(LLVM_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external/llvm-13.x/install-release")
@@ -36,22 +34,11 @@ set(CMAKE_PREFIX_PATH
 list(APPEND CMAKE_MODULE_PATH "${ROADRUNNER_INSTALL_PREFIX}/lib/cmake")
 
 include(ImportRoadRunnerAndDependencies)
-include_directories("${ROADRUNNER_INSTALL_PREFIX}/include")
-include_directories(${Boost_INCLUDE_DIRS})
-
-# Set the Assimp path
-if(assimp_FOUND)
-  message(STATUS "Found Assimp library")
-else()
-  message(FATAL_ERROR "Assimp library not found. Please install Assimp library.")
-endif()
-
-# Check if Boost is found
-if(NOT Boost_FOUND)
-  message(FATAL_ERROR "This project requires the Boost library, and will not be compiled.")
-endif()
 
 # Include directories for local header files
+include_directories("${ROADRUNNER_INSTALL_PREFIX}/include")
+include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${GTEST_INCLUDE_DIRS})
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/simulation")
 
 # Collect all source files in the 'src/simulation' directory
