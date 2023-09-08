@@ -8,7 +8,7 @@
  * @license     Apache License 2.0
  *
  * @bug         euclidean_tiling.opposite_seam_edges_square_border() vs euclidean_tiling.diagonal_seam_edges_square_border(): Mesh parametrization can result in different UV mapping logics
- * @todo        move count_particle_neighbors() to another file
+ * @todo        move count_particle_neighbors() to another file; reactivate cell.perform_sbml_simulation()
  */
 
 #include <2DTissue.h>
@@ -55,7 +55,7 @@ _2DTissue::_2DTissue(
     geodesic_distance(mesh_path),
     locomotion(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, surface_parametrization, original_mesh),
-    cell(),
+    // cell(),
     cell_helper(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
     validation(surface_parametrization, original_mesh),
     virtual_mesh(r_UV, r_UV_old, r_3D, halfedge_UV, face_UV, vertice_UV, h_v_mapping, particle_count, n, face_3D, vertice_3D, distance_matrix, mesh_path, map_cache_count, vertices_2DTissue_map),
@@ -120,9 +120,6 @@ _2DTissue::_2DTissue(
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
     mark_outside = false;
     original_mesh = true;
-
-    // Perform SBML model simulation.
-    // cell.perform_sbml_simulation();
 }
 
 
@@ -211,8 +208,6 @@ bool _2DTissue::is_finished() {
 }
 
 Eigen::VectorXd _2DTissue::get_order_parameter() {
-    cell.free_memory();
-
     return v_order;
 }
 
@@ -283,13 +278,13 @@ void _2DTissue::perform_particle_simulation(){
     // Calculate the order parameter
     linear_algebra_ptr->calculate_order_parameter(v_order, r_UV, r_dot, current_step);
 
-    if (particle_innenleben) {
-        // Simulate the sine wave
-        realtype tout = (current_step / 10.0) + 0.01;
-        v0 = cell.update(tout);
-        std::cout << "    v0: " << v0 << "\n";
+    // if (particle_innenleben) {
+    //     // Simulate the sine wave
+    //     realtype tout = (current_step / 10.0) + 0.01;
+    //     v0 = cell.update(tout);
+    //     std::cout << "    v0: " << v0 << "\n";
 
-    }
+    // }
     std::cout << "\n";
 }
 

@@ -30,7 +30,7 @@ else ifeq ($(OS), Linux)
 endif
 
 .PHONY: all
-all: check_dependencies check_submodule build_cgal build_libroadrunner_deps build_llvm_13 build_libroadrunner build
+all: check_dependencies check_submodule build_cgal build
 
 # Check if LLVM and Emscripten are installed, if not, install using apt-get
 .PHONY: check_dependencies
@@ -88,50 +88,6 @@ ifeq ($(OS), Linux)
 		cd build/cgal && $(CMAKE_CMD) $(EXTERNAL_DIR)/cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF && make && sudo make install; \
 	fi
 endif
-
-.PHONY: build_libroadrunner_deps
-build_libroadrunner_deps:
-	@echo "Installing 2DTissue-deps from source..."
-	if [ ! -d "$(EXTERNAL_DIR)" ]; then \
-		git clone --recursive https://github.com/MorphoPhysics/2DTissue-deps.git external; \
-	fi;
-	cd $(EXTERNAL_DIR)/libroadrunner-deps; \
-	mkdir -p build; \
-	cd build; \
-	$(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
-		-DCMAKE_BUILD_TYPE="Release" \
-		-DCMAKE_CXX_STANDARD=17 \
-		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
-	ninja; \
-	ninja install
-
-.PHONY: build_llvm_13
-build_llvm_13:
-	@echo "Installing LLVM 13 from source..."; \
-	cd $(EXTERNAL_DIR)/libroadrunner-deps/third_party/llvm-13.x; \
-	mkdir -p build; \
-	cd build; \
-	$(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="../install-release" \
-		-DCMAKE_BUILD_TYPE="Release" \
-		-DCMAKE_CXX_STANDARD=17 \
-		-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ../llvm; \
-	ninja; \
-	ninja install
-
-# Build and install libRoadRunner
-.PHONY: build_libroadrunner
-build_libroadrunner:
-	cd $(EXTERNAL_DIR)/roadrunner; \
-    mkdir -p build-release; \
-    cd build-release; \
-    $(CMAKE_CMD) -GNinja -DCMAKE_INSTALL_PREFIX="$(EXTERNAL_DIR)/roadrunner/install-release" \
-        -DLLVM_INSTALL_PREFIX="$(EXTERNAL_DIR)/libroadrunner-deps/third_party/llvm-13.x/install-release" \
-        -DRR_DEPENDENCIES_INSTALL_PREFIX="$(EXTERNAL_DIR)/libroadrunner-deps/install-release" \
-        -DCMAKE_BUILD_TYPE="Release" \
-        -DCMAKE_CXX_STANDARD=17 \
-        -DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) ..; \
-    ninja; \
-    ninja install
 
 .PHONY: build
 build: $(DATA_DIR)

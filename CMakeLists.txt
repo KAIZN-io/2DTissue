@@ -25,18 +25,7 @@ find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(GTest REQUIRED)
 
-set(ROADRUNNER_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external/roadrunner/install-release")
-set(LLVM_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/external/llvm-13.x/install-release")
-set(CMAKE_PREFIX_PATH
-        "${ROADRUNNER_INSTALL_PREFIX}/lib/cmake/Poco" # needed because this is where poco installs config files to
-        "${ROADRUNNER_INSTALL_PREFIX}/lib/cmake" # all other normal packages install config files to here
-        )
-list(APPEND CMAKE_MODULE_PATH "${ROADRUNNER_INSTALL_PREFIX}/lib/cmake")
-
-include(ImportRoadRunnerAndDependencies)
-
 # Include directories for local header files
-include_directories("${ROADRUNNER_INSTALL_PREFIX}/include")
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/simulation")
@@ -56,7 +45,6 @@ add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE
         MeshCartographyLib
         simulation_lib
-        roadrunner-static::roadrunner-static
 )
 
 # Install the target

@@ -18,7 +18,7 @@
 #include <Eigen/Sparse>
 #include <omp.h>
 
-#include "Cell.h"
+// #include "Cell.h"
 #include "CellHelper.h"
 #include "Compass.h"
 #include "EuclideanTiling.h"
@@ -121,7 +121,7 @@ private:
     std::string mesh_UV_name;
     Locomotion locomotion;
     SimulatorHelper simulator_helper;
-    Cell cell;
+    // Cell cell;
     CellHelper cell_helper;
     VirtualMesh virtual_mesh;
     EuclideanTiling euclidean_tiling;
