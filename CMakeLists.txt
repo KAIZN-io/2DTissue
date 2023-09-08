@@ -9,6 +9,7 @@ project(2DTissue VERSION 1.0)
 
 # Make the project foulder path available to the source code
 add_definitions("-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"")
+add_definitions("-DMeshCartographyLib_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}/MeshCartographyLib\"")
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)

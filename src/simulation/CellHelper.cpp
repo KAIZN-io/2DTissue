@@ -13,7 +13,7 @@
 
 #include <CellHelper.h>
 
-const boost::filesystem::path PROJECT_PATH = PROJECT_SOURCE_DIR;
+const boost::filesystem::path MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
 
 CellHelper::CellHelper(
     int particle_count,
@@ -88,7 +88,7 @@ std::pair<Eigen::MatrixXd, std::vector<int>> CellHelper::get_r3d(){
 
 // (3D Coordinates -> 2D Coordinates and Their Nearest 2D Vertice id) mapping
 Eigen::Matrix<double, Eigen::Dynamic, 2> CellHelper::get_r2d(){
-    const std::string mesh_3D_file_path = (PROJECT_PATH / "meshes/ellipsoid_x4.off").string();
+    const std::string mesh_3D_file_path = (MESH_CARTOGRAPHY / "meshes/ellipsoid_x4.off").string();
     Eigen::MatrixXi face_3D;
     loadMeshFaces(mesh_3D_file_path, face_3D);
 

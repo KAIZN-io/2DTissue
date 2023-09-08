@@ -68,7 +68,7 @@ private:
     bool particle_innenleben;
     bool bool_exact_simulation;
     bool free_boundary;
-    std::string PROJECT_PATH = PROJECT_SOURCE_DIR;
+    std::string MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
     int particle_count;
     std::string mesh_path;
     int step_count;

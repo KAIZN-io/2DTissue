@@ -30,7 +30,7 @@ else ifeq ($(OS), Linux)
 endif
 
 .PHONY: all
-all: check_dependencies check_submodule build_cgal build
+all: check_dependencies check_submodule build
 
 # Check if LLVM and Emscripten are installed, if not, install using apt-get
 .PHONY: check_dependencies
@@ -76,18 +76,6 @@ check_submodule:
 update_submodule:
 	@echo "Updating MeshCartographyLib submodule..."; \
 	git submodule update --remote MeshCartographyLib; \
-
-# Build and install CGAL
-.PHONY: build_cgal
-build_cgal:
-	@echo "Building CGAL..."
-ifeq ($(OS), Linux)
-	if [ ! -d "$(EXTERNAL_DIR)/cgal" ]; then \
-		git clone -b 'v5.5.2' --single-branch --depth 1 https://github.com/CGAL/cgal.git $(EXTERNAL_DIR)/cgal; \
-		mkdir -p build/cgal; \
-		cd build/cgal && $(CMAKE_CMD) $(EXTERNAL_DIR)/cgal -DCMAKE_BUILD_TYPE=Release -DCGAL_HEADER_ONLY=OFF && make && sudo make install; \
-	fi
-endif
 
 .PHONY: build
 build: $(DATA_DIR)
