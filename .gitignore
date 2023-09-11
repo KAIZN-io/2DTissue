@@ -39,6 +39,7 @@ images/
 libigl/
 assets/
 build/
+result
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake

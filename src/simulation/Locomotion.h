@@ -1,6 +1,7 @@
 // Locomotion.h
 #pragma once
 
+#include <memory>
 #include <tuple>
 #include <iostream>
 #include <vector>
