@@ -2,9 +2,11 @@
 
 This physics engine *2DTissue* was developed to simulate the collective behaviour of active (self-propelled) particles on arbitrary curved closed surfaces.
 
-## How to compile the C++ code 
+## How to compile the C++ code
 
-Simply run `make` in your terminal in the root of this project and everything will get installed and compiled.
+Make sure you have `nix` installed.
+
+Run `nix-build`. The built binary can be found in `./result/bin/main`.
 
 ## Theoretical Model
 
