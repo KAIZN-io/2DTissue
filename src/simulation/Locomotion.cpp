@@ -8,7 +8,7 @@
  * @license     Apache License 2.0
  *
  * @bug         -
- * @todo        -
+ * @todo        nicht nur muss beim Kachelmuster die Partikel die Distanz der Partikeln auf den Kachelmuster wissen, sondern die Kraft und Orientierung von den Partikeln ihres Seam Kanten Zwilling, der neben ihr der Monolite ist.
  */
 
 #include <Locomotion.h>
