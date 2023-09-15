@@ -11,6 +11,8 @@
  * @todo        move count_particle_neighbors() to another file; reactivate cell.perform_sbml_simulation()
  */
 
+#include "GeodesicDistance/CachedGeodesicDistanceHelper.h"
+
 #include <2DTissue.h>
 
 _2DTissue::_2DTissue(
@@ -68,14 +70,19 @@ _2DTissue::_2DTissue(
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
     mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
 
+
+
+
     // Initialize the simulation
-    // 3D distance matrix: Check if the distance matrix of the static 3D mesh already exists
-    std::string distance_matrix_path = MESH_CARTOGRAPHY + "/meshes/data/" + mesh_name + "_distance_matrix_static.csv";
-    if (!boost::filesystem::exists(distance_matrix_path)) {
-        // Calculate the distance matrix of the static 3D mesh
-        geodesic_distance.get_all_distances();
-    }
-    distance_matrix = load_csv<Eigen::MatrixXd>(distance_matrix_path);
+    CachedGeodesicDistanceHelper helper = CachedGeodesicDistanceHelper(fs::path(mesh_path));
+    GeodesicDistanceHelperInterface& geodesic_distance_helper = helper;
+    distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
+
+
+
+
+
+
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
