@@ -98,6 +98,13 @@ $(DATA_DIR):
 	mkdir -p $(DATA_DIR)
 	mkdir -p $(ASSETS_DIR)
 
+
+# Optional
+.PHONY: install_analysis
+install_analysis:
+	@echo "Installing analysis dependencies..."
+	git clone https://github.com/Jan-Piotraschke/2DTissue-Analysis.git $(EXTERNAL_DIR)/2DTissue-Analysis
+
 # Cleaning
 .PHONY: clean
 clean:
