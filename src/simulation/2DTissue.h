@@ -22,7 +22,7 @@
 #include "CellHelper.h"
 #include "Compass.h"
 #include "EuclideanTiling.h"
-#include "GeodesicDistance/GeodesicDistance.h"
+#include "GeodesicDistance/TessellationDistance.h"
 #include "GeodesicDistanceHelperInterface.h"
 #include "IO.h"
 #include "LinearAlgebra.h"
@@ -128,7 +128,7 @@ private:
     EuclideanTiling euclidean_tiling;
     Compass compass;
     SurfaceParametrization surface_parametrization;
-    GeodesicDistance geodesic_distance;
+    TessellationDistance tessellation_distance;
     Validation validation;
 
     int numberOfPoints;

@@ -9,6 +9,7 @@
 #include <cmath>
 #include <gtest/gtest_prod.h>
 
+#include "LocomotionHelperInterface.h"
 #include "LinearAlgebra.h"
 
 class Locomotion {
@@ -53,27 +54,6 @@ private:
     void resize_F_track();
     static void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
     static std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
-    static void calculate_average_n_within_distance(
-        const std::vector<Eigen::MatrixXd> dist_vect,
-        const Eigen::MatrixXd dist_length,
-        Eigen::VectorXi& n,
-        double σ
-    );
-    Eigen::Vector2d repulsive_adhesion_motion(
-        double k,
-        double σ,
-        double dist,
-        double r_adh,
-        double k_adh,
-        const Eigen::Vector2d dist_v
-    );
-    void calculate_forces_between_particles(const std::vector<Eigen::MatrixXd> dist_vect);
-    static double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
-
-    static constexpr double DEG_TO_RAD = M_PI / 180.0;
-    static constexpr double RAD_TO_DEG = 180.0 / M_PI;
-    static constexpr double FULL_CIRCLE = 360.0;
-    static constexpr double QUARTER_CIRCLE = 90.0;
 
 FRIEND_TEST(LocomotionTest, ThrowsWhenInputIsEmpty);
 FRIEND_TEST(LocomotionTest, CorrectlyCalculatesMeanAngle);
