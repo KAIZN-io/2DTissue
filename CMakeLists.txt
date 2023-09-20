@@ -32,7 +32,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/simulation")
 
 # Collect all source files in the 'src/simulation' directory
-file(GLOB SIMULATION_SOURCES src/simulation/*.cpp)
+file(GLOB_RECURSE SIMULATION_SOURCES src/simulation/*.cpp)
 
 # Add subdirectories
 add_subdirectory(MeshCartographyLib)
@@ -56,7 +56,7 @@ install(TARGETS main
 )
 
 # Collect all test source files
-file(GLOB TEST_SOURCES tests/simulation/*.cpp)
+file(GLOB_RECURSE TEST_SOURCES tests/simulation/*.cpp)
 
 # Create a test executable for all available tests
 add_executable(all_tests ${TEST_SOURCES})

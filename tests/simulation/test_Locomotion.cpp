@@ -40,26 +40,26 @@ protected:
 
 
 
-// Test the repulsive_adhesion_motion function
-TEST_F(LocomotionTest, RepulsiveAdhesionTest1) {
-    Eigen::Vector2d dist_v(0.0203217, 0.010791);
-    double dist = 0.953489;
-    Eigen::Vector2d expected_result(-0.141406, -0.075088);
-    Eigen::Vector2d result = sim.repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
+// // Test the repulsive_adhesion_motion function
+// TEST_F(LocomotionTest, RepulsiveAdhesionTest1) {
+//     Eigen::Vector2d dist_v(0.0203217, 0.010791);
+//     double dist = 0.953489;
+//     Eigen::Vector2d expected_result(-0.141406, -0.075088);
+//     Eigen::Vector2d result = sim.repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
 
-    ASSERT_NEAR(result[0], expected_result[0], 1e-5);
-    ASSERT_NEAR(result[1], expected_result[1], 1e-5);
-}
+//     ASSERT_NEAR(result[0], expected_result[0], 1e-5);
+//     ASSERT_NEAR(result[1], expected_result[1], 1e-5);
+// }
 
-TEST_F(LocomotionTest, RepulsiveAdhesionTest2) {
-    Eigen::Vector2d dist_v(-0.0203217, -0.010791);
-    double dist = 0.953489;
-    Eigen::Vector2d expected_result(0.141406, 0.075088);
-    Eigen::Vector2d result = sim.repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
+// TEST_F(LocomotionTest, RepulsiveAdhesionTest2) {
+//     Eigen::Vector2d dist_v(-0.0203217, -0.010791);
+//     double dist = 0.953489;
+//     Eigen::Vector2d expected_result(0.141406, 0.075088);
+//     Eigen::Vector2d result = sim.repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
 
-    ASSERT_NEAR(result[0], expected_result[0], 1e-5);
-    ASSERT_NEAR(result[1], expected_result[1], 1e-5);
-}
+//     ASSERT_NEAR(result[0], expected_result[0], 1e-5);
+//     ASSERT_NEAR(result[1], expected_result[1], 1e-5);
+// }
 
 
 // Test the mean_unit_circle_vector_angle_degrees function

@@ -9,6 +9,7 @@
 #include <cmath>
 #include <gtest/gtest_prod.h>
 
+#include "LocomotionHelperInterface.h"
 #include "LinearAlgebra.h"
 
 class Locomotion {
@@ -59,15 +60,6 @@ private:
         Eigen::VectorXi& n,
         double σ
     );
-    Eigen::Vector2d repulsive_adhesion_motion(
-        double k,
-        double σ,
-        double dist,
-        double r_adh,
-        double k_adh,
-        const Eigen::Vector2d dist_v
-    );
-    void calculate_forces_between_particles(const std::vector<Eigen::MatrixXd> dist_vect);
     static double mean_unit_circle_vector_angle_degrees(std::vector<double> angles);
 
     static constexpr double DEG_TO_RAD = M_PI / 180.0;
