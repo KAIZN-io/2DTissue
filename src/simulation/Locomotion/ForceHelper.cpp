@@ -36,44 +36,6 @@ ForceHelper::ForceHelper(
 // ========================================
 
 /**
-* @brief: Locomotions can attract or repel each other as they move depending on their distance.
-*
-* @info: Unittest implemented
-*/
-Eigen::Vector2d ForceHelper::repulsive_adhesion_motion(
-    double k,
-    double σ,
-    double dist,
-    double r_adh,
-    double k_adh,
-    const Eigen::Vector2d dist_v
-) {
-    double Fij_rep = 0;
-    double Fij_adh = 0;
-
-    if (dist < 2*σ)
-    {
-        Fij_rep = (-k * (2 * σ - dist)) / (2 * σ);
-    }
-
-    if (dist >= 2*σ && dist <= r_adh)
-    {
-        Fij_adh = (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
-    }
-
-    // double Fij = 0.1 * Fij_rep + 0.1 * Fij_adh;
-    double Fij = Fij_rep + Fij_adh;
-
-    return Fij * (dist_v / dist);
-}
-
-
-
-// ========================================
-// Private Functions
-// ========================================
-
-/**
 * @brief: Calculate the force that each particle feels due to all the other particles
 *
 * @info: Unittest implemented
@@ -110,4 +72,42 @@ void ForceHelper::calculate_forces_between_particles(){
             F_track.row(i) += repulsive_adhesion_motion(k, σ, dist, r_adh, k_adh, dist_v);
         }
     }
+}
+
+
+
+// ========================================
+// Private Functions
+// ========================================
+
+/**
+* @brief: Locomotions can attract or repel each other as they move depending on their distance.
+*
+* @info: Unittest implemented
+*/
+Eigen::Vector2d ForceHelper::repulsive_adhesion_motion(
+    double k,
+    double σ,
+    double dist,
+    double r_adh,
+    double k_adh,
+    const Eigen::Vector2d dist_v
+) {
+    double Fij_rep = 0;
+    double Fij_adh = 0;
+
+    if (dist < 2*σ)
+    {
+        Fij_rep = (-k * (2 * σ - dist)) / (2 * σ);
+    }
+
+    if (dist >= 2*σ && dist <= r_adh)
+    {
+        Fij_adh = (k_adh * (2 * σ - dist)) / (2 * σ - r_adh);
+    }
+
+    // double Fij = 0.1 * Fij_rep + 0.1 * Fij_adh;
+    double Fij = Fij_rep + Fij_adh;
+
+    return Fij * (dist_v / dist);
 }
