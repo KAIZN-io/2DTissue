@@ -54,7 +54,7 @@ _2DTissue::_2DTissue(
     map_cache_count(map_cache_count),
     finished(false),
     surface_parametrization(free_boundary),
-    geodesic_distance(mesh_path),
+    tessellation_distance(mesh_path),
     locomotion(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     simulator_helper(particle_change, simulated_particles, particle_count, r_UV, r_UV_old, r_dot, r_3D, r_3D_old, n, n_pole, n_pole_old, surface_parametrization, original_mesh),
     // cell(),
@@ -70,19 +70,10 @@ _2DTissue::_2DTissue(
     std::string mesh_name = mesh_path.substr(mesh_path.find_last_of("/\\") + 1);
     mesh_name = mesh_name.substr(0, mesh_name.find_last_of("."));
 
-
-
-
     // Initialize the simulation
     CachedGeodesicDistanceHelper helper = CachedGeodesicDistanceHelper(fs::path(mesh_path));
     GeodesicDistanceHelperInterface& geodesic_distance_helper = helper;
     distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
-
-
-
-
-
-
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
@@ -96,7 +87,7 @@ _2DTissue::_2DTissue(
     std::string distance_matrix_path_tessellation = MESH_CARTOGRAPHY + "/meshes/data/" + mesh_name + "_uv_distance_matrix_static.csv";
     if (!boost::filesystem::exists(distance_matrix_path_tessellation)) {
         // Calculate the distance matrix of the static UV mesh
-        geodesic_distance.calculate_tessellation_distance();
+        tessellation_distance.calculate_tessellation_distance();
     }
 
     // Load the virtual mesh
