@@ -20,8 +20,8 @@ const boost::filesystem::path MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
 
 int main()
 {
-    int step_count = 300;
-    bool save_data = true;
+    int step_count = 10;
+    bool save_data = false;
     bool particle_innenleben = false;
     bool free_boundary = false;
 
@@ -29,7 +29,7 @@ int main()
     // std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/camel.off";
     std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/ellipsoid_x4.off";
 
-    for (int particle_count = 1500; particle_count <= 1500; particle_count += 100) {
+    for (int particle_count = 200; particle_count <= 200; particle_count += 100) {
         _2DTissue _2dtissue(save_data, particle_innenleben, free_boundary, mesh_path, particle_count, step_count, 0.01);
 
         _2dtissue.start();
