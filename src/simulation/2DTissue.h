@@ -18,7 +18,8 @@
 
 // #include "Cell.h"
 #include "CellHelper.h"
-#include "EuclideanTiling.h"
+#include "Locomotion/EuclideanTiling.h"
+#include "SurfaceParametrization/TessellationHelper.h"
 #include "GeodesicDistance/TessellationDistance.h"
 #include "GeodesicDistanceHelperInterface.h"
 #include "IO.h"
@@ -113,6 +114,7 @@ private:
     CellHelper cell_helper;
     EuclideanTiling euclidean_tiling;
     SurfaceParametrization surface_parametrization;
+    Tessellation tessellation;
     TessellationDistance tessellation_distance;
     Validation validation;
 
