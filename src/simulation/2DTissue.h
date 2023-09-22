@@ -1,4 +1,3 @@
-// 2DTissue.h
 #pragma once
 
 // C++ standard library headers
@@ -16,29 +15,24 @@
 #include <boost/filesystem.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include <omp.h>
 
 // #include "Cell.h"
 #include "CellHelper.h"
-#include "Compass.h"
 #include "EuclideanTiling.h"
 #include "GeodesicDistance/TessellationDistance.h"
 #include "GeodesicDistanceHelperInterface.h"
 #include "IO.h"
 #include "LinearAlgebra.h"
 #include "Locomotion.h"
-#include "SimulatorHelper.h"
 #include "Struct.h"
-#include "SurfaceParametrization.h"
+#include "SurfaceParametrization/SurfaceParametrization.h"
 #include "Validation.h"
-#include "VirtualMesh.h"
 
 class _2DTissue {
 public:
     _2DTissue(
         bool save_data,
         bool particle_innenleben,
-        bool bool_exact_simulation,
         bool free_boundary,
         std::string mesh_path,
         int particle_count,
@@ -61,13 +55,11 @@ public:
 
     friend class Locomotion;
     friend class CellHelper;
-    friend class VirtualMesh;
 
 private:
     // Include here your class variables (the ones used in start and update methods)
     bool save_data;
     bool particle_innenleben;
-    bool bool_exact_simulation;
     bool free_boundary;
     std::string MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
     int particle_count;
@@ -85,7 +77,6 @@ private:
     int current_step;
     int map_cache_count;
     bool finished;
-    std::vector<VertexData> particle_change;
 
     std::unique_ptr<CellHelper> cell_helper_ptr;
     std::unique_ptr<LinearAlgebra> linear_algebra_ptr;
@@ -100,9 +91,6 @@ private:
     Eigen::VectorXi n;
     Eigen::VectorXi n_old;
     Eigen::VectorXi n_filtered;
-    Eigen::Vector2d original_pole;
-    Eigen::VectorXi n_pole;
-    Eigen::VectorXi n_pole_old;
     std::vector<int> particles_color;
     std::vector<int> vertices_3D_active;
     Eigen::MatrixXd distance_matrix;
@@ -121,37 +109,16 @@ private:
     std::string mesh_UV_path;
     std::string mesh_UV_name;
     Locomotion locomotion;
-    SimulatorHelper simulator_helper;
     // Cell cell;
     CellHelper cell_helper;
-    VirtualMesh virtual_mesh;
     EuclideanTiling euclidean_tiling;
-    Compass compass;
     SurfaceParametrization surface_parametrization;
     TessellationDistance tessellation_distance;
     Validation validation;
 
     int numberOfPoints;
-    bool mark_outside;
 
     void perform_particle_simulation();
     void save_our_data();
     void count_particle_neighbors();
-
-    void set_new_particle_data();
-    int actual_mesh_id;
-    bool original_mesh;
-    Eigen::VectorXi marked_outside_particle;
-    std::vector<bool> simulated_particles;
-    std::vector<int> particles_outside_UV;
-
-    void mark_outside_original();
-    void rerun_simulation();
-    void get_all_data_without_r_UV();
-    void map_marked_particles_to_original_mesh();
-    void get_particles_near_outside_particles(
-        std::vector<int> particles_near_border,
-        std::vector<int>& particles_for_resimulation
-    );
-    void filter_old_particles_data_for_resimulation(std::vector<int> particles_outside_UV);
 };

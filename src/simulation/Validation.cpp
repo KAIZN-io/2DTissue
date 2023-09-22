@@ -14,14 +14,10 @@
 #include <Validation.h>
 
 Validation::Validation(
-    SurfaceParametrization& surface_parametrization,
-    bool& original_mesh
+    SurfaceParametrization& surface_parametrization
 )
-    : surface_parametrization(surface_parametrization),
-        original_mesh(original_mesh)
-{
-
-}
+    : surface_parametrization(surface_parametrization)
+{}
 
 
 // ========================================
@@ -41,20 +37,6 @@ bool Validation::checkForInvalidValues(
     return false;
 }
 
-bool Validation::are_all_valid(std::vector<VertexData> particle_change) {
-    for (const VertexData& data : particle_change) {
-        if (!data.valid) {
-            return false;
-        }
-    }
-    return true;
-}
-
-void Validation::error_invalid_3D_values(std::vector<VertexData> particle_change){
-    if (!are_all_valid(particle_change)) {
-        throw std::runtime_error("There are still particles outside the mesh");
-    }
-}
 
 void Validation::error_invalid_values(
     Eigen::Matrix<double, Eigen::Dynamic, 2> r_UV_new
@@ -98,5 +80,5 @@ void Validation::error_lost_particles(
 // ========================================
 
 bool Validation::is_inside_uv(const Eigen::Vector2d& r) {
-    return surface_parametrization.check_point_in_polygon(r, original_mesh);
+    return surface_parametrization.check_point_in_polygon(r, true);
 }

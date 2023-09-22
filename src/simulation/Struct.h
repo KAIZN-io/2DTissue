@@ -36,16 +36,3 @@ struct Mesh_UV_Struct {
     Eigen::MatrixXd vertices_3D;
     std::string mesh_file_path;
 };
-
-// Mapping zwischen den UV Karten
-struct VertexData {
-    Eigen::Vector3d old_particle_3D;
-    Eigen::Vector3d next_particle_3D;
-    Eigen::Vector2d original_r_UV;
-    Eigen::Vector2d r_UV_dot;
-    int next_n;
-    double old_n_pole;
-    double next_n_pole;
-    bool virtual_mesh;
-    bool valid;  // if r_UV inside mesh
-};
