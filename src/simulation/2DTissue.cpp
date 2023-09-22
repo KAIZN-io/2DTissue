@@ -12,7 +12,6 @@
  */
 
 #include "GeodesicDistance/CachedGeodesicDistanceHelper.h"
-#include "SurfaceParametrization/TessellationHelper.h"
 
 #include <2DTissue.h>
 
@@ -57,7 +56,8 @@ _2DTissue::_2DTissue(
     // cell(),
     cell_helper(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
     validation(surface_parametrization),
-    euclidean_tiling(surface_parametrization, r_UV, r_UV_old, n)
+    tessellation(surface_parametrization),
+    euclidean_tiling(surface_parametrization, tessellation, r_UV, r_UV_old, n)
 {
     loadMeshFaces(mesh_path, face_3D);
 
@@ -76,7 +76,6 @@ _2DTissue::_2DTissue(
     mesh_UV_name = surface_parametrization.get_mesh_name(mesh_UV_path);
 
     // Create the tessellation mesh
-    Tessellation tessellation(surface_parametrization);
     tessellation.create_kachelmuster();
 
     // UV distance matrix of the Tessellation Mesh
