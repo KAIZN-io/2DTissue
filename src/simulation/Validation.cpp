@@ -80,5 +80,5 @@ void Validation::error_lost_particles(
 // ========================================
 
 bool Validation::is_inside_uv(const Eigen::Vector2d& r) {
-    return surface_parametrization.check_point_in_polygon(r, true);
+    return surface_parametrization.check_point_in_polygon(r);
 }

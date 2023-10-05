@@ -63,7 +63,7 @@ void EuclideanTiling::diagonal_seam_edges_square_border(){
             auto entry_point = std::get<2>(results);
 
             // Check, wether the new point is inside the boundaries
-            if (surface_parametrization.check_point_in_polygon(new_point, original_mesh)) {
+            if (surface_parametrization.check_point_in_polygon(new_point)) {
                 r_UV.row(i).head<2>().noalias() = new_point;
             } else {
                 r_UV_old.row(i).head<2>() = entry_point;
@@ -94,8 +94,7 @@ std::pair<std::string, Point_2_eigen> EuclideanTiling::check_border_crossings(
     for (const auto& [name, border] : borders) {
         auto border_intersection = intersection_point(line, border);
         if (border_intersection) {
-            const Point_2_eigen point = *border_intersection;
-            auto exit_point = Point_2_eigen(CGAL::to_double(point.x()), CGAL::to_double(point.y()));
+            Point_2_eigen exit_point = *border_intersection;
             if (std::abs(exit_point[0]) < BORDER_THRESHOLD) {
                 exit_point[0] = 0.0;
             }
@@ -130,7 +129,7 @@ std::tuple<Eigen::Vector2d, double, Eigen::Vector2d> EuclideanTiling::processPoi
     Eigen::Vector2d entry_point(1, 1);
 
     // Check, whether the point is outside the boundaries
-    if (!surface_parametrization.check_point_in_polygon(point_outside, true)) {
+    if (!surface_parametrization.check_point_in_polygon(point_outside)) {
         auto results = check_border_crossings(pointA, point_outside);
         auto crossed_border = std::get<0>(results);
         auto exit_point = std::get<1>(results);
