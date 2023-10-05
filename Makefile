@@ -47,17 +47,16 @@ ifeq ($(OS), Darwin)
 	export LDFLAGS="-L$$LLVM_PATH/lib $$LDFLAGS"; \
 	export CPPFLAGS="-I$$LLVM_PATH/include $$CPPFLAGS"; \
 	which emcc >/dev/null || (echo "Installing Emscripten via Homebrew..."; brew install emscripten); \
-	which assimp >/dev/null || (echo "Installing Assimp via Homebrew..."; brew install assimp); \
 	which yarn >/dev/null || (echo "Installing Yarn via Homebrew..."; brew install yarn); \
 	which ninja >/dev/null || (echo "Installing Ninja via Homebrew..."; brew install ninja)
 else ifeq ($(OS), Linux)
 	sudo apt-get update; \
-	MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev libomp-dev libassimp-dev ninja-build"; \
+	MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev ninja-build"; \
 	for DEP in $$MAKEFILE_DEPS; do \
 		dpkg -s $$DEP >/dev/null 2>&1 || (echo "Installing $$DEP via package manager..."; sudo apt-get install -y $$DEP); \
 	done
 else ifeq ($(OS), MINGW64_NT-10.0)
-	@echo "Please ensure you have installed LLVM, Emscripten, Assimp and Yarn manually, and they are available in the PATH."
+	@echo "Please ensure you have installed LLVM, Emscripten and Yarn manually, and they are available in the PATH."
 else
 	@echo "Unsupported OS. Please install the packages manually."
 endif
