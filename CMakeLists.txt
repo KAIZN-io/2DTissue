@@ -21,7 +21,6 @@ set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 # Find required packages
-find_package(assimp CONFIG REQUIRED)
 find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(GTest REQUIRED)
@@ -39,7 +38,7 @@ add_subdirectory(MeshCartographyLib)
 
 # Add library with simulation sources
 add_library(simulation_lib STATIC ${SIMULATION_SOURCES})
-target_link_libraries(simulation_lib PRIVATE MeshCartographyLib Boost::boost Boost::filesystem assimp::assimp)
+target_link_libraries(simulation_lib PRIVATE MeshCartographyLib Boost::boost Boost::filesystem)
 
 # Add C++ source files
 add_executable(main src/main.cpp)

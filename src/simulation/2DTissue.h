@@ -27,6 +27,7 @@
 #include "Locomotion.h"
 #include "Struct.h"
 #include "SurfaceParametrization/SurfaceParametrization.h"
+#include "IO/IO.h"
 #include "Validation.h"
 
 class _2DTissue {

@@ -1,4 +1,3 @@
-// IO.h
 #pragma once
 
 #include <fstream>
@@ -12,21 +11,7 @@
 #include <boost/filesystem.hpp>
 #include <Eigen/Dense>
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 const boost::filesystem::path PROJECT_PATH_IO = PROJECT_SOURCE_DIR;
-
-void loadMeshVertices(
-    std::string filepath,
-    Eigen::MatrixXd& vertices
-);
-
-void loadMeshFaces(
-    std::string filepath,
-    Eigen::MatrixXi& faces
-);
 
 // We need do define it in the header file or otherwise the template specialization will not be available at link time
 template<typename M>
