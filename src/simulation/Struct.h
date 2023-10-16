@@ -25,14 +25,3 @@ struct System {
     double order_parameter;
     std::vector<Particle> particles;
 };
-
-// Mesh Informationen
-struct Mesh_UV_Struct {
-    int start_vertice_id;
-    Eigen::MatrixXd mesh;
-    std::vector<int64_t> h_v_mapping;
-    Eigen::MatrixXi face_UV;
-    Eigen::MatrixXd vertices_UV;
-    Eigen::MatrixXd vertices_3D;
-    std::string mesh_file_path;
-};

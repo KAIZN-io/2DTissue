@@ -54,7 +54,7 @@ _2DTissue::_2DTissue(
     // tessellation_distance(mesh_path),
     locomotion(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
     // cell(),
-    cell_helper(particle_count, halfedge_UV, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
+    cell_helper(particle_count, face_UV, face_3D, vertice_UV, vertice_3D, h_v_mapping, r_UV, r_3D, n),
     validation(surface_parametrization),
     tessellation(surface_parametrization),
     euclidean_tiling(surface_parametrization, tessellation, r_UV, r_UV_old, n)
@@ -85,10 +85,7 @@ _2DTissue::_2DTissue(
     //     tessellation_distance.calculate_tessellation_distance();
     // }
 
-    loadMeshVertices(mesh_UV_path, halfedge_UV);
     loadMeshFaces(mesh_UV_path, face_UV);
-
-    vertices_2DTissue_map[0] = Mesh_UV_Struct{0, halfedge_UV, h_v_mapping, face_UV, vertice_UV, vertice_3D, mesh_UV_path};
 
     v_order = Eigen::VectorXd::Zero(step_count);
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
