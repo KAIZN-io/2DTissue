@@ -63,7 +63,7 @@ _2DTissue::_2DTissue(
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
     // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(h_v_mapping, vertice_UV, vertice_3D, mesh_UV_path) = surface_parametrization.create_uv_surface(mesh_path, 0);
+    std::tie(std::ignore, vertice_UV, vertice_3D, mesh_UV_path) = surface_parametrization.create_uv_surface(mesh_path, 0);
     mesh_UV_name = surface_parametrization.get_mesh_name(mesh_UV_path);
 
     // Get the mesh name from the path without the file extension

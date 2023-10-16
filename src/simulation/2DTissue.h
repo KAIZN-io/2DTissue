@@ -102,7 +102,6 @@ private:
     Eigen::MatrixXi face_3D;
     Eigen::MatrixXd vertice_UV;
     Eigen::MatrixXd vertice_3D;
-    std::vector<int64_t> h_v_mapping;
     std::string mesh_file_path;
     double dt;
 
