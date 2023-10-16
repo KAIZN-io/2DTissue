@@ -114,28 +114,23 @@ std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int i
 
     std::pair<double, int> min_distance = *std::min_element(distances.begin(), distances.end());
 
-    int halfedge_a = face_UV(min_distance.second, 0);
-    int halfedge_b = face_UV(min_distance.second, 1);
-    int halfedge_c = face_UV(min_distance.second, 2);
+    int triangle_vertice_a = face_UV(min_distance.second, 0);
+    int triangle_vertice_b = face_UV(min_distance.second, 1);
+    int triangle_vertice_c = face_UV(min_distance.second, 2);
 
-    Eigen::Vector2d halfedge_a_coord = vertice_UV.row(halfedge_a);
-    Eigen::Vector2d halfedge_b_coord = vertice_UV.row(halfedge_b);
-    Eigen::Vector2d halfedge_c_coord = vertice_UV.row(halfedge_c);
+    Eigen::Vector2d triangle_vertice_a_coord = vertice_UV.row(triangle_vertice_a);
+    Eigen::Vector2d triangle_vertice_b_coord = vertice_UV.row(triangle_vertice_b);
+    Eigen::Vector2d triangle_vertice_c_coord = vertice_UV.row(triangle_vertice_c);
 
-    // Inside your loop...
-    int closest_a = closestRow(halfedge_a_coord);
-    int closest_b = closestRow(halfedge_b_coord);
-    int closest_c = closestRow(halfedge_c_coord);
-
-    // Get the 3D coordinates of the 3 halfedges
-    Eigen::Vector3d a = vertice_3D.row(closest_a);
-    Eigen::Vector3d b = vertice_3D.row(closest_b);
-    Eigen::Vector3d c = vertice_3D.row(closest_c);
+    // Get the 3D coordinates of the 3 triangle_vertices
+    Eigen::Vector3d a = vertice_3D.row(triangle_vertice_a);
+    Eigen::Vector3d b = vertice_3D.row(triangle_vertice_b);
+    Eigen::Vector3d c = vertice_3D.row(triangle_vertice_c);
 
     // Compute the weights (distances in UV space)
-    double w_a = (r_UV.row(iterator).head(2).transpose() - halfedge_a_coord).norm();
-    double w_b = (r_UV.row(iterator).head(2).transpose() - halfedge_b_coord).norm();
-    double w_c = (r_UV.row(iterator).head(2).transpose() - halfedge_c_coord).norm();
+    double w_a = (r_UV.row(iterator).head(2).transpose() - triangle_vertice_a_coord).norm();
+    double w_b = (r_UV.row(iterator).head(2).transpose() - triangle_vertice_b_coord).norm();
+    double w_c = (r_UV.row(iterator).head(2).transpose() - triangle_vertice_c_coord).norm();
 
     // Normalize the weights
     normalize_weights(w_a, w_b, w_c);
@@ -151,12 +146,12 @@ std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int i
     // Find the vertex with the minimum distance to newPoint
     double min_dist = std::min({dist_a, dist_b, dist_c});
 
-    int closest_row_id;
-    if (min_dist == dist_a) closest_row_id = closest_a;
-    else if (min_dist == dist_b) closest_row_id = closest_b;
-    else closest_row_id = closest_c;
+    int closest_vertice_id;
+    if (min_dist == dist_a) closest_vertice_id = triangle_vertice_a;
+    else if (min_dist == dist_b) closest_vertice_id = triangle_vertice_b;
+    else closest_vertice_id = triangle_vertice_c;
 
-    return std::make_pair(newPoint, closest_row_id);
+    return std::make_pair(newPoint, closest_vertice_id);
 }
 
 
@@ -227,21 +222,6 @@ double CellHelper::pointSegmentDistance(
     double t = ab.dot(p - a) / ab.dot(ab);
     t = std::clamp(t, 0.0, 1.0);  // ensure t stays between 0 and 1
     return (a + ab * t - p).norm();
-}
-
-
-int CellHelper::closestRow(
-    const Eigen::Vector2d& halfedge_coord
-) {
-    Eigen::VectorXd dists(vertice_UV.rows());
-    for (int i = 0; i < vertice_UV.rows(); ++i) {
-        dists[i] = (vertice_UV.row(i) - halfedge_coord.transpose()).squaredNorm();
-    }
-
-    Eigen::VectorXd::Index minRow;
-    dists.minCoeff(&minRow);
-
-    return minRow;
 }
 
 

@@ -56,9 +56,6 @@ private:
         const Eigen::Vector3d& a,
         const Eigen::Vector3d& b
     );
-    int closestRow(
-        const Eigen::Vector2d& halfedge_coord
-    );
     void normalize_weights(
         double& a,
         double& b,
