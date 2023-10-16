@@ -21,7 +21,6 @@ CellHelper::CellHelper(
     Eigen::MatrixXi& face_3D,
     Eigen::MatrixXd& vertice_UV,
     Eigen::MatrixXd& vertice_3D,
-    std::vector<int64_t>& h_v_mapping,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::MatrixXd& r_3D,
     Eigen::VectorXi& n
@@ -31,7 +30,6 @@ CellHelper::CellHelper(
     face_3D(face_3D),
     vertice_UV(vertice_UV),
     vertice_3D(vertice_3D),
-    h_v_mapping(h_v_mapping),
     r_UV(r_UV),
     r_3D(r_3D),
     n(n)
@@ -89,6 +87,20 @@ std::pair<Eigen::MatrixXd, std::vector<int>> CellHelper::get_r3d(){
 // Private Functions
 // ========================================
 
+Eigen::Vector2d CellHelper::get_face_gravity_center_coord(
+    const Eigen::Vector3i r_face
+) {
+    Eigen::Vector3d center_face_test(0, 0, 0);
+
+    for (int j = 0; j < 3; ++j) {
+        center_face_test += vertice_UV.row(r_face[j]);
+    }
+    Eigen::Vector2d center_face = center_face_test.head(2);
+
+    return center_face / 3.0;
+}
+
+
 std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int iterator){
     std::vector<std::pair<double, int>> distances(face_UV.rows());
 
@@ -144,24 +156,7 @@ std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int i
     else if (min_dist == dist_b) closest_row_id = closest_b;
     else closest_row_id = closest_c;
 
-    // Get the vertice of h_v_mapping
-    int closest_vertice_id = h_v_mapping[closest_row_id];
-
-    return std::make_pair(newPoint, closest_vertice_id);
-}
-
-
-Eigen::Vector2d CellHelper::get_face_gravity_center_coord(
-    const Eigen::Vector3i r_face
-) {
-    Eigen::Vector3d center_face_test(0, 0, 0);
-
-    for (int j = 0; j < 3; ++j) {
-        center_face_test += vertice_UV.row(r_face[j]);
-    }
-    Eigen::Vector2d center_face = center_face_test.head(2);
-
-    return center_face / 3.0;
+    return std::make_pair(newPoint, closest_row_id);
 }
 
 
