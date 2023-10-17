@@ -76,14 +76,19 @@ _2DTissue::_2DTissue(
     distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
 
     // Create the tessellation mesh
-    tessellation.create_kachelmuster();
+    std::vector<std::vector<pmp::Vertex>> equivalent_vertices = tessellation.create_kachelmuster();
 
-    // // UV distance matrix of the Tessellation Mesh
-    // std::string distance_matrix_path_tessellation = MESH_CARTOGRAPHY + "/meshes/data/" + mesh_name + "_uv_distance_matrix_static.csv";
-    // if (!boost::filesystem::exists(distance_matrix_path_tessellation)) {
-    //     // Calculate the distance matrix of the static UV mesh
-    //     tessellation_distance.calculate_tessellation_distance();
-    // }
+    pmp::SurfaceMesh mesh;
+    pmp::read_off(mesh, mesh_UV_path);
+
+    const size_t numVerts = mesh.n_vertices();
+    Eigen::MatrixXd distance_matrix_v(numVerts, numVerts);
+
+    // Initialize the simulation
+    fs::path mesh_kachelmuster = path.parent_path() / (path.stem().string() + "_uv_kachelmuster.off");
+    CachedGeodesicDistanceHelper helper_kachelmuster = CachedGeodesicDistanceHelper(mesh_kachelmuster);
+    GeodesicDistanceHelperInterface& geodesic_distance_helper_kachelmuster = helper_kachelmuster;
+    Eigen::MatrixXd distance_matrix_kachelmuster = geodesic_distance_helper_kachelmuster.get_mesh_distance_matrix();
 
     loadMeshFaces(mesh_UV_path, face_UV);
 
@@ -180,12 +185,7 @@ void _2DTissue::perform_particle_simulation(){
     // 1. Simulate the flight of the particle on the UV mesh
     locomotion.simulate_flight();
 
-    if (mesh_UV_name == "sphere_uv"){
-        euclidean_tiling.opposite_seam_edges_square_border();
-    }
-    else {
-        euclidean_tiling.diagonal_seam_edges_square_border();
-    }
+    euclidean_tiling.diagonal_seam_edges_square_border();
 
     // Get the 3D vertices coordinates from the 2D particle position coordinates
     auto [new_r_3D, new_vertices_3D_active] = cell_helper.get_r3d();
