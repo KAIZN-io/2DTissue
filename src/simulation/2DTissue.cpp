@@ -66,46 +66,20 @@ _2DTissue::_2DTissue(
     std::tie(std::ignore, vertice_UV, vertice_3D, mesh_UV_path) = surface_parametrization.create_uv_surface(mesh_path, 0);
     mesh_UV_name = surface_parametrization.get_mesh_name(mesh_UV_path);
 
-    // Get the mesh name from the path without the file extension
-    fs::path path(mesh_path);
-    fs::path mesh_open = path.parent_path() / (path.stem().string() + "_open.off");
-
-    // Initialize the simulation
-    CachedGeodesicDistanceHelper helper = CachedGeodesicDistanceHelper(mesh_open);
-    GeodesicDistanceHelperInterface& geodesic_distance_helper = helper;
-    distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
-
     // Create the tessellation mesh
     std::vector<std::vector<int64_t>> equivalent_vertices = tessellation.create_kachelmuster();
+    std::cout << "Equivalent vertices inside 2DTissue.cpp: " << std::endl;
+    for (auto i : equivalent_vertices[0]) {
+        std::cout << i << " ";
+    }
+    std::cout << "\n";
 
     // Collect the distances
+    fs::path path(mesh_path);
     fs::path mesh_kachelmuster = path.parent_path() / (path.stem().string() + "_uv_kachelmuster.off");
-    CachedGeodesicDistanceHelper helper_kachelmuster = CachedGeodesicDistanceHelper(mesh_kachelmuster);
-    GeodesicDistanceHelperInterface& geodesic_distance_helper_kachelmuster = helper_kachelmuster;
-    Eigen::MatrixXd distance_matrix_kachelmuster = geodesic_distance_helper_kachelmuster.get_mesh_distance_matrix();
-
-    // Filter the distances
-    pmp::SurfaceMesh mesh;
-    pmp::read_off(mesh, mesh_UV_path);
-
-    const size_t numVerts = mesh.n_vertices();
-    const size_t numVerts_kachelmuster = distance_matrix_kachelmuster.rows();
-    Eigen::MatrixXd distance_matrix_v(numVerts, numVerts);
-
-    for (int vertice_id = 0; vertice_id < numVerts; ++vertice_id) {
-        auto equivalent_vertices_selected = equivalent_vertices[vertice_id];
-        equivalent_vertices_selected.push_back(vertice_id);
-
-        Eigen::MatrixXd filtered_matrix = distance_matrix_kachelmuster.block(0, 0, numVerts_kachelmuster, numVerts);
-        Eigen::VectorXi keep_cols = Eigen::VectorXi::LinSpaced(filtered_matrix.cols(), 0, filtered_matrix.cols());
-        filtered_matrix = filtered_matrix(equivalent_vertices_selected, keep_cols);
-
-        Eigen::VectorXd minValues(numVerts);
-
-        for (int i = 0; i < filtered_matrix.cols(); ++i) {
-            distance_matrix_v(vertice_id, i) = filtered_matrix.col(i).minCoeff();
-        }
-    }
+    CachedGeodesicDistanceHelper helper = CachedGeodesicDistanceHelper(mesh_kachelmuster, equivalent_vertices);
+    GeodesicDistanceHelperInterface& geodesic_distance_helper = helper;
+    distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
 
     loadMeshFaces(mesh_UV_path, face_UV);
 
