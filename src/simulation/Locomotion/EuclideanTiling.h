@@ -15,7 +15,6 @@ public:
         Eigen::VectorXi& n
     );
 
-    void opposite_seam_edges_square_border();
     void diagonal_seam_edges_square_border();
     std::pair<std::string, Point_2_eigen> check_border_crossings(
         const Point_2_eigen& start_eigen,

@@ -32,15 +32,6 @@ EuclideanTiling::EuclideanTiling(
 // Public Functions
 // ========================================
 
-/**
- * @brief Because we have a mod(2) seam edge cute line, pairing edges are on the exact same opposite position in the UV mesh with the same lenght
-*/
-void EuclideanTiling::opposite_seam_edges_square_border(){
-    r_UV.col(0) = r_UV.col(0).array() - r_UV.col(0).array().floor();  // Wrap x values
-    r_UV.col(1) = r_UV.col(1).array() - r_UV.col(1).array().floor();  // Wrap y values
-}
-
-
 void EuclideanTiling::diagonal_seam_edges_square_border(){
     // Get borders
     auto result = tessellation.get_borders();
