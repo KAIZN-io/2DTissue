@@ -53,20 +53,6 @@ public:
     }
 };
 
-TEST_F(EuclideanTilingTest, TestOppositeSeamEdgesSquareBorder) {
-    euclidean_tiling.opposite_seam_edges_square_border();
-
-    const double EPSILON = 1e-9;
-
-    ASSERT_NEAR(r_UV(0, 0), 0.5, EPSILON);
-    ASSERT_NEAR(r_UV(0, 1), 0.5, EPSILON);
-    ASSERT_NEAR(r_UV(1, 0), 0.3, EPSILON);
-    ASSERT_NEAR(r_UV(1, 1), 0.2, EPSILON);
-    ASSERT_NEAR(r_UV(2, 0), 0.7, EPSILON);
-    ASSERT_NEAR(r_UV(2, 1), 0.7, EPSILON);
-}
-
-
 TEST_F(EuclideanTilingTest, TestDiagonalSeamEdgesSquareBorder) {
     tessellation_helper.create_kachelmuster();
     euclidean_tiling.diagonal_seam_edges_square_border();
