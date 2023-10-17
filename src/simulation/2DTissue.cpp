@@ -76,7 +76,7 @@ _2DTissue::_2DTissue(
     distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
 
     // Create the tessellation mesh
-    std::vector<std::vector<pmp::Vertex>> equivalent_vertices = tessellation.create_kachelmuster();
+    std::vector<std::vector<int64_t>> equivalent_vertices = tessellation.create_kachelmuster();
 
     pmp::SurfaceMesh mesh;
     pmp::read_off(mesh, mesh_UV_path);
@@ -89,6 +89,26 @@ _2DTissue::_2DTissue(
     CachedGeodesicDistanceHelper helper_kachelmuster = CachedGeodesicDistanceHelper(mesh_kachelmuster);
     GeodesicDistanceHelperInterface& geodesic_distance_helper_kachelmuster = helper_kachelmuster;
     Eigen::MatrixXd distance_matrix_kachelmuster = geodesic_distance_helper_kachelmuster.get_mesh_distance_matrix();
+    const size_t numVerts_kachelmuster = distance_matrix_kachelmuster.rows();
+
+
+    auto equivalent_vertices_selected = equivalent_vertices[1];
+    equivalent_vertices_selected.push_back(1);
+
+    Eigen::MatrixXd filtered_matrix = distance_matrix_kachelmuster.block(0, 0, numVerts_kachelmuster, numVerts);
+    Eigen::VectorXi keep_cols = Eigen::VectorXi::LinSpaced(filtered_matrix.cols(), 0, filtered_matrix.cols());
+    filtered_matrix = filtered_matrix(equivalent_vertices_selected, keep_cols);
+
+    Eigen::VectorXd minValues(numVerts);
+
+    for (int i = 0; i < filtered_matrix.cols(); ++i) {
+        minValues(i) = filtered_matrix.col(i).minCoeff();
+    }
+
+    // Printing the minimum values for each column
+    std::cout << "Minimum values for each column:\n" << minValues << std::endl;
+
+
 
     loadMeshFaces(mesh_UV_path, face_UV);
 
