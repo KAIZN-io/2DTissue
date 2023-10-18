@@ -12,6 +12,7 @@
  */
 
 #include "GeodesicDistance/CachedGeodesicDistanceHelper.h"
+#include "GeodesicDistance/CachedTessellationDistanceHelper.h"
 
 #include <2DTissue.h>
 
@@ -68,18 +69,18 @@ _2DTissue::_2DTissue(
 
     // Create the tessellation mesh
     std::vector<std::vector<int64_t>> equivalent_vertices = tessellation.create_kachelmuster();
-    std::cout << "Equivalent vertices inside 2DTissue.cpp: " << std::endl;
-    for (auto i : equivalent_vertices[0]) {
-        std::cout << i << " ";
-    }
-    std::cout << "\n";
 
     // Collect the distances
     fs::path path(mesh_path);
-    fs::path mesh_kachelmuster = path.parent_path() / (path.stem().string() + "_uv_kachelmuster.off");
-    CachedGeodesicDistanceHelper helper = CachedGeodesicDistanceHelper(mesh_kachelmuster, equivalent_vertices);
-    GeodesicDistanceHelperInterface& geodesic_distance_helper = helper;
-    distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
+    // fs::path mesh_kachelmuster = path.parent_path() / (path.stem().string() + "_uv_kachelmuster.off");
+    // CachedTessellationDistanceHelper helper = CachedTessellationDistanceHelper(mesh_kachelmuster, equivalent_vertices);
+    // GeodesicDistanceHelperInterface& geodesic_distance_helper = helper;
+    // distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
+
+    fs::path mesh_open = path.parent_path() / (path.stem().string() + "_open.off");
+    CachedGeodesicDistanceHelper helper_3D = CachedGeodesicDistanceHelper(mesh_open);
+    GeodesicDistanceHelperInterface& geodesic_distance_helper_3D = helper_3D;
+    distance_matrix = geodesic_distance_helper_3D.get_mesh_distance_matrix();
 
     loadMeshFaces(mesh_UV_path, face_UV);
 
