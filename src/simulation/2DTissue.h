@@ -12,7 +12,7 @@
 #include <vector>
 
 // Third-party library headers
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 

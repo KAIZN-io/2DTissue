@@ -13,7 +13,7 @@
 
 #include <CellHelper.h>
 
-const boost::filesystem::path MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
+const std::filesystem::path MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
 
 CellHelper::CellHelper(
     int particle_count,

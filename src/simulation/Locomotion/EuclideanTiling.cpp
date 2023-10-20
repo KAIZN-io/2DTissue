@@ -161,7 +161,7 @@ bool EuclideanTiling::is_point_on_segment(const Point_2_eigen& P, const Point_2_
 }
 
 
-boost::optional<Point_2_eigen> EuclideanTiling::intersection_point(const Segment_2_eigen& line, const std::vector<Point_2_eigen>& border) {
+std::optional<Point_2_eigen> EuclideanTiling::intersection_point(const Segment_2_eigen& line, const std::vector<Point_2_eigen>& border) {
     for (size_t i = 0; i < border.size() - 1; ++i) {
         Segment_2_eigen seg(border[i], border[i+1]);
 

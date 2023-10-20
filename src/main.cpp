@@ -11,11 +11,11 @@
  */
 
 #include <iostream>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <2DTissue.h>
 
-const boost::filesystem::path MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
+const std::filesystem::path MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
 
 int main()
 {
@@ -26,8 +26,8 @@ int main()
 
     // Path to the 3D mesh file
     // std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/camel.off";
-    std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/ellipsoid_x4.off";
-    // std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/sphere.off";
+    // std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/ellipsoid_x4.off";
+    std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/sphere.off";
 
     for (int particle_count = 200; particle_count <= 200; particle_count += 100) {
         _2DTissue _2dtissue(save_data, particle_innenleben, free_boundary, mesh_path, particle_count, step_count, 0.01);

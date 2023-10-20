@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <random>
 #include <unordered_set>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "IO.h"
 #include "IO/IO.h"

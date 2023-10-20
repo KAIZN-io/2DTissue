@@ -51,7 +51,7 @@ ifeq ($(OS), Darwin)
 	which ninja >/dev/null || (echo "Installing Ninja via Homebrew..."; brew install ninja)
 else ifeq ($(OS), Linux)
 	sudo apt-get update; \
-	MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libboost-all-dev libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev ninja-build"; \
+	MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev ninja-build"; \
 	for DEP in $$MAKEFILE_DEPS; do \
 		dpkg -s $$DEP >/dev/null 2>&1 || (echo "Installing $$DEP via package manager..."; sudo apt-get install -y $$DEP); \
 	done

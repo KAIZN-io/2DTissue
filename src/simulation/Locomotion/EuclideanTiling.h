@@ -39,7 +39,7 @@ private:
     );
 
     bool is_point_on_segment(const Point_2_eigen& P, const Point_2_eigen& A, const Point_2_eigen& B);
-    boost::optional<Point_2_eigen> intersection_point(const Segment_2_eigen& line, const std::vector<Point_2_eigen>& border);
+    std::optional<Point_2_eigen> intersection_point(const Segment_2_eigen& line, const std::vector<Point_2_eigen>& border);
 
     // Constants
     static constexpr double KACHEL_ROTATION = 90.0;
