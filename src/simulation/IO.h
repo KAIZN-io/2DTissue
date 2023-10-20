@@ -20,7 +20,7 @@ M load_csv(const std::string &path) {
     indata.open(path);
     std::string line;
     std::vector<double> values;
-    uint rows = 0;
+    unsigned int rows = 0;
     while (std::getline(indata, line)) {
         std::stringstream lineStream(line);
         std::string cell;
