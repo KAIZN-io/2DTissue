@@ -2,9 +2,13 @@
 
 This physics engine *2DTissue* was developed to simulate the collective behaviour of active (self-propelled) particles on arbitrary curved closed surfaces.
 
-## How to compile the C++ code 
+## How to compile the C++ code
 
 Simply run `make` in your terminal in the root of this project and everything will get installed and compiled.
+
+## Compile the code to WASM
+
+By running `make PLATFORM=wasm` you compile the code to WASM
 
 ## Theoretical Model
 
