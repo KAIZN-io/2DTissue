@@ -16,9 +16,6 @@ add_definitions("-DMeshCartographyLib_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}/MeshCar
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 
-# Set macOS RPATH
-set(CMAKE_MACOSX_RPATH 1)
-
 # Set library output directory
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 

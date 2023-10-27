@@ -11,9 +11,11 @@ ARCHITECTURE := $(shell uname -m)
 
 # Platform selection
 PLATFORM ?= executive
+BUILD_DIR = build
 ifeq ($(PLATFORM), wasm)
 	CMAKE_CMD = emcmake cmake
 	BUILD_CMD = emmake ninja
+	BUILD_DIR = embuild
 else
 	CMAKE_CMD = cmake
 	BUILD_CMD = ninja
@@ -82,7 +84,7 @@ update_submodule:
 build: $(DATA_DIR)
 	echo "Building for platform: $(PLATFORM)"; \
 	$(CMAKE_CMD) -S $(PROJECT_DIR) \
-			-B $(PROJECT_DIR)/build \
+			-B $(PROJECT_DIR)/$(BUILD_DIR) \
 			-DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_C_COMPILER=$(C_COMPILER) \
 			-DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
@@ -90,9 +92,9 @@ build: $(DATA_DIR)
 			-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) \
 			-GNinja
 ifeq ($(OS), Darwin)
-	$(BUILD_CMD) -C $(PROJECT_DIR)/build -j $(shell sysctl -n hw.logicalcpu)
+	$(BUILD_CMD) -C $(PROJECT_DIR)/$(BUILD_DIR) -j $(shell sysctl -n hw.logicalcpu)
 else ifeq ($(OS), Linux)
-	$(BUILD_CMD) -C $(PROJECT_DIR)/build -j $(shell nproc)
+	$(BUILD_CMD) -C $(PROJECT_DIR)/$(BUILD_DIR) -j $(shell nproc)
 endif
 
 $(DATA_DIR):
@@ -110,6 +112,7 @@ install_analysis:
 .PHONY: clean
 clean:
 	rm -rf $(PROJECT_DIR)/build $(DATA_DIR) $(ASSETS_DIR)
+	rm -rf $(PROJECT_DIR)/embuild
 
 .PHONY: clean_data
 clean_data:
@@ -118,3 +121,4 @@ clean_data:
 .PHONY: distclean
 distclean: clean
 	rm -rf $(PROJECT_DIR)/build/*
+	rm -rf $(PROJECT_DIR)/embuild/*
