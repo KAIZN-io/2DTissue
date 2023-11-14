@@ -17,25 +17,36 @@
 use std::env;
 use std::path::PathBuf;
 use autocxx::prelude::*;
+use ffi::ToCppString;
 
 include_cpp! {
     #include "input.h"
     safety!(unsafe_ffi)
     generate!("do_math")
+    generate!("read_mesh_from_file")
 }
 
 /// Main function
 fn main() {
-    // let step_count = 20;
-    // let save_data = false;
-    // let particle_innenleben = false;
-    // let optimized_monotile_boundary = false;
+
     println!("{}", ffi::do_math(12, 13));
 
     let mesh_cartography_lib_dir_str = env::var("MeshCartographyLib_DIR").expect("MeshCartographyLib_DIR not set");
     let mesh_cartography_lib_dir = PathBuf::from(mesh_cartography_lib_dir_str);
     let new_path = mesh_cartography_lib_dir.join("meshes/ellipsoid_x4.off");
     println!("Parent dir: {:?}", new_path);
+
+    // Read the Mesh
+    let mesh_file_path_str = new_path.to_str().unwrap();
+    let cpp_string = &mesh_file_path_str.into_cpp();
+    // Call the function with a pointer to the C-style string
+    ffi::read_mesh_from_file(cpp_string);
+
+    // if result {
+    //     println!("Mesh successfully loaded.");
+    // } else {
+    //     println!("Failed to load mesh.");
+    // }
 
     for particle_count in (1000..=1000).step_by(100) {
         println!("Particle count: {}", particle_count);

@@ -13,10 +13,10 @@
 fn main() -> miette::Result<()>  {
     // Sets the include path for C++ headers
     let include_path = std::path::PathBuf::from("src");
-    // let pmp_path = std::path::PathBuf::from("MeshCartographyLib/pmp-library/src");
+    let gp_path = std::path::PathBuf::from("OpenMesh/src");
 
     // Initializes the `autocxx` build process
-    let mut builder = autocxx_build::Builder::new("src/main.rs", &[&include_path])
+    let mut builder = autocxx_build::Builder::new("src/main.rs", &[&include_path, &gp_path])
         .build()?;
 
     // Compiles the generated bindings with C++17 standards
