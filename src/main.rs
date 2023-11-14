@@ -16,6 +16,13 @@
 
 use std::env;
 use std::path::PathBuf;
+use autocxx::prelude::*;
+
+include_cpp! {
+    #include "input.h"
+    safety!(unsafe_ffi)
+    generate!("do_math")
+}
 
 /// Main function
 fn main() {
@@ -23,6 +30,7 @@ fn main() {
     // let save_data = false;
     // let particle_innenleben = false;
     // let optimized_monotile_boundary = false;
+    println!("{}", ffi::do_math(12, 13));
 
     let mesh_cartography_lib_dir_str = env::var("MeshCartographyLib_DIR").expect("MeshCartographyLib_DIR not set");
     let mesh_cartography_lib_dir = PathBuf::from(mesh_cartography_lib_dir_str);
