@@ -91,6 +91,11 @@ rust:
 run:
 	cargo run --release
 
+.PHONY: doc
+doc:
+	cargo doc --no-deps --open
+
+
 .PHONY: build
 build: $(DATA_DIR)
 	echo "Building for platform: $(PLATFORM)"; \

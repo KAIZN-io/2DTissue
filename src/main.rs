@@ -1,6 +1,23 @@
+//! # Main Module for the 2DTissue Project
+//!
+//! This module is the entry point for the 2DTissue project.
+//!
+//! ## Metadata
+//!
+//! - **Author:** Jan-Piotraschke
+//! - **Date:** 2023-Nov-14
+//! - **License:** [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+//!
+//! ## Current Status
+//!
+//! - **Bugs:** None known at this time.
+//! - **Todo:** Further development tasks to be determined.
+
+
 use std::env;
 use std::path::PathBuf;
 
+/// Main function
 fn main() {
     // let step_count = 20;
     // let save_data = false;
