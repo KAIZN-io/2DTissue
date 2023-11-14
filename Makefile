@@ -4,6 +4,7 @@ SHELL := /bin/bash
 
 # Paths
 PROJECT_DIR := $(shell pwd)
+export MeshCartographyLib_DIR := $(PROJECT_DIR)/MeshCartographyLib
 EXTERNAL_DIR := $(PROJECT_DIR)/external
 DATA_DIR := $(PROJECT_DIR)/data
 ASSETS_DIR := $(PROJECT_DIR)/assets
@@ -34,7 +35,7 @@ else ifeq ($(OS), Linux)
 endif
 
 .PHONY: all
-all: check_dependencies check_submodule build
+all: check_dependencies rust check_submodule build
 
 # Check if LLVM and Emscripten are installed, if not, install using apt-get
 .PHONY: check_dependencies
@@ -79,6 +80,16 @@ check_submodule:
 update_submodule:
 	@echo "Updating MeshCartographyLib submodule..."; \
 	git submodule update --remote MeshCartographyLib; \
+
+.PHONY: rust
+rust:
+	@echo "Building Rust dependencies..."
+	cargo build --release
+
+# Run the Rust executable
+.PHONY: run
+run:
+	cargo run --release
 
 .PHONY: build
 build: $(DATA_DIR)
