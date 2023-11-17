@@ -97,6 +97,18 @@ else ifeq ($(OS), Linux)
 	$(BUILD_CMD) -C $(PROJECT_DIR)/$(BUILD_DIR) -j $(shell nproc)
 endif
 
+.PHONY: run
+run: build
+ifeq ($(PLATFORM), wasm)
+	@echo "Running in browser..."; \
+	cd $(PROJECT_DIR)/$(BUILD_DIR); \
+	yarn serve
+else
+	@echo "Running..."; \
+	cd $(PROJECT_DIR)/$(BUILD_DIR); \
+	./main
+endif
+
 $(DATA_DIR):
 	mkdir -p $(DATA_DIR)
 	mkdir -p $(ASSETS_DIR)
