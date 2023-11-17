@@ -1,12 +1,12 @@
 #pragma once
 
 #include <stdint.h>
-#include <OpenMesh/Core/IO/reader/OFFReader.hh>
-#include <OpenMesh/Core/IO/MeshIO.hh>
+// #include <OpenMesh/Core/IO/reader/OFFReader.hh>
+// #include <OpenMesh/Core/IO/MeshIO.hh>
 
-#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+// #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include <string>
-using MyMesh = OpenMesh::TriMesh_ArrayKernelT<>;
+// using MyMesh = OpenMesh::TriMesh_ArrayKernelT<>;
 #include <iostream>
 
 void read_mesh_from_file(const std::string& file_path) {
