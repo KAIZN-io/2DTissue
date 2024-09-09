@@ -19,18 +19,18 @@ const std::filesystem::path MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
 
 int main()
 {
-    int step_count = 10;
+    int step_count = 20;
     bool save_data = false;
     bool particle_innenleben = false;
-    bool free_boundary = false;
+    bool optimized_monotile_boundary = false;
 
     // Path to the 3D mesh file
     // std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/camel.off";
-    // std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/ellipsoid_x4.off";
-    std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/sphere.off";
+    std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/ellipsoid_x4.off";
+    // std::string mesh_path = MESH_CARTOGRAPHY.string() + "/meshes/sphere.off";
 
-    for (int particle_count = 200; particle_count <= 200; particle_count += 100) {
-        _2DTissue _2dtissue(save_data, particle_innenleben, free_boundary, mesh_path, particle_count, step_count, 0.01);
+    for (int particle_count = 1000; particle_count <= 1000; particle_count += 100) {
+        _2DTissue _2dtissue(save_data, particle_innenleben, optimized_monotile_boundary, mesh_path, particle_count, step_count, 0.01);
 
         _2dtissue.start();
 
