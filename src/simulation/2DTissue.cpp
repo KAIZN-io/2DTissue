@@ -128,6 +128,9 @@ void _2DTissue::start()
     std::tie(r_3D, vertices_3D_active) = cell_helper.get_r3d();
 }
 
+#include "DatabaseManager.h"
+#include "KafkaProducer.h"
+
 System _2DTissue::update()
 {
     // The new coordinates are the old ones for the next step
@@ -141,7 +144,6 @@ System _2DTissue::update()
     perform_particle_simulation();
 
     std::vector<Particle> particles;
-    // start for loop
     for (int i = 0; i < r_UV.rows(); i++)
     {
         Particle p;
@@ -161,6 +163,29 @@ System _2DTissue::update()
     system.order_parameter = v_order(v_order.rows() - 1, 0);
     system.particles = particles;
 
+    // Create Kafka producer and SQLite database manager
+    KafkaProducer kafkaProducer("localhost:9092", "simulation_topic");
+    DatabaseManager dbManager("simulation_data.db");
+
+    // Send system information to Kafka
+    std::string message = "System Order Parameter: " + std::to_string(system.order_parameter);
+    kafkaProducer.send(message);
+
+    // Send particles information to Kafka and SQLite database
+    for (const auto& particle : particles)
+    {
+        std::string particleMessage
+            = "Particle: x_UV=" + std::to_string(particle.x_UV) + ", y_UV=" + std::to_string(particle.y_UV)
+              + ", x_velocity_UV=" + std::to_string(particle.x_velocity_UV)
+              + ", y_velocity_UV=" + std::to_string(particle.y_velocity_UV) + ", x_3D=" + std::to_string(particle.x_3D)
+              + ", y_3D=" + std::to_string(particle.y_3D) + ", z_3D=" + std::to_string(particle.z_3D);
+        kafkaProducer.send(particleMessage);
+    }
+
+    // Insert data into SQLite database
+    dbManager.insertSystemInfo(system);
+    dbManager.insertParticlesInfo(system.particles);
+
     current_step++;
     if (current_step >= step_count)
     {
@@ -172,7 +197,6 @@ System _2DTissue::update()
         save_our_data();
     }
 
-    // Clear the vector
     particles_color.clear();
     particles_color.resize(particle_count);
 

@@ -30,6 +30,9 @@
 #include "SurfaceParametrization/SurfaceParametrization.h"
 #include "Validation.h"
 
+#include "../utils/DatabaseManager.h"
+#include "../utils/KafkaProducer.h"
+
 class _2DTissue
 {
   public:
