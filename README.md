@@ -6,6 +6,18 @@ This physics engine *2DTissue* was developed to simulate the collective behaviou
 
 Simply run `make` in your terminal in the root of this project and everything will get installed and compiled.
 
+## How to run the simulation
+
+```bash
+./build/main --step-count 50 --particle-count 100 --step-time 0.02
+```
+
+or if you need help:
+
+```bash
+./build/main --help
+```
+
 ## Format the code
 
 CppCheck will help you catch errors and bugs in your C++ code through static analysis.
