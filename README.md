@@ -6,6 +6,16 @@ This physics engine *2DTissue* was developed to simulate the collective behaviou
 
 Simply run `make` in your terminal in the root of this project and everything will get installed and compiled.
 
+## Format the code
+
+CppCheck will help you catch errors and bugs in your C++ code through static analysis.
+
+Navigate into the src folder and run the following command:
+
+```bash
+cppcheck --enable=all --inconclusive --force --suppress=missingIncludeSystem ./simulation
+```
+
 ## Theoretical Model
 
 The model described is a Vicsek type model (Vicsek et al. 1995, Physical review letters 75(6): 1226) of spherical active particles with a fixed radius confined to the surface of an ellipsoid. Particle interactions are modelled through forces between neighbouring particles that tend to align their velocities (adapted from Szabo et al. 2006, Physical Review E 74(6): 061908).
