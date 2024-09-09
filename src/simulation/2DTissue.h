@@ -30,7 +30,6 @@
 #include "SurfaceParametrization/SurfaceParametrization.h"
 #include "Validation.h"
 
-#include "../utils/DatabaseManager.h"
 #include "../utils/KafkaProducer.h"
 
 class _2DTissue
@@ -53,6 +52,7 @@ class _2DTissue
         double k_adh = 0.75,
         double step_size = 0.001,
         int map_cache_count = 30);
+
     void start();
     System update();
     bool is_finished();
@@ -62,7 +62,6 @@ class _2DTissue
     friend class CellHelper;
 
   private:
-    // Include here your class variables (the ones used in start and update methods)
     bool save_data;
     bool particle_innenleben;
     bool free_boundary;
@@ -120,6 +119,8 @@ class _2DTissue
     Validation validation;
 
     int numberOfPoints;
+
+    KafkaProducer kafkaProducer;
 
     void perform_particle_simulation();
     void save_our_data();

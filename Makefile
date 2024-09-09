@@ -93,6 +93,29 @@ $(DATA_DIR):
 	mkdir -p $(DATA_DIR)
 	mkdir -p $(ASSETS_DIR)
 
+.PHONY: start_test_kafka
+start_test_kafka:
+	@echo "Starting Zookeeper and Kafka services using Homebrew..."; \
+	brew services start zookeeper; \
+	brew services start kafka; \
+	echo "Waiting for Kafka to start..."; \
+	sleep 10; \
+	echo "Running Kafka consumer..."; \
+	/opt/homebrew/opt/kafka/bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic simulation_topic
+
+.PHONY: stop_test_kafka
+stop_test_kafka:
+	@echo "Stopping Kafka and Zookeeper services using Homebrew..."; \
+	brew services stop kafka; \
+	brew services stop zookeeper; \
+	echo "Verifying services have stopped..."; \
+	STATUS_KAFKA=$$(brew services list | grep kafka | awk '{print $$2}'); \
+	STATUS_ZOOKEEPER=$$(brew services list | grep zookeeper | awk '{print $$2}'); \
+	if [ "$$STATUS_KAFKA" = "none" ] && [ "$$STATUS_ZOOKEEPER" = "none" ]; then \
+		echo "Kafka and Zookeeper have successfully stopped."; \
+	else \
+		echo "Warning: One or both services are still running."; \
+	fi
 
 # Optional
 .PHONY: install_analysis
