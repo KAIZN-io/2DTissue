@@ -1,24 +1,21 @@
 #pragma once
 
-#include <random>
-#include <cmath>
-#include <vector>
 #include <Eigen/Dense>
+#include <cmath>
+#include <random>
+#include <vector>
 
 #include "LocomotionHelperInterface.h"
 
-class OrientationHelper : public OrientationHelperInterface {
-public:
+class OrientationHelper : public OrientationHelperInterface
+{
+  public:
     OrientationHelper(
-        const std::vector<Eigen::MatrixXd>& dist_vect,
-        const Eigen::MatrixXd& dist_length,
-        Eigen::VectorXi& n,
-        double σ
-    );
+        const std::vector<Eigen::MatrixXd>& dist_vect, const Eigen::MatrixXd& dist_length, Eigen::VectorXi& n, double σ);
 
     void calculate_average_n_within_distance() override;
 
-private:
+  private:
     const std::vector<Eigen::MatrixXd>& dist_vect;
     const Eigen::MatrixXd& dist_length;
     Eigen::VectorXi& n;

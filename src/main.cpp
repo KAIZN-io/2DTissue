@@ -10,10 +10,10 @@
  * @todo        enable particle_innenleben again by implementing another Differential Equation Solver
  */
 
-#include <iostream>
-#include <filesystem>
 #include "argparse.hpp"
 #include <2DTissue.h>
+#include <filesystem>
+#include <iostream>
 
 const std::filesystem::path MESH_CARTOGRAPHY = MeshCartographyLib_SOURCE_DIR;
 
@@ -21,10 +21,7 @@ int main(int argc, char* argv[])
 {
     argparse::ArgumentParser program("2DTissue Simulation");
 
-    program.add_argument("--step-count")
-        .default_value(20)
-        .scan<'i', int>()
-        .help("Number of steps to simulate");
+    program.add_argument("--step-count").default_value(20).scan<'i', int>().help("Number of steps to simulate");
 
     program.add_argument("--save-data")
         .default_value(false)
@@ -50,15 +47,14 @@ int main(int argc, char* argv[])
         .scan<'i', int>()
         .help("Number of particles in the simulation");
 
-    program.add_argument("--step-time")
-        .default_value(0.01)
-        .scan<'g', double>()
-        .help("Time step for the simulation");
+    program.add_argument("--step-time").default_value(0.01).scan<'g', double>().help("Time step for the simulation");
 
-    try {
+    try
+    {
         program.parse_args(argc, argv);
     }
-    catch (const std::runtime_error& err) {
+    catch (const std::runtime_error& err)
+    {
         std::cerr << err.what() << std::endl;
         std::cerr << program;
         return EXIT_FAILURE;
@@ -74,19 +70,21 @@ int main(int argc, char* argv[])
     double step_time = program.get<double>("--step-time");
 
     // Run the simulation
-    _2DTissue _2dtissue(save_data, particle_innenleben, optimized_monotile_boundary, mesh_path, particle_count, step_count, step_time);
+    _2DTissue _2dtissue(
+        save_data, particle_innenleben, optimized_monotile_boundary, mesh_path, particle_count, step_count, step_time);
 
     _2dtissue.start();
 
     std::clock_t start = std::clock();
 
-    while (!_2dtissue.is_finished()) {
+    while (!_2dtissue.is_finished())
+    {
         System data = _2dtissue.update();
     }
     std::cout << _2dtissue.get_order_parameter() << '\n';
 
     std::clock_t end = std::clock();
-    double duration = (end - start) / (double) CLOCKS_PER_SEC;
+    double duration = (end - start) / (double)CLOCKS_PER_SEC;
     std::cout << "Time taken: " << duration << " seconds" << '\n';
 
     return 0;

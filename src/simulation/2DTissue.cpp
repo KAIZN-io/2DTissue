@@ -7,7 +7,8 @@
  * @version     0.2.0
  * @license     Apache License 2.0
  *
- * @bug         euclidean_tiling.opposite_seam_edges_square_border() vs euclidean_tiling.diagonal_seam_edges_square_border(): Mesh parametrization can result in different UV mapping logics
+ * @bug         euclidean_tiling.opposite_seam_edges_square_border() vs
+ * euclidean_tiling.diagonal_seam_edges_square_border(): Mesh parametrization can result in different UV mapping logics
  * @todo        move count_particle_neighbors() to another file; reactivate cell.perform_sbml_simulation()
  */
 
@@ -32,39 +33,55 @@ _2DTissue::_2DTissue(
     double r_adh,
     double k_adh,
     double step_size,
-    int map_cache_count
-) :
-    save_data(save_data),
-    particle_innenleben(particle_innenleben),
-    mesh_path(mesh_path),
-    particle_count(particle_count),
-    step_count(step_count),
-    v0(v0),
-    k(k),
-    k_next(k_next),
-    v0_next(v0_next),
-    σ(σ),
-    μ(μ),
-    r_adh(r_adh),
-    k_adh(k_adh),
-    step_size(step_size),
-    current_step(0),
-    map_cache_count(map_cache_count),
-    finished(false),
-    surface_parametrization(),
+    int map_cache_count)
+    : save_data(save_data)
+    , particle_innenleben(particle_innenleben)
+    , mesh_path(mesh_path)
+    , particle_count(particle_count)
+    , step_count(step_count)
+    , v0(v0)
+    , k(k)
+    , k_next(k_next)
+    , v0_next(v0_next)
+    , σ(σ)
+    , μ(μ)
+    , r_adh(r_adh)
+    , k_adh(k_adh)
+    , step_size(step_size)
+    , current_step(0)
+    , map_cache_count(map_cache_count)
+    , finished(false)
+    , surface_parametrization()
+    ,
     // tessellation_distance(mesh_path),
-    locomotion(r_UV, r_UV_old, r_dot, n, vertices_3D_active, distance_matrix, dist_length, v0, k, σ, μ, r_adh, k_adh, step_size, std::move(linear_algebra_ptr)),
-    // cell(),
-    cell_helper(particle_count, face_UV, face_3D, vertice_UV, vertice_3D, r_UV, r_3D, n),
-    validation(surface_parametrization),
-    tessellation(surface_parametrization),
-    euclidean_tiling(surface_parametrization, tessellation, r_UV, r_UV_old, n)
+    locomotion(
+        r_UV,
+        r_UV_old,
+        r_dot,
+        n,
+        vertices_3D_active,
+        distance_matrix,
+        dist_length,
+        v0,
+        k,
+        σ,
+        μ,
+        r_adh,
+        k_adh,
+        step_size,
+        std::move(linear_algebra_ptr))
+    // , cell(),
+    , cell_helper(particle_count, face_UV, face_3D, vertice_UV, vertice_3D, r_UV, r_3D, n)
+    , validation(surface_parametrization)
+    , tessellation(surface_parametrization)
+    , euclidean_tiling(surface_parametrization, tessellation, r_UV, r_UV_old, n)
 {
     loadMeshFaces(mesh_path, face_3D);
 
-    // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member variables.
-    // std::ignore is used to ignore values you don't need from the returned tuple.
-    std::tie(std::ignore, vertice_UV, vertice_3D, mesh_UV_path) = surface_parametrization.create_uv_surface(mesh_path, 0);
+    // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member
+    // variables. std::ignore is used to ignore values you don't need from the returned tuple.
+    std::tie(std::ignore, vertice_UV, vertice_3D, mesh_UV_path)
+        = surface_parametrization.create_uv_surface(mesh_path, 0);
     mesh_UV_name = surface_parametrization.get_mesh_name(mesh_UV_path);
 
     // Create the tessellation mesh
@@ -73,9 +90,9 @@ _2DTissue::_2DTissue(
     // Collect the distances
     fs::path path(mesh_path);
     // fs::path mesh_kachelmuster = path.parent_path() / (path.stem().string() + "_uv_kachelmuster.off");
-    // CachedTessellationDistanceHelper helper = CachedTessellationDistanceHelper(mesh_kachelmuster, equivalent_vertices);
-    // GeodesicDistanceHelperInterface& geodesic_distance_helper = helper;
-    // distance_matrix = geodesic_distance_helper.get_mesh_distance_matrix();
+    // CachedTessellationDistanceHelper helper = CachedTessellationDistanceHelper(mesh_kachelmuster,
+    // equivalent_vertices); GeodesicDistanceHelperInterface& geodesic_distance_helper = helper; distance_matrix =
+    // geodesic_distance_helper.get_mesh_distance_matrix();
 
     fs::path mesh_open = path.parent_path() / (path.stem().string() + "_open.off");
     CachedGeodesicDistanceHelper helper_3D = CachedGeodesicDistanceHelper(mesh_open);
@@ -88,12 +105,12 @@ _2DTissue::_2DTissue(
     dist_length = Eigen::MatrixXd::Zero(particle_count, particle_count);
 }
 
-
 // ========================================
 // Public Functions
 // ========================================
 
-void _2DTissue::start(){
+void _2DTissue::start()
+{
     // Initialize the particles in 2D
     r_UV.resize(particle_count, Eigen::NoChange);
     r_UV_old.resize(particle_count, Eigen::NoChange);
@@ -111,8 +128,8 @@ void _2DTissue::start(){
     std::tie(r_3D, vertices_3D_active) = cell_helper.get_r3d();
 }
 
-
-System _2DTissue::update(){
+System _2DTissue::update()
+{
     // The new coordinates are the old ones for the next step
     r_UV_old = r_UV;
     n_old = n;
@@ -125,7 +142,8 @@ System _2DTissue::update(){
 
     std::vector<Particle> particles;
     // start for loop
-    for (int i = 0; i < r_UV.rows(); i++){
+    for (int i = 0; i < r_UV.rows(); i++)
+    {
         Particle p;
         p.x_UV = r_UV(i, 0);
         p.y_UV = r_UV(i, 1);
@@ -144,11 +162,13 @@ System _2DTissue::update(){
     system.particles = particles;
 
     current_step++;
-    if (current_step >= step_count) {
+    if (current_step >= step_count)
+    {
         finished = true;
     }
 
-    if (save_data) {
+    if (save_data)
+    {
         save_our_data();
     }
 
@@ -159,21 +179,22 @@ System _2DTissue::update(){
     return system;
 }
 
-bool _2DTissue::is_finished() {
+bool _2DTissue::is_finished()
+{
     return finished;
 }
 
-Eigen::VectorXd _2DTissue::get_order_parameter() {
+Eigen::VectorXd _2DTissue::get_order_parameter()
+{
     return v_order;
 }
-
-
 
 // ========================================
 // Private Functions
 // ========================================
 
-void _2DTissue::perform_particle_simulation(){
+void _2DTissue::perform_particle_simulation()
+{
     // 1. Simulate the flight of the particle on the UV mesh
     locomotion.simulate_flight();
 
@@ -185,8 +206,8 @@ void _2DTissue::perform_particle_simulation(){
     r_3D = new_r_3D;
 
     // Error checking
-    validation.error_lost_particles(r_UV, particle_count);  // 1. Check if we lost particles
-    validation.error_invalid_values(r_UV);  // 2. Check if there are invalid values like NaN or Inf in the output
+    validation.error_lost_particles(r_UV, particle_count); // 1. Check if we lost particles
+    validation.error_invalid_values(r_UV); // 2. Check if there are invalid values like NaN or Inf in the output
 
     // Dye the particles based on their distance
     count_particle_neighbors();
@@ -204,26 +225,30 @@ void _2DTissue::perform_particle_simulation(){
     std::cout << "\n";
 }
 
-
-void _2DTissue::count_particle_neighbors() {
+void _2DTissue::count_particle_neighbors()
+{
     const int num_rows = dist_length.rows();
 
-    for (int i = 0; i < num_rows; i++) {
-        for (int j = 0; j < dist_length.cols(); j++) {
-            if (dist_length(i, j) != 0 && dist_length(i, j) <= 2.4 * σ) {
+    for (int i = 0; i < num_rows; i++)
+    {
+        for (int j = 0; j < dist_length.cols(); j++)
+        {
+            if (dist_length(i, j) != 0 && dist_length(i, j) <= 2.4 * σ)
+            {
                 particles_color[i] += 1;
             }
         }
     }
 }
 
-
-void _2DTissue::save_our_data() {
+void _2DTissue::save_our_data()
+{
     std::string file_name = "r_data_" + std::to_string(current_step) + ".csv";
     save_matrix_to_csv(r_UV, file_name, particle_count);
     std::string file_name_3D = "r_data_3D_" + std::to_string(current_step) + ".csv";
     save_matrix_to_csv(r_3D, file_name_3D, particle_count);
-    Eigen::VectorXi particles_color_eigen = Eigen::Map<Eigen::VectorXi, Eigen::Unaligned>(particles_color.data(), particles_color.size());
+    Eigen::VectorXi particles_color_eigen
+        = Eigen::Map<Eigen::VectorXi, Eigen::Unaligned>(particles_color.data(), particles_color.size());
     std::string file_name_color = "particles_color_" + std::to_string(current_step) + ".csv";
     save_matrix_to_csv(particles_color_eigen, file_name_color, particle_count);
 }

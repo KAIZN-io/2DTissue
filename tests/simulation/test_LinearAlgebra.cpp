@@ -3,14 +3,15 @@
 // license: Apache License 2.0
 // version: 0.1.0
 
-#include <gtest/gtest.h>
 #include <Eigen/Dense>
+#include <gtest/gtest.h>
 
 #include <LinearAlgebra.h>
 
 std::unique_ptr<LinearAlgebra> linear_algebra_ptr = std::make_unique<LinearAlgebra>();
 
-TEST(LinearAlgebraTest, BasicAssertions) {
+TEST(LinearAlgebraTest, BasicAssertions)
+{
     // Set up the test input
     Eigen::VectorXi avg_n(6);
     avg_n << 0, 45, 90, 180, 270, 360;

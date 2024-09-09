@@ -8,12 +8,13 @@
  * @license     Apache License 2.0
  *
  * @bug         -
- * @todo        nicht nur muss beim Kachelmuster die Partikel die Distanz der Partikeln auf den Kachelmuster wissen, sondern die Kraft und Orientierung von den Partikeln ihres Seam Kanten Zwilling, der neben ihr der Monolite ist.
+ * @todo        nicht nur muss beim Kachelmuster die Partikel die Distanz der Partikeln auf den Kachelmuster wissen,
+ * sondern die Kraft und Orientierung von den Partikeln ihres Seam Kanten Zwilling, der neben ihr der Monolite ist.
  */
 
-#include <Locomotion.h>
 #include "Locomotion/ForceHelper.h"
 #include "Locomotion/OrientationHelper.h"
+#include <Locomotion.h>
 
 Locomotion::Locomotion(
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
@@ -30,31 +31,31 @@ Locomotion::Locomotion(
     double r_adh,
     double k_adh,
     double step_size,
-    std::unique_ptr<LinearAlgebra> linear_algebra_ptr
-)
-    : r_UV(r_UV),
-      r_UV_old(r_UV_old),
-      r_dot(r_dot),
-      n(n),
-      vertices_3D_active(vertices_3D_active),
-      distance_matrix(distance_matrix),
-      dist_length(dist_length),
-      v0(v0),
-      k(k),
-      σ(σ),
-      μ(μ),
-      r_adh(r_adh),
-      k_adh(k_adh),
-      step_size(step_size),
-      linear_algebra_ptr(std::move(linear_algebra_ptr)) {
+    std::unique_ptr<LinearAlgebra> linear_algebra_ptr)
+    : r_UV(r_UV)
+    , r_UV_old(r_UV_old)
+    , r_dot(r_dot)
+    , n(n)
+    , vertices_3D_active(vertices_3D_active)
+    , distance_matrix(distance_matrix)
+    , dist_length(dist_length)
+    , v0(v0)
+    , k(k)
+    , σ(σ)
+    , μ(μ)
+    , r_adh(r_adh)
+    , k_adh(k_adh)
+    , step_size(step_size)
+    , linear_algebra_ptr(std::move(linear_algebra_ptr))
+{
 }
-
 
 // ========================================
 // Public Functions
 // ========================================
 
-void Locomotion::simulate_flight() {
+void Locomotion::simulate_flight()
+{
     resize_F_track();
 
     // Get distance vectors and calculate distances between particles
@@ -75,7 +76,8 @@ void Locomotion::simulate_flight() {
     // 2. Some particles are influenced by the force F_track
     abs_F = abs_F.array() + v0;
 
-    // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new matrix of size n_vec
+    // multiply elementwise the values of Eigen::VectorXd abs_F with the values of Eigen::MatrixXd n_vec to create a new
+    // matrix of size n_vec
     r_dot = n_vec.array().colwise() * abs_F.array();
 
     // Calculate the new position of each particle
@@ -86,21 +88,21 @@ void Locomotion::simulate_flight() {
     orientation_helper.calculate_average_n_within_distance();
 }
 
-
 /**
  * @brief Calculate the distance between each pair of particles
-*/
+ */
 void Locomotion::get_distances_between_particles(
-    Eigen::MatrixXd& dist_length,
-    Eigen::MatrixXd distance_matrix,
-    std::vector<int> vertice_3D_id
-){
+    Eigen::MatrixXd& dist_length, Eigen::MatrixXd distance_matrix, std::vector<int> vertice_3D_id)
+{
     int num_part = vertice_3D_id.size();
 
     // Use the #pragma omp parallel for directive to parallelize the outer loop
-    // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the iterations among them
-    for (int i = 0; i < num_part; i++) {
-        for (int j = 0; j < num_part; j++) {
+    // The directive tells the compiler to create multiple threads to execute the loop in parallel, splitting the
+    // iterations among them
+    for (int i = 0; i < num_part; i++)
+    {
+        for (int j = 0; j < num_part; j++)
+        {
             dist_length(i, j) = distance_matrix(vertice_3D_id[i], vertice_3D_id[j]);
         }
     }
@@ -108,37 +110,38 @@ void Locomotion::get_distances_between_particles(
     transform_into_symmetric_matrix(dist_length);
 }
 
-
-
 // ========================================
 // Private Functions
 // ========================================
 
-void Locomotion::resize_F_track() {
+void Locomotion::resize_F_track()
+{
     F_track.resize(r_UV.rows(), 2);
 }
 
-
 /**
-* @brief Transform a matrix into a symmetric matrix where the choosen value is the minimum of the two values
-*
-* @info: Unittest implemented
-*/
-void Locomotion::transform_into_symmetric_matrix(Eigen::MatrixXd &A) {
+ * @brief Transform a matrix into a symmetric matrix where the choosen value is the minimum of the two values
+ *
+ * @info: Unittest implemented
+ */
+void Locomotion::transform_into_symmetric_matrix(Eigen::MatrixXd& A)
+{
     int n = A.rows();
 
-    for (int i = 0; i < n; i++) {
-        for (int j = i+1; j < n; j++) {
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = i + 1; j < n; j++)
+        {
             A(i, j) = A(j, i) = std::min(A(i, j), A(j, i));
         }
     }
 }
 
-
 /**
  * @info: Unittest implemented
-*/
-std::vector<Eigen::MatrixXd> Locomotion::get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r) {
+ */
+std::vector<Eigen::MatrixXd> Locomotion::get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r)
+{
     Eigen::VectorXd dist_x = r.col(0);
     Eigen::VectorXd dist_y = r.col(1);
 

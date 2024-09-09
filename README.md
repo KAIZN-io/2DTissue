@@ -16,6 +16,12 @@ Navigate into the src folder and run the following command:
 cppcheck --enable=all --inconclusive --force --suppress=missingIncludeSystem ./simulation
 ```
 
+and
+
+```bash
+find . -type f \( -name "*.cpp" -o -name "*.h" \) ! -name "argparse.hpp" -exec clang-format -i {} \;
+```
+
 ## Theoretical Model
 
 The model described is a Vicsek type model (Vicsek et al. 1995, Physical review letters 75(6): 1226) of spherical active particles with a fixed radius confined to the surface of an ellipsoid. Particle interactions are modelled through forces between neighbouring particles that tend to align their velocities (adapted from Szabo et al. 2006, Physical Review E 74(6): 061908).

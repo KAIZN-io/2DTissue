@@ -12,9 +12,9 @@
 #include <vector>
 
 // Third-party library headers
-#include <filesystem>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <filesystem>
 
 // #include "Cell.h"
 #include "CellHelper.h"
@@ -23,15 +23,16 @@
 // #include "GeodesicDistance/TessellationDistanceHelper.h"
 #include "GeodesicDistanceHelperInterface.h"
 #include "IO.h"
+#include "IO/IO.h"
 #include "LinearAlgebra.h"
 #include "Locomotion.h"
 #include "Struct.h"
 #include "SurfaceParametrization/SurfaceParametrization.h"
-#include "IO/IO.h"
 #include "Validation.h"
 
-class _2DTissue {
-public:
+class _2DTissue
+{
+  public:
     _2DTissue(
         bool save_data,
         bool particle_innenleben,
@@ -48,8 +49,7 @@ public:
         double r_adh = 1,
         double k_adh = 0.75,
         double step_size = 0.001,
-        int map_cache_count = 30
-    );
+        int map_cache_count = 30);
     void start();
     System update();
     bool is_finished();
@@ -58,7 +58,7 @@ public:
     friend class Locomotion;
     friend class CellHelper;
 
-private:
+  private:
     // Include here your class variables (the ones used in start and update methods)
     bool save_data;
     bool particle_innenleben;

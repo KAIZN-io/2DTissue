@@ -54,7 +54,6 @@
 //     free_memory();
 // }
 
-
 // // ========================================
 // // Public Functions
 // // ========================================
@@ -67,7 +66,6 @@
 
 //     return v0;
 // }
-
 
 // void Cell::perform_sbml_simulation() {
 //     rr = new rr::RoadRunner();
@@ -92,7 +90,6 @@
 //     delete rr;
 // }
 
-
 // void Cell::free_memory() {
 //     // Free memory
 //     CVodeFree(&cvode_mem);
@@ -100,8 +97,6 @@
 //     SUNMatDestroy(A); /* Free the matrix memory */
 //     N_VDestroy(y);
 // }
-
-
 
 // // ========================================
 // // Private Functions

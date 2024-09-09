@@ -1,19 +1,20 @@
 // Locomotion.h
 #pragma once
 
-#include <tuple>
-#include <iostream>
-#include <vector>
 #include <Eigen/Dense>
-#include <random>
 #include <cmath>
+#include <iostream>
+#include <random>
+#include <tuple>
+#include <vector>
 // #include <gtest/gtest_prod.h>
 
-#include "LocomotionHelperInterface.h"
 #include "LinearAlgebra.h"
+#include "LocomotionHelperInterface.h"
 
-class Locomotion {
-public:
+class Locomotion
+{
+  public:
     Locomotion(
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
         Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old,
@@ -29,16 +30,12 @@ public:
         double r_adh,
         double k_adh,
         double step_size,
-        std::unique_ptr<LinearAlgebra> linear_algebra_ptr
-    );
+        std::unique_ptr<LinearAlgebra> linear_algebra_ptr);
     void simulate_flight();
     static void get_distances_between_particles(
-        Eigen::MatrixXd& dist_length,
-        Eigen::MatrixXd distance_matrix,
-        std::vector<int> vertice_3D_id
-    );
+        Eigen::MatrixXd& dist_length, Eigen::MatrixXd distance_matrix, std::vector<int> vertice_3D_id);
 
-private:
+  private:
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV_old;
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_dot;
@@ -52,21 +49,21 @@ private:
     Eigen::Matrix<double, Eigen::Dynamic, 2> F_track;
 
     void resize_F_track();
-    static void transform_into_symmetric_matrix(Eigen::MatrixXd &A);
+    static void transform_into_symmetric_matrix(Eigen::MatrixXd& A);
     static std::vector<Eigen::MatrixXd> get_dist_vect(const Eigen::Matrix<double, Eigen::Dynamic, 2>& r);
 
-// FRIEND_TEST(LocomotionTest, ThrowsWhenInputIsEmpty);
-// FRIEND_TEST(LocomotionTest, CorrectlyCalculatesMeanAngle);
-// FRIEND_TEST(LocomotionTest, CorrectlyHandlesNegativeAngles);
-// FRIEND_TEST(LocomotionTest, SymmetricMatrixTestBasicTest);
-// FRIEND_TEST(LocomotionTest, SymmetricMatrixTestZeroTest);
-// FRIEND_TEST(LocomotionTest, SymmetricMatrixTestAllZerosTest);
-// FRIEND_TEST(LocomotionTest, GetDistVectTestBasicTest);
-// FRIEND_TEST(LocomotionTest, GetDistVectTestZeroMatrixTest);
-// FRIEND_TEST(LocomotionTest, GetDistVectTestOneDimensionTest);
-// FRIEND_TEST(LocomotionTest, GetDistVectTestHandlesSquareMatrixCorrectly);
-// FRIEND_TEST(LocomotionTest, GetDistVectTestTenDimensionTest);
-// FRIEND_TEST(LocomotionTest, AverageNWithinDistanceTest1);
-// FRIEND_TEST(LocomotionTest, RepulsiveAdhesionTest1);
-// FRIEND_TEST(LocomotionTest, RepulsiveAdhesionTest2);
+    // FRIEND_TEST(LocomotionTest, ThrowsWhenInputIsEmpty);
+    // FRIEND_TEST(LocomotionTest, CorrectlyCalculatesMeanAngle);
+    // FRIEND_TEST(LocomotionTest, CorrectlyHandlesNegativeAngles);
+    // FRIEND_TEST(LocomotionTest, SymmetricMatrixTestBasicTest);
+    // FRIEND_TEST(LocomotionTest, SymmetricMatrixTestZeroTest);
+    // FRIEND_TEST(LocomotionTest, SymmetricMatrixTestAllZerosTest);
+    // FRIEND_TEST(LocomotionTest, GetDistVectTestBasicTest);
+    // FRIEND_TEST(LocomotionTest, GetDistVectTestZeroMatrixTest);
+    // FRIEND_TEST(LocomotionTest, GetDistVectTestOneDimensionTest);
+    // FRIEND_TEST(LocomotionTest, GetDistVectTestHandlesSquareMatrixCorrectly);
+    // FRIEND_TEST(LocomotionTest, GetDistVectTestTenDimensionTest);
+    // FRIEND_TEST(LocomotionTest, AverageNWithinDistanceTest1);
+    // FRIEND_TEST(LocomotionTest, RepulsiveAdhesionTest1);
+    // FRIEND_TEST(LocomotionTest, RepulsiveAdhesionTest2);
 };

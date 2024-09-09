@@ -1,11 +1,13 @@
 #pragma once
 
-class LocomotionHelperInterface {
-public:
+class LocomotionHelperInterface
+{
+  public:
     virtual void calculate_forces_between_particles() = 0;
 };
 
-class OrientationHelperInterface {
-public:
+class OrientationHelperInterface
+{
+  public:
     virtual void calculate_average_n_within_distance() = 0;
 };

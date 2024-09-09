@@ -1,6 +1,7 @@
 /**
  * @file        CellHelper.cpp
- * @brief       Mapping 2D coordinates to 3D coordinates and vice versa; initializing the particle positions and orientations
+ * @brief       Mapping 2D coordinates to 3D coordinates and vice versa; initializing the particle positions and
+ * orientations
  *
  * @author      Jan-Piotraschke
  * @date        2023-Jul-18
@@ -23,26 +24,24 @@ CellHelper::CellHelper(
     Eigen::MatrixXd& vertice_3D,
     Eigen::Matrix<double, Eigen::Dynamic, 2>& r_UV,
     Eigen::MatrixXd& r_3D,
-    Eigen::VectorXi& n
-)
-    : particle_count(particle_count),
-    face_UV(face_UV),
-    face_3D(face_3D),
-    vertice_UV(vertice_UV),
-    vertice_3D(vertice_3D),
-    r_UV(r_UV),
-    r_3D(r_3D),
-    n(n)
+    Eigen::VectorXi& n)
+    : particle_count(particle_count)
+    , face_UV(face_UV)
+    , face_3D(face_3D)
+    , vertice_UV(vertice_UV)
+    , vertice_3D(vertice_3D)
+    , r_UV(r_UV)
+    , r_3D(r_3D)
+    , n(n)
 {
-
 }
-
 
 // ========================================
 // Public Functions
 // ========================================
 
-void CellHelper::init_particle_position() {
+void CellHelper::init_particle_position()
+{
     std::vector<int> face_list(face_UV.rows());
     std::iota(face_list.begin(), face_list.end(), 0);
 
@@ -52,10 +51,12 @@ void CellHelper::init_particle_position() {
     std::uniform_int_distribution<> dis_face(0, face_list.size() - 1);
     std::uniform_int_distribution<> dis_angle(0, 359);
 
-    for (int i = 0; i < particle_count; ++i) {
+    for (int i = 0; i < particle_count; ++i)
+    {
         int random_face = dis_face(gen);
         auto it = std::find(face_list.begin(), face_list.end(), random_face);
-        if (it != face_list.end()) {
+        if (it != face_list.end())
+        {
             face_list.erase(it);
         }
 
@@ -65,14 +66,16 @@ void CellHelper::init_particle_position() {
     }
 }
 
-
-// (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations)) mapping
-std::pair<Eigen::MatrixXd, std::vector<int>> CellHelper::get_r3d(){
+// (2D Coordinates -> 3D Coordinates and Their Nearest 3D Vertice id (for the distance calculation on resimulations))
+// mapping
+std::pair<Eigen::MatrixXd, std::vector<int>> CellHelper::get_r3d()
+{
     int num_r = r_UV.rows();
     Eigen::MatrixXd new_3D_points(num_r, 3);
     std::vector<int> nearest_vertices_ids(num_r);
 
-    for (int i = 0; i < num_r; ++i) {
+    for (int i = 0; i < num_r; ++i)
+    {
         auto [barycentric_coord, nearest_vertex_id] = calculate_barycentric_3D_coord(i);
         new_3D_points.row(i) = barycentric_coord;
         nearest_vertices_ids[i] = nearest_vertex_id;
@@ -81,18 +84,16 @@ std::pair<Eigen::MatrixXd, std::vector<int>> CellHelper::get_r3d(){
     return {new_3D_points, nearest_vertices_ids};
 }
 
-
-
 // ========================================
 // Private Functions
 // ========================================
 
-Eigen::Vector2d CellHelper::get_face_gravity_center_coord(
-    const Eigen::Vector3i r_face
-) {
+Eigen::Vector2d CellHelper::get_face_gravity_center_coord(const Eigen::Vector3i r_face)
+{
     Eigen::Vector3d center_face_test(0, 0, 0);
 
-    for (int j = 0; j < 3; ++j) {
+    for (int j = 0; j < 3; ++j)
+    {
         center_face_test += vertice_UV.row(r_face[j]);
     }
     Eigen::Vector2d center_face = center_face_test.head(2);
@@ -100,11 +101,12 @@ Eigen::Vector2d CellHelper::get_face_gravity_center_coord(
     return center_face / 3.0;
 }
 
-
-std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int iterator){
+std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int iterator)
+{
     std::vector<std::pair<double, int>> distances(face_UV.rows());
 
-    for (int j = 0; j < face_UV.rows(); ++j) {
+    for (int j = 0; j < face_UV.rows(); ++j)
+    {
         Eigen::Vector3d uv_a = vertice_UV.row(face_UV(j, 0));
         Eigen::Vector3d uv_b = vertice_UV.row(face_UV(j, 1));
         Eigen::Vector3d uv_c = vertice_UV.row(face_UV(j, 2));
@@ -147,20 +149,19 @@ std::pair<Eigen::Vector3d, int> CellHelper::calculate_barycentric_3D_coord(int i
     double min_dist = std::min({dist_a, dist_b, dist_c});
 
     int closest_vertice_id;
-    if (min_dist == dist_a) closest_vertice_id = triangle_vertice_a;
-    else if (min_dist == dist_b) closest_vertice_id = triangle_vertice_b;
-    else closest_vertice_id = triangle_vertice_c;
+    if (min_dist == dist_a)
+        closest_vertice_id = triangle_vertice_a;
+    else if (min_dist == dist_b)
+        closest_vertice_id = triangle_vertice_b;
+    else
+        closest_vertice_id = triangle_vertice_c;
 
     return std::make_pair(newPoint, closest_vertice_id);
 }
 
-
 double CellHelper::pointTriangleDistance(
-    const Eigen::Vector3d& p,
-    const Eigen::Vector3d& a,
-    const Eigen::Vector3d& b,
-    const Eigen::Vector3d& c
-) {
+    const Eigen::Vector3d& p, const Eigen::Vector3d& a, const Eigen::Vector3d& b, const Eigen::Vector3d& c)
+{
     // Edges of the triangle
     Eigen::Vector3d ab = b - a;
     Eigen::Vector3d ac = c - a;
@@ -212,24 +213,16 @@ double CellHelper::pointTriangleDistance(
     return (a + ab * v + ac * w - p).norm();
 }
 
-
-double CellHelper::pointSegmentDistance(
-    const Eigen::Vector3d& p,
-    const Eigen::Vector3d& a,
-    const Eigen::Vector3d& b
-) {
+double CellHelper::pointSegmentDistance(const Eigen::Vector3d& p, const Eigen::Vector3d& a, const Eigen::Vector3d& b)
+{
     Eigen::Vector3d ab = b - a;
     double t = ab.dot(p - a) / ab.dot(ab);
-    t = std::clamp(t, 0.0, 1.0);  // ensure t stays between 0 and 1
+    t = std::clamp(t, 0.0, 1.0); // ensure t stays between 0 and 1
     return (a + ab * t - p).norm();
 }
 
-
-void CellHelper::normalize_weights(
-    double& a,
-    double& b,
-    double& c
-) {
+void CellHelper::normalize_weights(double& a, double& b, double& c)
+{
     double sum_weights = a + b + c;
     a /= sum_weights;
     b /= sum_weights;
