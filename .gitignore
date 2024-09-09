@@ -39,7 +39,6 @@ images/
 libigl/
 assets/
 build/
-embuild/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake

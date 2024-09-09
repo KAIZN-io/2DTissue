@@ -10,24 +10,17 @@ ASSETS_DIR := $(PROJECT_DIR)/assets
 ARCHITECTURE := $(shell uname -m)
 
 # Platform selection
-PLATFORM ?= executive
 BUILD_DIR = build
-ifeq ($(PLATFORM), wasm)
-	CMAKE_CMD = emcmake cmake
-	BUILD_CMD = emmake ninja
-	BUILD_DIR = embuild
-else
-	CMAKE_CMD = cmake
-	BUILD_CMD = ninja
-endif
+CMAKE_CMD = cmake
+BUILD_CMD = ninja
 
 # Determine OS
 OS := $(shell uname -s)
 
 # Compiler paths
 ifeq ($(OS), Darwin)
-	C_COMPILER=$(shell brew --prefix llvm)/bin/clang
-	CXX_COMPILER=$(shell brew --prefix llvm)/bin/clang++
+	C_COMPILER=$(shell xcrun --find clang)
+	CXX_COMPILER=$(shell xcrun --find clang++)
 else ifeq ($(OS), Linux)
 	C_COMPILER=/usr/bin/gcc
 	CXX_COMPILER=/usr/bin/g++
@@ -36,7 +29,7 @@ endif
 .PHONY: all
 all: check_dependencies check_submodule build
 
-# Check if LLVM and Emscripten are installed, if not, install using apt-get
+# Check if LLVM is installed, if not, install using apt-get
 .PHONY: check_dependencies
 check_dependencies:
 	@echo "Checking dependencies..."
@@ -50,17 +43,16 @@ ifeq ($(OS), Darwin)
 	export PATH="$$LLVM_PATH/bin:$$PATH"; \
 	export LDFLAGS="-L$$LLVM_PATH/lib $$LDFLAGS"; \
 	export CPPFLAGS="-I$$LLVM_PATH/include $$CPPFLAGS"; \
-	which emcc >/dev/null || (echo "Installing Emscripten via Homebrew..."; brew install emscripten); \
 	which yarn >/dev/null || (echo "Installing Yarn via Homebrew..."; brew install yarn); \
 	which ninja >/dev/null || (echo "Installing Ninja via Homebrew..."; brew install ninja)
 else ifeq ($(OS), Linux)
 	sudo apt-get update; \
-	MAKEFILE_DEPS="g++ llvm clang emscripten yarn cmake libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev ninja-build"; \
+	MAKEFILE_DEPS="g++ llvm clang yarn cmake libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev ninja-build"; \
 	for DEP in $$MAKEFILE_DEPS; do \
 		dpkg -s $$DEP >/dev/null 2>&1 || (echo "Installing $$DEP via package manager..."; sudo apt-get install -y $$DEP); \
 	done
 else ifeq ($(OS), MINGW64_NT-10.0)
-	@echo "Please ensure you have installed LLVM, Emscripten and Yarn manually, and they are available in the PATH."
+	@echo "Please ensure you have installed LLVM and Yarn manually, and they are available in the PATH."
 else
 	@echo "Unsupported OS. Please install the packages manually."
 endif
@@ -112,7 +104,6 @@ install_analysis:
 .PHONY: clean
 clean:
 	rm -rf $(PROJECT_DIR)/build $(DATA_DIR) $(ASSETS_DIR)
-	rm -rf $(PROJECT_DIR)/embuild
 
 .PHONY: clean_data
 clean_data:
@@ -121,4 +112,3 @@ clean_data:
 .PHONY: distclean
 distclean: clean
 	rm -rf $(PROJECT_DIR)/build/*
-	rm -rf $(PROJECT_DIR)/embuild/*

@@ -19,20 +19,8 @@ set(CMAKE_CXX_STANDARD 17)
 # Set library output directory
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
-if(EMSCRIPTEN)
-  add_compile_options(--no-heap-copy)
-  add_compile_options(-fexceptions)
-  add_link_options(-fexceptions)
-  add_link_options(
-    "SHELL:-sWASM=1 -sUSE_WEBGL2=1 -sUSE_GLFW=3 -sALLOW_MEMORY_GROWTH=1 -sALLOW_TABLE_GROWTH=1 -sSTACK_SIZE=5MB"
-  )
-  set(CMAKE_EXECUTABLE_SUFFIX ".html")
-endif()
-
-if(NOT EMSCRIPTEN)
-  find_package(GTest REQUIRED)
-  include_directories(${GTEST_INCLUDE_DIRS})
-endif()
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/simulation")
 
@@ -60,13 +48,11 @@ install(TARGETS main
         ARCHIVE DESTINATION lib
 )
 
-if (NOT EMSCRIPTEN)
-  # Collect all test source files
-  file(GLOB_RECURSE TEST_SOURCES tests/simulation/*.cpp)
+# Collect all test source files
+file(GLOB_RECURSE TEST_SOURCES tests/simulation/*.cpp)
 
-  # Create a test executable for all available tests
-  add_executable(all_tests ${TEST_SOURCES})
+# Create a test executable for all available tests
+add_executable(all_tests ${TEST_SOURCES})
 
-  # Link your libraries to the test executable
-  target_link_libraries(all_tests PRIVATE simulation_lib MeshCartographyLib ${GTEST_BOTH_LIBRARIES} pthread)
-endif()
+# Link your libraries to the test executable
+target_link_libraries(all_tests PRIVATE simulation_lib MeshCartographyLib ${GTEST_BOTH_LIBRARIES} pthread)
