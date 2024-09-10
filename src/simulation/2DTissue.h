@@ -21,6 +21,7 @@
 #include "Locomotion/EuclideanTiling.h"
 #include "SurfaceParametrization/TessellationHelper.h"
 // #include "GeodesicDistance/TessellationDistanceHelper.h"
+#include "../utils/KafkaProducer.h"
 #include "GeodesicDistanceHelperInterface.h"
 #include "IO.h"
 #include "IO/IO.h"
@@ -41,6 +42,7 @@ class _2DTissue
         int particle_count,
         int step_count = 1,
         double v0 = 0.1,
+        bool use_kafka = false,
         double k = 1,
         double k_next = 10,
         double v0_next = 0.1,
@@ -50,6 +52,7 @@ class _2DTissue
         double k_adh = 0.75,
         double step_size = 0.001,
         int map_cache_count = 30);
+
     void start();
     System update();
     bool is_finished();
@@ -59,7 +62,6 @@ class _2DTissue
     friend class CellHelper;
 
   private:
-    // Include here your class variables (the ones used in start and update methods)
     bool save_data;
     bool particle_innenleben;
     bool free_boundary;
@@ -117,6 +119,9 @@ class _2DTissue
     Validation validation;
 
     int numberOfPoints;
+
+    bool kafkaEnabled;
+    std::unique_ptr<KafkaProducer> kafkaProducer;
 
     void perform_particle_simulation();
     void save_our_data();

@@ -57,3 +57,4 @@ matlab/
 
 vscode.yaml
 external/
+*.db

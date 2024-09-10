@@ -25,6 +25,7 @@ _2DTissue::_2DTissue(
     int particle_count,
     int step_count,
     double v0,
+    bool use_kafka,
     double k,
     double k_next,
     double v0_next,
@@ -52,30 +53,35 @@ _2DTissue::_2DTissue(
     , map_cache_count(map_cache_count)
     , finished(false)
     , surface_parametrization()
-    ,
-    // tessellation_distance(mesh_path),
-    locomotion(
-        r_UV,
-        r_UV_old,
-        r_dot,
-        n,
-        vertices_3D_active,
-        distance_matrix,
-        dist_length,
-        v0,
-        k,
-        σ,
-        μ,
-        r_adh,
-        k_adh,
-        step_size,
-        std::move(linear_algebra_ptr))
-    // , cell(),
+    // , tessellation_distance(mesh_path)
+    , locomotion(
+          r_UV,
+          r_UV_old,
+          r_dot,
+          n,
+          vertices_3D_active,
+          distance_matrix,
+          dist_length,
+          v0,
+          k,
+          σ,
+          μ,
+          r_adh,
+          k_adh,
+          step_size,
+          std::move(linear_algebra_ptr))
+    // , cell()
     , cell_helper(particle_count, face_UV, face_3D, vertice_UV, vertice_3D, r_UV, r_3D, n)
     , validation(surface_parametrization)
     , tessellation(surface_parametrization)
     , euclidean_tiling(surface_parametrization, tessellation, r_UV, r_UV_old, n)
+    , kafkaEnabled(use_kafka)
 {
+    if (kafkaEnabled)
+    {
+        kafkaProducer = std::make_unique<KafkaProducer>("localhost:9092", "simulation_topic");
+    }
+
     loadMeshFaces(mesh_path, face_3D);
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member
@@ -93,7 +99,6 @@ _2DTissue::_2DTissue(
     // CachedTessellationDistanceHelper helper = CachedTessellationDistanceHelper(mesh_kachelmuster,
     // equivalent_vertices); GeodesicDistanceHelperInterface& geodesic_distance_helper = helper; distance_matrix =
     // geodesic_distance_helper.get_mesh_distance_matrix();
-
     fs::path mesh_open = path.parent_path() / (path.stem().string() + "_open.off");
     CachedGeodesicDistanceHelper helper_3D = CachedGeodesicDistanceHelper(mesh_open);
     GeodesicDistanceHelperInterface& geodesic_distance_helper_3D = helper_3D;
@@ -141,7 +146,6 @@ System _2DTissue::update()
     perform_particle_simulation();
 
     std::vector<Particle> particles;
-    // start for loop
     for (int i = 0; i < r_UV.rows(); i++)
     {
         Particle p;
@@ -161,6 +165,29 @@ System _2DTissue::update()
     system.order_parameter = v_order(v_order.rows() - 1, 0);
     system.particles = particles;
 
+    if (kafkaEnabled)
+    {
+        // Send system information to Kafka
+        std::string message = "System Order Parameter: " + std::to_string(system.order_parameter);
+        kafkaProducer->send(message);
+
+        // Send particles information to Kafka
+        for (const auto& particle : particles)
+        {
+            std::string particleMessage
+                = "Particle: x_UV=" + std::to_string(particle.x_UV) + ", y_UV=" + std::to_string(particle.y_UV)
+                  + ", x_velocity_UV=" + std::to_string(particle.x_velocity_UV) + ", y_velocity_UV="
+                  + std::to_string(particle.y_velocity_UV) + ", x_3D=" + std::to_string(particle.x_3D)
+                  + ", y_3D=" + std::to_string(particle.y_3D) + ", z_3D=" + std::to_string(particle.z_3D);
+            kafkaProducer->send(particleMessage);
+        }
+    }
+
+    // // Insert data into SQLite database
+    // DatabaseManager dbManager("simulation_data.db");
+    // dbManager.insertSystemInfo(system);
+    // dbManager.insertParticlesInfo(system.particles);
+
     current_step++;
     if (current_step >= step_count)
     {
@@ -172,7 +199,6 @@ System _2DTissue::update()
         save_our_data();
     }
 
-    // Clear the vector
     particles_color.clear();
     particles_color.resize(particle_count);
 
