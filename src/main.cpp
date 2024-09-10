@@ -49,6 +49,8 @@ int main(int argc, char* argv[])
 
     program.add_argument("--step-time").default_value(0.01).scan<'g', double>().help("Time step for the simulation");
 
+    program.add_argument("--kafka").default_value(false).implicit_value(true).help("Enable Kafka streaming");
+
     try
     {
         program.parse_args(argc, argv);
@@ -68,10 +70,18 @@ int main(int argc, char* argv[])
     std::string mesh_path = program.get<std::string>("--mesh-path");
     int particle_count = program.get<int>("--particle-count");
     double step_time = program.get<double>("--step-time");
+    bool use_kafka = program.get<bool>("--kafka");
 
     // Run the simulation
     _2DTissue _2dtissue(
-        save_data, particle_innenleben, optimized_monotile_boundary, mesh_path, particle_count, step_count, step_time);
+        save_data,
+        particle_innenleben,
+        optimized_monotile_boundary,
+        mesh_path,
+        particle_count,
+        step_count,
+        step_time,
+        use_kafka);
 
     _2dtissue.start();
 

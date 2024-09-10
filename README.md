@@ -9,7 +9,7 @@ Simply run `make` in your terminal in the root of this project and everything wi
 ## How to run the simulation
 
 ```bash
-./build/main --step-count 50 --particle-count 100 --step-time 0.02
+./build/main --step-count 50 --particle-count 100 --step-time 0.02 --kafka
 ```
 
 or if you need help:

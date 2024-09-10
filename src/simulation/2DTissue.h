@@ -21,6 +21,7 @@
 #include "Locomotion/EuclideanTiling.h"
 #include "SurfaceParametrization/TessellationHelper.h"
 // #include "GeodesicDistance/TessellationDistanceHelper.h"
+#include "../utils/KafkaProducer.h"
 #include "GeodesicDistanceHelperInterface.h"
 #include "IO.h"
 #include "IO/IO.h"
@@ -29,8 +30,6 @@
 #include "Struct.h"
 #include "SurfaceParametrization/SurfaceParametrization.h"
 #include "Validation.h"
-
-#include "../utils/KafkaProducer.h"
 
 class _2DTissue
 {
@@ -43,6 +42,7 @@ class _2DTissue
         int particle_count,
         int step_count = 1,
         double v0 = 0.1,
+        bool use_kafka = false,
         double k = 1,
         double k_next = 10,
         double v0_next = 0.1,
@@ -120,7 +120,8 @@ class _2DTissue
 
     int numberOfPoints;
 
-    KafkaProducer kafkaProducer;
+    bool kafkaEnabled;
+    std::unique_ptr<KafkaProducer> kafkaProducer;
 
     void perform_particle_simulation();
     void save_our_data();

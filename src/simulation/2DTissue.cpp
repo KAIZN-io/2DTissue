@@ -25,6 +25,7 @@ _2DTissue::_2DTissue(
     int particle_count,
     int step_count,
     double v0,
+    bool use_kafka,
     double k,
     double k_next,
     double v0_next,
@@ -74,8 +75,13 @@ _2DTissue::_2DTissue(
     , validation(surface_parametrization)
     , tessellation(surface_parametrization)
     , euclidean_tiling(surface_parametrization, tessellation, r_UV, r_UV_old, n)
-    , kafkaProducer("localhost:9092", "simulation_topic")
+    , kafkaEnabled(use_kafka)
 {
+    if (kafkaEnabled)
+    {
+        kafkaProducer = std::make_unique<KafkaProducer>("localhost:9092", "simulation_topic");
+    }
+
     loadMeshFaces(mesh_path, face_3D);
 
     // std::tie is used to unpack the values returned by create_uv_surface function directly into your class member
@@ -159,19 +165,22 @@ System _2DTissue::update()
     system.order_parameter = v_order(v_order.rows() - 1, 0);
     system.particles = particles;
 
-    // Send system information to Kafka
-    std::string message = "System Order Parameter: " + std::to_string(system.order_parameter);
-    kafkaProducer.send(message);
-
-    // Send particles information to Kafka
-    for (const auto& particle : particles)
+    if (kafkaEnabled)
     {
-        std::string particleMessage
-            = "Particle: x_UV=" + std::to_string(particle.x_UV) + ", y_UV=" + std::to_string(particle.y_UV)
-              + ", x_velocity_UV=" + std::to_string(particle.x_velocity_UV)
-              + ", y_velocity_UV=" + std::to_string(particle.y_velocity_UV) + ", x_3D=" + std::to_string(particle.x_3D)
-              + ", y_3D=" + std::to_string(particle.y_3D) + ", z_3D=" + std::to_string(particle.z_3D);
-        kafkaProducer.send(particleMessage);
+        // Send system information to Kafka
+        std::string message = "System Order Parameter: " + std::to_string(system.order_parameter);
+        kafkaProducer->send(message);
+
+        // Send particles information to Kafka
+        for (const auto& particle : particles)
+        {
+            std::string particleMessage
+                = "Particle: x_UV=" + std::to_string(particle.x_UV) + ", y_UV=" + std::to_string(particle.y_UV)
+                  + ", x_velocity_UV=" + std::to_string(particle.x_velocity_UV) + ", y_velocity_UV="
+                  + std::to_string(particle.y_velocity_UV) + ", x_3D=" + std::to_string(particle.x_3D)
+                  + ", y_3D=" + std::to_string(particle.y_3D) + ", z_3D=" + std::to_string(particle.z_3D);
+            kafkaProducer->send(particleMessage);
+        }
     }
 
     // // Insert data into SQLite database
