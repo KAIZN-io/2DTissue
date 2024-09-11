@@ -23,10 +23,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 # Find and link the necessary libraries
 find_package(GTest REQUIRED)
 find_package(PkgConfig REQUIRED)
-
-# Add paths for Kafka and SQLite
-pkg_check_modules(LIBRDKAFKA REQUIRED IMPORTED_TARGET librdkafka)
 find_package(SQLite3 REQUIRED)
+find_package(RdKafka CONFIG REQUIRED)
 
 # Include directories
 include_directories(${GTEST_INCLUDE_DIRS})
@@ -45,22 +43,23 @@ add_subdirectory(MeshCartographyLib)
 
 # Add library with simulation sources
 add_library(simulation_lib STATIC ${SIMULATION_SOURCES} ${UTILS_SOURCES})
-target_link_libraries(simulation_lib PRIVATE MeshCartographyLib PkgConfig::LIBRDKAFKA SQLite::SQLite3)
+target_link_libraries(simulation_lib PRIVATE MeshCartographyLib SQLite::SQLite3 RdKafka::rdkafka RdKafka::rdkafka++)
 
 # Add C++ source files for main executable
 add_executable(main src/main.cpp)
 target_link_libraries(main PRIVATE
-        MeshCartographyLib
-        simulation_lib
-        PkgConfig::LIBRDKAFKA
-        SQLite::SQLite3
+    MeshCartographyLib
+    simulation_lib
+    SQLite::SQLite3
+    RdKafka::rdkafka
+    RdKafka::rdkafka++
 )
 
 # Install the target
 install(TARGETS main
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
 )
 
 # Collect all test source files
@@ -70,4 +69,4 @@ file(GLOB_RECURSE TEST_SOURCES tests/simulation/*.cpp)
 add_executable(all_tests ${TEST_SOURCES})
 
 # Link your libraries to the test executable
-target_link_libraries(all_tests PRIVATE simulation_lib MeshCartographyLib ${GTEST_BOTH_LIBRARIES} pthread PkgConfig::LIBRDKAFKA SQLite::SQLite3)
+target_link_libraries(all_tests PRIVATE simulation_lib MeshCartographyLib ${GTEST_BOTH_LIBRARIES} pthread SQLite::SQLite3 RdKafka::rdkafka RdKafka::rdkafka++)

@@ -21,15 +21,23 @@ OS := $(shell uname -s)
 ifeq ($(OS), Darwin)
 	C_COMPILER=$(shell xcrun --find clang)
 	CXX_COMPILER=$(shell xcrun --find clang++)
+	SQLITE3_LIB=$(shell brew --prefix sqlite3)/lib
+	SQLITE3_INCLUDE=$(shell brew --prefix sqlite3)/include
+	VCPKG_ROOT := $(PROJECT_DIR)/vcpkg
+	VCPKG_TOOLCHAIN := $(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake
 else ifeq ($(OS), Linux)
 	C_COMPILER=/usr/bin/gcc
 	CXX_COMPILER=/usr/bin/g++
+	SQLITE3_LIB=/usr/local/lib
+	SQLITE3_INCLUDE=/usr/local/include
+	VCPKG_ROOT := $(PROJECT_DIR)/vcpkg
+	VCPKG_TOOLCHAIN := $(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake
 endif
 
 .PHONY: all
-all: check_dependencies check_submodule build
+all: check_dependencies check_submodule init_vcpkg build
 
-# Check if LLVM is installed, if not, install using apt-get
+# Check if LLVM and other dependencies are installed
 .PHONY: check_dependencies
 check_dependencies:
 	@echo "Checking dependencies..."
@@ -44,7 +52,8 @@ ifeq ($(OS), Darwin)
 	export LDFLAGS="-L$$LLVM_PATH/lib $$LDFLAGS"; \
 	export CPPFLAGS="-I$$LLVM_PATH/include $$CPPFLAGS"; \
 	which yarn >/dev/null || (echo "Installing Yarn via Homebrew..."; brew install yarn); \
-	which ninja >/dev/null || (echo "Installing Ninja via Homebrew..."; brew install ninja)
+	which ninja >/dev/null || (echo "Installing Ninja via Homebrew..."; brew install ninja); \
+	which sqlite3 >/dev/null || (echo "Installing SQLite3 via Homebrew..."; brew install sqlite3)
 else ifeq ($(OS), Linux)
 	sudo apt-get update; \
 	MAKEFILE_DEPS="g++ llvm clang yarn cmake libeigen3-dev libgmp-dev libmpfr-dev googletest libgtest-dev ninja-build"; \
@@ -52,7 +61,7 @@ else ifeq ($(OS), Linux)
 		dpkg -s $$DEP >/dev/null 2>&1 || (echo "Installing $$DEP via package manager..."; sudo apt-get install -y $$DEP); \
 	done
 else ifeq ($(OS), MINGW64_NT-10.0)
-	@echo "Please ensure you have installed LLVM and Yarn manually, and they are available in the PATH."
+	@echo "Please ensure you have installed LLVM, Yarn, and SQLite manually, and they are available in the PATH."
 else
 	@echo "Unsupported OS. Please install the packages manually."
 endif
@@ -70,7 +79,18 @@ check_submodule:
 .PHONY: update_submodule
 update_submodule:
 	@echo "Updating MeshCartographyLib submodule..."; \
-	git submodule update --remote MeshCartographyLib; \
+	git submodule update --remote MeshCartographyLib;
+
+# Initialize and set up vcpkg
+.PHONY: init_vcpkg
+init_vcpkg:
+	@echo "Initializing vcpkg..."
+	cd $(VCPKG_ROOT) && ./bootstrap-vcpkg.sh
+	@echo "Integrating vcpkg with system..."
+	$(VCPKG_ROOT)/vcpkg integrate install
+	@echo "Installing librdkafka via vcpkg..."
+	$(VCPKG_ROOT)/vcpkg install librdkafka
+	@echo "vcpkg initialization and library installation complete."
 
 .PHONY: build
 build: $(DATA_DIR)
@@ -82,6 +102,9 @@ build: $(DATA_DIR)
 			-DCMAKE_CXX_COMPILER=$(CXX_COMPILER) \
 			-DCMAKE_CXX_STANDARD=20 \
 			-DCMAKE_OSX_ARCHITECTURES=$(ARCHITECTURE) \
+			-DSQLITE3_INCLUDE_DIR=$(SQLITE3_INCLUDE) \
+			-DSQLITE3_LIBRARY=$(SQLITE3_LIB) \
+			-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_TOOLCHAIN) \
 			-GNinja
 ifeq ($(OS), Darwin)
 	$(BUILD_CMD) -C $(PROJECT_DIR)/$(BUILD_DIR) -j $(shell sysctl -n hw.logicalcpu)
