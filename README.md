@@ -1,4 +1,4 @@
-# Aim of *2DTissue*
+# Aim of *2DTissue*: Simulating the weather of ~~the world~~ tissue
 
 This physics engine *2DTissue* was developed to simulate the collective behaviour of active (self-propelled) particles on arbitrary curved closed surfaces.
 
