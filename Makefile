@@ -84,6 +84,12 @@ update_submodule:
 # Initialize and set up vcpkg
 .PHONY: init_vcpkg
 init_vcpkg:
+	@if [ ! "$(shell git submodule status | grep vcpkg | cut -c 1)" = "-" ]; then \
+		echo "vcpkg submodule already initialized and updated."; \
+	else \
+		echo "vcpkg submodule is empty. Initializing and updating..."; \
+		git submodule update --init -- vcpkg; \
+	fi
 	@echo "Initializing vcpkg..."
 	cd $(VCPKG_ROOT) && ./bootstrap-vcpkg.sh
 	@echo "Integrating vcpkg with system..."
